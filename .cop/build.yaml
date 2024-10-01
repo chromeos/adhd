@@ -34,6 +34,26 @@
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
+        "version"
+      ],
+      "id": "ensure-bazel:0",
+      "entrypoint": "bazel"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "setup complete"
+      ],
+      "id": "setup-complete:0",
+      "waitFor": [
+        "prepare-source:1",
+        "ensure-bazel:0"
+      ],
+      "entrypoint": "echo"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
         "-ah",
         "/workspace/adhd/",
         "./"
@@ -41,7 +61,7 @@
       "dir": "/workspace-copgen-check",
       "id": "copgen-check:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -79,7 +99,7 @@
       "dir": "/workspace-rust_generate",
       "id": "rust_generate:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -133,7 +153,7 @@
       "dir": "/workspace-archlinux-clang",
       "id": "archlinux-clang:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -176,7 +196,7 @@
       "dir": "/workspace-archlinux-clang-asan",
       "id": "archlinux-clang-asan:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -220,7 +240,7 @@
       "dir": "/workspace-archlinux-clang-ubsan",
       "id": "archlinux-clang-ubsan:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -264,7 +284,7 @@
       "dir": "/workspace-archlinux-gcc",
       "id": "archlinux-gcc:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -308,7 +328,7 @@
       "dir": "/workspace-archlinux-system-cras-rust",
       "id": "archlinux-system-cras-rust:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -410,7 +430,7 @@
       "dir": "/workspace-kythe",
       "id": "kythe:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -446,7 +466,7 @@
       ],
       "id": "oss-fuzz-setup:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "mkdir"
     },
@@ -653,7 +673,7 @@
       "dir": "/workspace-cppcheck",
       "id": "cppcheck:0",
       "waitFor": [
-        "prepare-source:1"
+        "setup-complete:0"
       ],
       "entrypoint": "rsync",
       "volumes": [

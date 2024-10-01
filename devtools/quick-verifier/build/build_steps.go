@@ -18,18 +18,20 @@ func (cl *gerritCL) makeQuickVerifierBuild(name string) *cloudbuildpb.Build {
 func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build {
 	var b buildplan.Build
 	git := b.Add(gitSteps)
+	ensureBazel := b.Add(ensureBazelSteps())
+	setup := b.Add(setupCompleteMarkerSteps().WithDep(git).WithDep(ensureBazel))
 
-	b.Add(copgenCheckSteps().WithDep(git))
-	b.Add(rustGenerateSteps().WithDep(git))
+	b.Add(copgenCheckSteps().WithDep(setup))
+	b.Add(rustGenerateSteps().WithDep(setup))
 
-	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(git))
-	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(git))
-	b.Add(archlinuxSteps("archlinux-clang-ubsan", "--config=local-clang", "--config=ubsan").WithDep(git))
-	b.Add(archlinuxSteps("archlinux-gcc", "--config=local-gcc", "--config=gcc-strict").WithDep(git))
-	b.Add(systemCrasRustSteps().WithDep(git))
-	b.Add(kytheSteps().WithDep(git))
+	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(setup))
+	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(setup))
+	b.Add(archlinuxSteps("archlinux-clang-ubsan", "--config=local-clang", "--config=ubsan").WithDep(setup))
+	b.Add(archlinuxSteps("archlinux-gcc", "--config=local-gcc", "--config=gcc-strict").WithDep(setup))
+	b.Add(systemCrasRustSteps().WithDep(setup))
+	b.Add(kytheSteps().WithDep(setup))
 
-	ossFuzzSetup := b.Add(ossFuzzSetupSteps().WithDep(git))
+	ossFuzzSetup := b.Add(ossFuzzSetupSteps().WithDep(setup))
 	b.Add(ossFuzzSteps("oss-fuzz-address", "address", "libfuzzer").WithDep(ossFuzzSetup))
 	b.Add(ossFuzzSteps("oss-fuzz-address-afl", "address", "afl").WithDep(ossFuzzSetup))
 	// MSan removed in https://github.com/google/oss-fuzz/pull/11938.
@@ -38,7 +40,7 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	// TODO(b/325995661): Figure out why it's broken.
 	// b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
 
-	b.Add(cppcheckSteps().WithDep(git))
+	b.Add(cppcheckSteps().WithDep(setup))
 
 	return &cloudbuildpb.Build{
 		Steps: b.AsCloudBuild(),
@@ -98,6 +100,22 @@ func MakeCopBuild() *cloudbuildpb.Build {
 		copMoveSourceSteps(),
 		nil,
 	)
+}
+
+func ensureBazelSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"ensure-bazel",
+		// Run bazel once to ensure bazel is available and to avoid
+		// races between bazelisk downloading bazel from multiple invocations.
+		buildplan.Command(archlinuxBuilder, "bazel", "version"),
+	).WithManualIsolation()
+}
+
+func setupCompleteMarkerSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"setup-complete",
+		buildplan.Command(archlinuxBuilder, "echo", "setup complete"),
+	).WithManualIsolation()
 }
 
 var prepareSourceStep = buildplan.Command(archlinuxBuilder, "rsync", "-ah", "/workspace/adhd/", "./")
