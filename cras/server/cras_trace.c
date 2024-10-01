@@ -55,13 +55,13 @@ void cras_trace_frames(enum CRAS_NODE_TYPE type, unsigned int nframes) {
       TRACE_COUNTER(audio, CRAS_SPK_WRITE_FRAMES, nframes);
       break;
     case CRAS_NODE_TYPE_FLOOP:
-      TRACE_COUNTER(audio, CRAS_FLOOP_OUT_WRITE_FRAMES, nframes);
+      TRACE_COUNTER(audio, CRAS_FLOOP_IN_READ_FRAMES, nframes);
       break;
     case CRAS_NODE_TYPE_MIC:
       TRACE_COUNTER(audio, CRAS_INTERNAL_MIC_READ_FRAMES, nframes);
       break;
     case CRAS_NODE_TYPE_FLOOP_INTERNAL:
-      TRACE_COUNTER(audio, CRAS_FLOOP_IN_READ_FRAMES, nframes);
+      TRACE_COUNTER(audio, CRAS_FLOOP_OUT_WRITE_FRAMES, nframes);
       break;
     default:
       break;
