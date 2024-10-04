@@ -195,6 +195,7 @@ int dev_stream_mix(struct dev_stream* dev_stream,
   unsigned int num_samples;
   size_t frames = 0;
   unsigned int dev_frames;
+  unsigned int playable_frames;
   float mix_vol;
 
   fr_in_buf = dev_stream_playback_frames(dev_stream);
@@ -210,12 +211,19 @@ int dev_stream_mix(struct dev_stream* dev_stream,
   // Stream volume scaler.
   mix_vol = cras_rstream_get_volume_scaler(dev_stream->stream);
 
+  playable_frames = cras_rstream_playable_frames(rstream, dev_stream->dev_id);
+
   fr_written = 0;
   fr_read = 0;
   while (fr_written < num_to_write) {
     unsigned int read_frames;
     src = cras_rstream_get_readable_frames(rstream, buffer_offset + fr_read,
                                            &frames);
+
+    // b/363857765: the combined readable frames can exceed the playable frames.
+    // Limit the number of frames by playable frames here.
+    frames = MIN(frames, playable_frames);
+
     if (frames == 0) {
       break;
     }
@@ -235,6 +243,7 @@ int dev_stream_mix(struct dev_stream* dev_stream,
     target += dev_frames * cras_get_format_bytes(fmt);
     fr_written += dev_frames;
     fr_read += read_frames;
+    playable_frames -= read_frames;
   }
 
   cras_rstream_dev_offset_update(rstream, fr_read, dev_stream->dev_id);
