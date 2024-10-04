@@ -38,12 +38,12 @@ static bool need_echo_cancellation(enum CRAS_NODE_TYPE output_node_type) {
 
 bool enable_sidetone(struct stream_list* stream_list,
                      enum CRAS_NODE_TYPE output_node_type) {
-  int effects = 0;
+  int effects = IGNORE_UI_GAINS;
   int block_size = DEFAULT_SERVER_STREAM_BLOCK_SIZE;
   if (need_echo_cancellation(output_node_type)) {
     // Set higher block size so it has higher latency and prevent the audio
     // being cancelled by the echo cancellation.
-    effects = APM_ECHO_CANCELLATION;
+    effects |= APM_ECHO_CANCELLATION;
     block_size = 8192;
   }
 
