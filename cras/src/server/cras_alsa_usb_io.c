@@ -112,9 +112,7 @@ static inline int usb_close_dev(struct cras_iodev* iodev) {
 
 static int usb_open_dev(struct cras_iodev* iodev) {
   struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
-  struct alsa_common_node* anode =
-      (struct alsa_common_node*)aio->common.base.active_node;
-  const char* pcm_name = anode->pcm_name;
+  const char* pcm_name = aio->common.pcm_name;
 
   aio->common.poll_fd = -1;
   audio_peripheral_info(aio->common.vendor_id, aio->common.product_id,
@@ -561,8 +559,6 @@ static void usb_free_alsa_iodev_resources(struct alsa_usb_io* aio) {
       cras_volume_curve_destroy(aout->volume_curve);
     }
 
-    struct alsa_common_node* anode = (struct alsa_common_node*)node;
-    free((void*)anode->pcm_name);
     cras_iodev_rm_node(&aio->common.base, node);
     free(node->softvol_scalers);
     free((void*)node->dsp_name);
@@ -1930,7 +1926,6 @@ int cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
   if (!anode) {
     return -EINVAL;
   }
-  anode->pcm_name = strdup(section->pcm_name);
 
   // Find any jack controls for this device.
   return cras_alsa_jack_list_add_jack_for_section(
