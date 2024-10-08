@@ -667,7 +667,8 @@ static struct cras_audio_format get_best_channels(
     apm_fmt.channel_layout[ch] = -1;
   }
 
-  for (int ch = CRAS_CH_FL; ch < CRAS_CH_MAX; ch++) {
+  for (int ch = CRAS_CH_FL;
+       ch < CRAS_CH_MAX && apm_fmt.num_channels < MULTI_SLICE_MAX_CH; ch++) {
     if (dev_fmt->channel_layout[ch] != -1) {
       apm_fmt.channel_layout[ch] = apm_fmt.num_channels++;
     }
