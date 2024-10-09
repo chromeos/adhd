@@ -166,5 +166,4 @@ fn download_dlcs_until_installed(
         sleep(retry_sleep);
         retry_sleep = max_retry_sleep.min(retry_sleep * 2);
     }
-    cras_s2::global::set_dlc_manager_done();
 }

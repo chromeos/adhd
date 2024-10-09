@@ -27,7 +27,6 @@ struct Input {
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
     dlc_installed: HashMap<String, bool>,
-    dlc_manager_done: bool,
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
@@ -75,6 +74,7 @@ struct Input {
 
 #[derive(Serialize)]
 struct Output {
+    audio_effects_ready: bool,
     dsp_input_effects_blocked: bool,
     audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
     nc_effect_for_ui_toggle: EFFECT_TYPE,
@@ -166,6 +166,7 @@ fn resolve(input: &Input) -> Output {
         .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union);
 
     Output {
+        audio_effects_ready: input.dlc_installed.values().all(|&installed| installed),
         dsp_input_effects_blocked,
         audio_effects_status,
         nc_effect_for_ui_toggle,
@@ -299,11 +300,6 @@ impl S2 {
             .dlc_installed
             .insert(dlc.as_str().to_string(), installed);
         self.update();
-    }
-
-    fn set_dlc_manager_done(&mut self) {
-        self.input.dlc_manager_done = true;
-        self.update()
     }
 
     fn set_style_transfer_featured_allowed(&mut self, allowed: bool) {
@@ -511,7 +507,6 @@ mod tests {
         let mut s = S2::new();
         assert!(!s.input.dlc_manager_ready);
         assert!(s.input.dlc_installed.is_empty());
-        assert!(!s.input.dlc_manager_done);
 
         s.set_dlc_manager_ready();
         assert!(s.input.dlc_manager_ready);
@@ -520,6 +515,7 @@ mod tests {
             (CrasDlcId::CrasDlcNcAp, false),
             (CrasDlcId::CrasDlcIntelligoBeamforming, false),
         ]));
+        assert!(!s.output.audio_effects_ready);
 
         assert_eq!(
             s.input.dlc_installed,
@@ -531,6 +527,7 @@ mod tests {
                 )
             ])
         );
+        assert!(!s.output.audio_effects_ready);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         assert_eq!(
@@ -543,6 +540,8 @@ mod tests {
                 )
             ])
         );
+        assert!(!s.output.audio_effects_ready);
+
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         assert_eq!(
             s.input.dlc_installed,
@@ -554,9 +553,7 @@ mod tests {
                 )
             ])
         );
-
-        s.set_dlc_manager_done();
-        assert!(s.input.dlc_manager_done);
+        assert!(s.output.audio_effects_ready);
     }
 
     #[test]
