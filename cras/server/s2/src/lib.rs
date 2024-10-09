@@ -26,7 +26,7 @@ struct Input {
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
-    dlc_installed: HashSet<String>,
+    dlc_installed: HashMap<String, bool>,
     dlc_manager_done: bool,
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
@@ -88,11 +88,15 @@ fn resolve(input: &Input) -> Output {
     let beamforming_supported = input.cras_config_dir.ends_with(".3mic");
     let beamforming_allowed = match &input.beamforming_required_dlcs {
         None => false,
-        Some(dlcs) => dlcs.iter().all(|dlc| input.dlc_installed.contains(dlc)),
+        Some(dlcs) => dlcs
+            .iter()
+            .all(|dlc| input.dlc_installed.get(dlc).cloned().unwrap_or(false)),
     };
     let dlc_nc_ap_installed = input
         .dlc_installed
-        .contains(CrasDlcId::CrasDlcNcAp.as_str());
+        .get(CrasDlcId::CrasDlcNcAp.as_str())
+        .cloned()
+        .unwrap_or(false);
     let dsp_input_effects_blocked = if input.bypass_block_dsp_nc {
         false
     } else if input.nc_standalone_mode {
@@ -281,8 +285,10 @@ impl S2 {
         self.update();
     }
 
-    fn set_dlc_installed(&mut self, dlc: CrasDlcId) {
-        self.input.dlc_installed.insert(dlc.as_str().to_string());
+    fn set_dlc_installed(&mut self, dlc: CrasDlcId, installed: bool) {
+        self.input
+            .dlc_installed
+            .insert(dlc.as_str().to_string(), installed);
         self.update();
     }
 
@@ -407,7 +413,7 @@ mod tests {
         s.set_ap_nc_feature_tier_allowed(true);
         assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
 
         s.set_ap_nc_featured_allowed(true);
         assert_eq!(s.output.get_ap_nc_status().allowed, true);
@@ -441,7 +447,7 @@ mod tests {
         s.set_style_transfer_featured_allowed(true);
         assert_eq!(s.output.get_ast_status().allowed, false);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         assert_eq!(s.output.get_ast_status().allowed, true);
 
         s.set_style_transfer_featured_allowed(false);
@@ -476,7 +482,7 @@ mod tests {
         assert!(!s.output.get_ast_status().supported);
 
         assert!(!s.output.get_bf_status().allowed);
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         assert!(s.output.get_bf_status().allowed);
 
         let dlcs = HashSet::from(["does-not-exist".to_string()]);
@@ -501,17 +507,44 @@ mod tests {
         s.set_dlc_manager_ready();
         assert!(s.input.dlc_manager_ready);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, false);
         assert_eq!(
             s.input.dlc_installed,
-            HashSet::from([CrasDlcId::CrasDlcNcAp.as_str().to_string()])
+            HashMap::from([(CrasDlcId::CrasDlcNcAp.as_str().to_string(), false)])
         );
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, false);
         assert_eq!(
             s.input.dlc_installed,
-            HashSet::from([
-                CrasDlcId::CrasDlcNcAp.as_str().to_string(),
-                CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string()
+            HashMap::from([
+                (CrasDlcId::CrasDlcNcAp.as_str().to_string(), false),
+                (
+                    CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
+                    false
+                )
+            ])
+        );
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        assert_eq!(
+            s.input.dlc_installed,
+            HashMap::from([
+                (CrasDlcId::CrasDlcNcAp.as_str().to_string(), true),
+                (
+                    CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
+                    false
+                )
+            ])
+        );
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        assert_eq!(
+            s.input.dlc_installed,
+            HashMap::from([
+                (CrasDlcId::CrasDlcNcAp.as_str().to_string(), true),
+                (
+                    CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
+                    true
+                )
             ])
         );
 
@@ -637,7 +670,7 @@ mod tests {
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
         s.set_ap_nc_featured_allowed(true);
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         expected |= CRAS_NC_PROVIDER::AP;
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
@@ -649,7 +682,7 @@ mod tests {
         s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
             .as_str()
             .to_string()]));
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         s.set_cras_config_dir("omniknight.3mic");
         expected |= CRAS_NC_PROVIDER::BF;
         // TODO(b/353627012): Currently BF and AST are mutually exclusive. Update test when they're not.

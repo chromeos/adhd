@@ -122,14 +122,14 @@ fn download_dlcs_until_installed(
         .zip(cras_common::types_internal::MANAGED_DLCS.iter())
         .filter_map(|(download, id)| if *download { Some(id) } else { None })
         .collect();
-    for retry_count in 0..i32::MAX {
+    for _retry_count in 0..i32::MAX {
         let mut todo_next = vec![];
         for &dlc in todo.iter() {
             match install_dlc(*dlc) {
                 Ok(state) => {
                     log::info!("successfully installed {dlc}");
                     STATE_CACHE.lock().unwrap().insert(*dlc, state);
-                    cras_s2::global::cras_s2_set_dlc_installed(*dlc);
+                    cras_s2::global::cras_s2_set_dlc_installed(*dlc, true);
                     dlc_install_on_success_callback(*dlc, start_time.elapsed().as_secs() as i32);
                 }
                 Err(e) => {

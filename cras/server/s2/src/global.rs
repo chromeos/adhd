@@ -45,8 +45,8 @@ pub extern "C" fn cras_s2_are_audio_effects_ready() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn cras_s2_set_dlc_installed(dlc: CrasDlcId) {
-    state().set_dlc_installed(dlc);
+pub extern "C" fn cras_s2_set_dlc_installed(dlc: CrasDlcId, installed: bool) {
+    state().set_dlc_installed(dlc, installed);
 }
 
 pub fn set_dlc_manager_done() {

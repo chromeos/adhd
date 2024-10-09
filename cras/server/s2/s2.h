@@ -27,7 +27,7 @@ void cras_s2_set_ap_nc_feature_tier_allowed(bool allowed);
 
 bool cras_s2_are_audio_effects_ready(void);
 
-void cras_s2_set_dlc_installed(enum CrasDlcId dlc);
+void cras_s2_set_dlc_installed(enum CrasDlcId dlc, bool installed);
 
 bool cras_s2_get_ap_nc_allowed(void);
 
