@@ -107,6 +107,23 @@ pub struct CrasDlcDownloadConfig {
     pub dlcs_to_download: [bool; cras_common::types_internal::NUM_CRAS_DLCS],
 }
 
+fn get_dlc_ids_to_download(download_config: &CrasDlcDownloadConfig) -> Vec<&CrasDlcId> {
+    download_config
+        .dlcs_to_download
+        .iter()
+        .zip(cras_common::types_internal::MANAGED_DLCS.iter())
+        .filter_map(|(download, id)| if *download { Some(id) } else { None })
+        .collect()
+}
+
+fn download_dlcs_init(download_config: &CrasDlcDownloadConfig) {
+    cras_s2::global::cras_s2_init_dlc_installed(HashMap::from_iter(
+        get_dlc_ids_to_download(download_config)
+            .into_iter()
+            .map(|&dlc| (dlc, false)),
+    ))
+}
+
 fn download_dlcs_until_installed(
     download_config: CrasDlcDownloadConfig,
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
@@ -116,12 +133,7 @@ fn download_dlcs_until_installed(
 
     let mut retry_sleep = time::Duration::from_secs(1);
     let max_retry_sleep = time::Duration::from_secs(120);
-    let mut todo: Vec<_> = download_config
-        .dlcs_to_download
-        .iter()
-        .zip(cras_common::types_internal::MANAGED_DLCS.iter())
-        .filter_map(|(download, id)| if *download { Some(id) } else { None })
-        .collect();
+    let mut todo = get_dlc_ids_to_download(&download_config);
     for _retry_count in 0..i32::MAX {
         let mut todo_next = vec![];
         for &dlc in todo.iter() {

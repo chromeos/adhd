@@ -285,6 +285,15 @@ impl S2 {
         self.update();
     }
 
+    fn init_dlc_installed(&mut self, dlc_installed: HashMap<CrasDlcId, bool>) {
+        self.input.dlc_installed = HashMap::from_iter(
+            dlc_installed
+                .into_iter()
+                .map(|(dlc, installed)| (dlc.as_str().to_string(), installed)),
+        );
+        self.update();
+    }
+
     fn set_dlc_installed(&mut self, dlc: CrasDlcId, installed: bool) {
         self.input
             .dlc_installed
@@ -507,13 +516,11 @@ mod tests {
         s.set_dlc_manager_ready();
         assert!(s.input.dlc_manager_ready);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, false);
-        assert_eq!(
-            s.input.dlc_installed,
-            HashMap::from([(CrasDlcId::CrasDlcNcAp.as_str().to_string(), false)])
-        );
+        s.init_dlc_installed(HashMap::from([
+            (CrasDlcId::CrasDlcNcAp, false),
+            (CrasDlcId::CrasDlcIntelligoBeamforming, false),
+        ]));
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, false);
         assert_eq!(
             s.input.dlc_installed,
             HashMap::from([

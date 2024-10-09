@@ -11,6 +11,7 @@ use std::thread;
 use super::get_dlc_state_cached;
 use super::CrasDlcId;
 use super::Result;
+use crate::download_dlcs_init;
 use crate::download_dlcs_until_installed;
 use crate::DlcInstallOnFailureCallback;
 use crate::DlcInstallOnSuccessCallback;
@@ -77,6 +78,8 @@ pub extern "C" fn download_dlcs_until_installed_with_thread(
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
     dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {
+    download_dlcs_init(&download_config);
+
     thread::Builder::new()
         .name("cras-dlc".into())
         .spawn(move || {

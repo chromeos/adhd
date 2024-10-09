@@ -575,6 +575,18 @@ int cras_server_run(unsigned int profile_disable_mask) {
     goto bail;
   }
 
+  // `cras_dlc_manager` writes information that can be queried by dbus call, so
+  // we initialize it before initializing dbus threads.
+  cras_dlc_manager_init((struct CrasDlcDownloadConfig){
+      .dlcs_to_download =
+          {
+              [CrasDlcSrBt] = cras_system_get_sr_bt_supported(),
+              [CrasDlcNcAp] = true,
+              [CrasDlcIntelligoBeamforming] =
+                  cras_s2_get_beamforming_supported(),
+          },
+  });
+
   rc = dbus_threads_init_default();
   if (!rc) {
     goto bail;
@@ -603,18 +615,6 @@ int cras_server_run(unsigned int profile_disable_mask) {
   // After 5 and 10s, make sure there is an internal soundcard probed.
   cras_tm_create_timer(tm, 5000, check_internal_card, (void*)5);
   cras_tm_create_timer(tm, 10000, check_internal_card, (void*)10);
-
-  // Download DLC packages
-  struct CrasDlcDownloadConfig dl_cfg = {
-      .dlcs_to_download =
-          {
-              [CrasDlcSrBt] = cras_system_get_sr_bt_supported(),
-              [CrasDlcNcAp] = true,
-              [CrasDlcIntelligoBeamforming] =
-                  cras_s2_get_beamforming_supported(),
-          },
-  };
-  cras_dlc_manager_init(dl_cfg);
 
   // Main server loop - client callbacks are run from this context.
   while (1) {

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::collections::HashMap;
 use std::ffi::c_char;
 use std::ffi::CString;
 use std::ops::Deref;
@@ -42,6 +43,10 @@ pub fn set_dlc_manager_ready() {
 #[no_mangle]
 pub extern "C" fn cras_s2_are_audio_effects_ready() -> bool {
     state().input.dlc_manager_done
+}
+
+pub fn cras_s2_init_dlc_installed(dlc_installed: HashMap<CrasDlcId, bool>) {
+    state().init_dlc_installed(dlc_installed);
 }
 
 #[no_mangle]
