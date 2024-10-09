@@ -367,6 +367,10 @@
       <arg name="enabled" type="b" direction="in"/>
     </method>
 
+    <method name="AreAudioEffectsReady">
+      <arg name="ready" type="b" direction="out"/>
+    </method>
+
     <method name="SetVoiceIsolationUIEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>

@@ -40,6 +40,11 @@ pub fn set_dlc_manager_ready() {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_are_audio_effects_ready() -> bool {
+    state().input.dlc_manager_done
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_dlc_installed(dlc: CrasDlcId) {
     state().set_dlc_installed(dlc);
 }
