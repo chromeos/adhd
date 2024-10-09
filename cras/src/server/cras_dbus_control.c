@@ -1089,6 +1089,17 @@ static DBusHandlerResult handle_are_audio_effects_ready(DBusConnection* conn,
   return send_bool_reply(conn, message, cras_s2_are_audio_effects_ready());
 }
 
+static DBusHandlerResult handle_get_audio_effect_dlcs(DBusConnection* conn,
+                                                      DBusMessage* message,
+                                                      void* arg) {
+  char* dlcs = cras_s2_get_audio_effect_dlcs();
+
+  int ret = send_string_reply(conn, message, dlcs);
+  cras_rust_free_string(dlcs);
+
+  return ret;
+}
+
 static DBusHandlerResult handle_set_voice_isolation_ui_enabled(
     DBusConnection* conn,
     DBusMessage* message,
@@ -1666,6 +1677,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "AreAudioEffectsReady")) {
     return handle_are_audio_effects_ready(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetAudioEffectDlcs")) {
+    return handle_get_audio_effect_dlcs(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetVoiceIsolationUIEnabled")) {
     return handle_set_voice_isolation_ui_enabled(conn, message, arg);

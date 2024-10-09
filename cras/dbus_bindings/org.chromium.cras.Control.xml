@@ -371,6 +371,14 @@
       <arg name="ready" type="b" direction="out"/>
     </method>
 
+    <method name="GetAudioEffectDlcs">
+      <tp:docstring>
+        Returns the audio effect dlcs that are expected to be installed on the
+        device.
+      </tp:docstring>
+      <arg name="data" type="s" direction="out"/>
+    </method>
+
     <method name="SetVoiceIsolationUIEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>

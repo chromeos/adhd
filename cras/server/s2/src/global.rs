@@ -50,6 +50,19 @@ pub fn cras_s2_init_dlc_installed(dlc_installed: HashMap<CrasDlcId, bool>) {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_get_audio_effect_dlcs() -> *mut c_char {
+    // TODO(b/372393426): Consider returning protobuf instead of string.
+    let s = state()
+        .input
+        .dlc_installed
+        .keys()
+        .cloned()
+        .collect::<Vec<String>>()
+        .join(",");
+    CString::new(s).expect("CString::new").into_raw()
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_dlc_installed(dlc: CrasDlcId, installed: bool) {
     state().set_dlc_installed(dlc, installed);
 }
