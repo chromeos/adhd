@@ -17,6 +17,7 @@ dsp_rust = { workspace = true }
 audio_processor = { workspace = true }
 cras_features_backend = { workspace = true }
 cras_s2 = { workspace = true }
+cras_feature_tier = { workspace = true }
 minijail = { workspace = true, optional = true }
 
 [build-dependencies]

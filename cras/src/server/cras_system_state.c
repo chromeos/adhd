@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "cras/common/check.h"
+#include "cras/server/feature_tier/feature_tier.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
@@ -32,7 +33,6 @@
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_tm.h"
-#include "cras/src/server/rust/include/cras_feature_tier.h"
 #include "cras/src/server/sidetone.h"
 #include "cras_iodev_info.h"
 #include "cras_shm.h"

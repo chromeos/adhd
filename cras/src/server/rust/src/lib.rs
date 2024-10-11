@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-mod feature_tier;
-pub use feature_tier::bindings as feature_tier_bindings;
 pub mod cras_processor;
 pub use cras_common::logging;
+pub use cras_feature_tier;
 mod rate_estimator;
 pub mod rate_estimator_bindings;
 pub use cras_common::fra;

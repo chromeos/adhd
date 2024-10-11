@@ -56,8 +56,7 @@ fn has_substr(string: &str, substrings: &[&str]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use crate::feature_tier::has_substr;
-    use crate::feature_tier::CrasFeatureTier;
+    use super::*;
 
     #[test]
     fn eve_i7() {

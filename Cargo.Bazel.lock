@@ -1,5 +1,5 @@
 {
-  "checksum": "e7f43a50b1b4d5e87a8a1ceefddafc6e61eec7f7550aef852de87ce3f8ef79f4",
+  "checksum": "e58a8c31f302eaa217b2af114fbc2f9d2d29d39fcbbf7f9359bc7ad807a2dac1",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2097,6 +2097,50 @@
             {
               "id": "thiserror 1.0.50",
               "target": "thiserror"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
+    "cras_feature_tier 0.1.0": {
+      "name": "cras_feature_tier",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras_feature_tier",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "cras_feature_tier",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "libc 0.2.155",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.20",
+              "target": "log"
             }
           ],
           "selects": {}
@@ -11563,6 +11607,7 @@
     "cras_cbindgen 0.1.0": "rules/cbindgen",
     "cras_common 0.1.0": "cras/common",
     "cras_dlc 0.1.0": "cras/server/platform/dlc",
+    "cras_feature_tier 0.1.0": "cras/server/feature_tier",
     "cras_features_backend 0.1.0": "cras/server/platform/features",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",

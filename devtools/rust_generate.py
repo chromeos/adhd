@@ -39,6 +39,7 @@ result = run(
 targets = sorted(
     set(x for x in result.stdout.split() if x != '@//build/write_source_files:write_source_files')
 )
+targets_string = json.dumps(targets, indent=4).replace('"\n', '",\n')
 (adhd / 'build/write_source_files/write_source_file_targets_generated.bzl').write_text(
     f'''# # Copyright 2024 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
@@ -46,7 +47,7 @@ targets = sorted(
 
 # Generated with {here.relative_to(adhd)}
 
-WRITE_SOURCE_FILE_TARGETS = {json.dumps(targets, indent=4)}
+WRITE_SOURCE_FILE_TARGETS = {targets_string}
 ''',
     encoding='utf-8',
 )

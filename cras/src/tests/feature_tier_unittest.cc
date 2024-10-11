@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/src/server/rust/include/cras_feature_tier.h"
+#include "cras/server/feature_tier/feature_tier.h"
 
 namespace {
 

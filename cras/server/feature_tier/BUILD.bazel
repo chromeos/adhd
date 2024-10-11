@@ -1,0 +1,42 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_rust//rust:defs.bzl", "rust_test")
+load("//:utils.bzl", "require_no_config")
+load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
+load("//rules/rust:defs.bzl", "cras_rust_library")
+
+cras_rust_library(
+    name = "feature_tier",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+    ),
+    crate_name = "cras_feature_tier",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True),
+)
+
+rust_test(
+    name = "feature_tier_test",
+    crate = ":feature_tier",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+)
+
+cras_cbindgen(
+    name = "feature_tier_h",
+    srcs = ["src/lib.rs"],
+    out = "feature_tier.h",
+    copyright_year = 2024,
+    extra_args = [],
+)
+
+cc_library(
+    name = "cc",
+    hdrs = ["feature_tier.h"],
+    visibility = ["//visibility:public"],
+    deps = [":feature_tier"],
+)

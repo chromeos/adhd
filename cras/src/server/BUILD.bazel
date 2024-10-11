@@ -606,6 +606,7 @@ cc_library(
         "//cras/server:cras_thread",
         "//cras/server:cras_trace",
         "//cras/server:main_message",
+        "//cras/server/feature_tier:cc",
         "//cras/server/platform/features",
         "//cras/server/platform/features:override",
         "//cras/server/platform/segmentation",

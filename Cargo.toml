@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "audio_processor",
     "cras/common",
+    "cras/server/feature_tier",
     "cras/server/platform/dlc",
     "cras/server/platform/features",
     "cras/server/s2",
@@ -26,6 +27,7 @@ cras = { path = "cras/src/server/rust" }
 cras_common = { path = "cras/common" }
 cras_dlc = { path = "cras/server/platform/dlc" }
 cras_features_backend = { path = "cras/server/platform/features" }
+cras_feature_tier = { path = "cras/server/feature_tier" }
 cras_s2 = { path = "cras/server/s2" }
 dsp_rust = { path = "cras/src/dsp/rust" }
 

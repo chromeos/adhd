@@ -1163,9 +1163,9 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server/feature_tier:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server/rust:cc",
         "@pkg_config//alsa",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
@@ -1841,6 +1841,7 @@ cc_test(
         ":test_support",
         "//cras/common:check",
         "//cras/common:rust_common_cc",
+        "//cras/server/feature_tier:cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",

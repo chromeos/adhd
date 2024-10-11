@@ -19,6 +19,7 @@ cras_rust_library(
         "//cras/common:rust_common",
         "//cras/server/platform/dlc",
         "//cras/server/platform/features:backend",
+        "//cras/server/feature_tier",
         "//cras/server/s2",
         "//cras/src/dsp/rust:dsp_rust",
     ] + all_crate_deps(),
@@ -59,13 +60,6 @@ cc_test(
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],
-)
-
-cras_cbindgen(
-    name = "cras_feature_tier_h",
-    srcs = ["src/feature_tier.rs"],
-    out = "include/cras_feature_tier.h",
-    copyright_year = 2022,
 )
 
 cras_cbindgen(

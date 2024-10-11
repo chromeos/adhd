@@ -299,6 +299,7 @@ dependencies = [
  "audio_processor",
  "cras_common",
  "cras_dlc",
+ "cras_feature_tier",
  "cras_features_backend",
  "cras_s2",
  "dsp_rust",
@@ -353,6 +354,14 @@ dependencies = [
  "static_assertions",
  "system_api",
  "thiserror",
+]
+
+[[package]]
+name = "cras_feature_tier"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "log",
 ]
 
 [[package]]
