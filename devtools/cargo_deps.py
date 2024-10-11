@@ -71,7 +71,7 @@ for path in ADHD_DIR.glob('**/Cargo.toml'):
                     ):
                         continue
                     s = Spec.parse(spec)
-                    specs.setdefault(name, s).merge(s)
+                    specs[name] = specs.get(name, s).merge(s)
 
 print('# update this to src/third_party/rust_crates/projects/third_party/adhd-deps/Cargo.toml')
 print('[dependencies]')
