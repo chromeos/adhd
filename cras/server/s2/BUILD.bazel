@@ -37,6 +37,7 @@ cras_cbindgen(
     extra_args = [
         "--with-include=cras/common/rust_common.h",
         "--add-keyword-enum",
+        "--add-keyword-struct",
     ],
 )
 

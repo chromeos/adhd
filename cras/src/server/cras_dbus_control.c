@@ -14,6 +14,7 @@
 #include <strings.h>
 #include <syslog.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/dbus_bindings/cras_dbus_bindings.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/s2/s2.h"
@@ -1100,6 +1101,37 @@ static DBusHandlerResult handle_get_audio_effect_dlcs(DBusConnection* conn,
   return ret;
 }
 
+static DBusHandlerResult handle_get_voice_isolation_ui_appearance(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  DBusMessage* reply;
+  dbus_uint32_t serial = 0;
+  DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
+
+  reply = dbus_message_new_method_return(message);
+  if (!reply) {
+    return DBUS_HANDLER_RESULT_NEED_MEMORY;
+  }
+
+  struct CrasEffectUIAppearance appearance =
+      cras_s2_get_audio_effect_ui_appearance();
+  if (!dbus_message_append_args(
+          reply, DBUS_TYPE_UINT32, &appearance.toggle_type, DBUS_TYPE_UINT32,
+          &appearance.effect_mode_options, DBUS_TYPE_BOOLEAN,
+          &appearance.show_effect_fallback_message)) {
+    ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+    goto unref_reply;
+  }
+  if (!dbus_connection_send(conn, reply, &serial)) {
+    ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+  }
+
+unref_reply:
+  dbus_message_unref(reply);
+  return ret;
+}
+
 static DBusHandlerResult handle_set_voice_isolation_ui_enabled(
     DBusConnection* conn,
     DBusMessage* message,
@@ -1680,6 +1712,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetAudioEffectDlcs")) {
     return handle_get_audio_effect_dlcs(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetVoiceIsolationUIAppearance")) {
+    return handle_get_voice_isolation_ui_appearance(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetVoiceIsolationUIEnabled")) {
     return handle_set_voice_isolation_ui_enabled(conn, message, arg);

@@ -379,6 +379,18 @@
       <arg name="data" type="s" direction="out"/>
     </method>
 
+    <method name="GetVoiceIsolationUIAppearance">
+      <tp:docstring>
+        Gets the UI appearance parameters from CRAS.
+        toggle_type: enum AudioEffectType, decides which title to show on the toggle, 0 for hidden.
+        effect_mode_options: bitset of enum AudioEffectType, decides which options to show, 0 for hidden.
+        show_effect_fallback_message: bool, decides whether to show the effect fallback message or not.
+      </tp:docstring>
+      <arg name="toggle_type" type="u" direction="out"/>
+      <arg name="effect_mode_options" type="u" direction="out"/>
+      <arg name="show_effect_fallback_message" type="b" direction="out"/>
+    </method>
+
     <method name="SetVoiceIsolationUIEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>

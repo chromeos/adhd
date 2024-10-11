@@ -59,6 +59,12 @@ struct Command {
         help = "Add the `enum` keyword to generated enums. Useful if the enums are not automatically prefixed with `enum`."
     )]
     add_keyword_enum: bool,
+
+    #[arg(
+        long,
+        help = "Add the `struct` keyword to generated structs. Useful if the structs are not automatically prefixed with `struct`."
+    )]
+    add_keyword_struct: bool,
 }
 
 fn main() {
@@ -103,7 +109,8 @@ fn main() {
         .include_item("DRC_PARAM")
         .include_item("CrasDlcId")
         .include_item("EFFECT_TYPE")
-        .include_item("CrasProcessorEffect");
+        .include_item("CrasProcessorEffect")
+        .include_item("CrasEffectUIAppearance");
 
     let mut b = b;
 
@@ -111,6 +118,10 @@ fn main() {
         b = b
             .rename_item("CrasDlcId", "enum CrasDlcId")
             .rename_item("CrasProcessorEffect", "enum CrasProcessorEffect");
+    }
+
+    if c.add_keyword_struct {
+        b = b.rename_item("CrasEffectUIAppearance", "struct CrasEffectUIAppearance");
     }
 
     for src in c.with_src {

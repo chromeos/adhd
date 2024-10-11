@@ -154,6 +154,17 @@ pub extern "C" fn cras_nc_providers_bitset_to_str(
         .into_raw()
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct CrasEffectUIAppearance {
+    // Decides which title to show on the toggle, 0 for hidden.
+    pub toggle_type: EFFECT_TYPE,
+    // Bitset of EFFECT_TYPE, decides which options to show, 0 for hidden.
+    pub effect_mode_options: EFFECT_TYPE,
+    // Decides whether to show the effect fallback message or not.
+    pub show_effect_fallback_message: bool,
+}
+
 /// All supported DLCs in CRAS.
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]

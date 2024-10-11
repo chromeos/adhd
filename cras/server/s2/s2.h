@@ -79,6 +79,8 @@ enum CrasProcessorEffect cras_s2_get_cras_processor_effect(CRAS_NC_PROVIDER comp
 
 CRAS_NC_PROVIDER cras_s2_get_iodev_restart_tag_for_nc_providers(CRAS_NC_PROVIDER compatible_nc_providers);
 
+struct CrasEffectUIAppearance cras_s2_get_audio_effect_ui_appearance(void);
+
 void cras_s2_set_spatial_audio_enabled(bool enabled);
 
 bool cras_s2_get_spatial_audio_enabled(void);

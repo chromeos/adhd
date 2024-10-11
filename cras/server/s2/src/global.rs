@@ -11,6 +11,7 @@ use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
 use cras_common::types_internal::CrasDlcId;
+use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 
@@ -213,6 +214,11 @@ pub extern "C" fn cras_s2_get_iodev_restart_tag_for_nc_providers(
 ) -> CRAS_NC_PROVIDER {
     let enabled = state().input.voice_isolation_ui_enabled;
     *(state().resolve_nc_provider(compatible_nc_providers, enabled))
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_audio_effect_ui_appearance() -> CrasEffectUIAppearance {
+    state().output.audio_effect_ui_appearance
 }
 
 #[no_mangle]

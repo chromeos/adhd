@@ -9,6 +9,7 @@ use std::path::Path;
 use anyhow::Context;
 use audio_processor::cdcfg;
 use cras_common::types_internal::CrasDlcId;
+use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
@@ -77,7 +78,7 @@ struct Output {
     audio_effects_ready: bool,
     dsp_input_effects_blocked: bool,
     audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
-    nc_effect_for_ui_toggle: EFFECT_TYPE,
+    audio_effect_ui_appearance: CrasEffectUIAppearance,
     // The NC providers that can be used if the node is compatible and the
     // effect should be enabled.
     system_valid_nc_providers: CRAS_NC_PROVIDER,
@@ -152,6 +153,26 @@ fn resolve(input: &Input) -> Output {
         ),
     ]);
     let nc_effect_for_ui_toggle = resolve_effect_toggle_type(&audio_effects_status);
+    let audio_effect_ui_appearance = CrasEffectUIAppearance {
+        toggle_type: nc_effect_for_ui_toggle,
+        // TODO(b/353627012): Set effect_mode_options for when ST and BF are both supported.
+        effect_mode_options: EFFECT_TYPE::NONE,
+        show_effect_fallback_message: match nc_effect_for_ui_toggle {
+            EFFECT_TYPE::STYLE_TRANSFER => {
+                !audio_effects_status
+                    .get(&CRAS_NC_PROVIDER::AST)
+                    .unwrap()
+                    .compatible_with_active_input_node
+            }
+            EFFECT_TYPE::BEAMFORMING => {
+                !audio_effects_status
+                    .get(&CRAS_NC_PROVIDER::BF)
+                    .unwrap()
+                    .compatible_with_active_input_node
+            }
+            _ => false,
+        },
+    };
     // TODO(b/353627012): Set system_valid_nc_providers considering
     // nc_ui_selected_mode after the "Effect Mode options" in UI is implemented.
     let system_valid_nc_providers = audio_effects_status
@@ -169,7 +190,7 @@ fn resolve(input: &Input) -> Output {
         audio_effects_ready: input.dlc_installed.values().all(|&installed| installed),
         dsp_input_effects_blocked,
         audio_effects_status,
-        nc_effect_for_ui_toggle,
+        audio_effect_ui_appearance,
         system_valid_nc_providers,
     }
 }
@@ -657,6 +678,40 @@ mod tests {
         assert_eq!(
             resolve_effect_toggle_type(&audio_effects_status),
             EFFECT_TYPE::STYLE_TRANSFER
+        );
+    }
+
+    #[test]
+    fn test_show_effect_fallback_message() {
+        let mut s = S2::new();
+        assert_eq!(
+            s.output
+                .audio_effect_ui_appearance
+                .show_effect_fallback_message,
+            false
+        );
+
+        s.set_ap_nc_featured_allowed(true);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_ap_nc_segmentation_allowed(true);
+        s.set_style_transfer_featured_allowed(true);
+        s.set_active_input_node_compatible_nc_providers(CRAS_NC_PROVIDER::all());
+        assert_eq!(
+            s.output.audio_effect_ui_appearance.toggle_type,
+            EFFECT_TYPE::STYLE_TRANSFER
+        );
+        assert_eq!(
+            s.output
+                .audio_effect_ui_appearance
+                .show_effect_fallback_message,
+            false
+        );
+        s.set_active_input_node_compatible_nc_providers(CRAS_NC_PROVIDER::AP);
+        assert_eq!(
+            s.output
+                .audio_effect_ui_appearance
+                .show_effect_fallback_message,
+            true
         );
     }
 

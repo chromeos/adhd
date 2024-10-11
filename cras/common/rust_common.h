@@ -86,6 +86,12 @@ typedef uint32_t EFFECT_TYPE;
 #define EFFECT_TYPE_STYLE_TRANSFER (uint32_t)(1 << 2)
 #define EFFECT_TYPE_BEAMFORMING (uint32_t)(1 << 3)
 
+struct CrasEffectUIAppearance {
+  EFFECT_TYPE toggle_type;
+  EFFECT_TYPE effect_mode_options;
+  bool show_effect_fallback_message;
+};
+
 /**
  * This function is called from C code to log a FRA event.
  *
