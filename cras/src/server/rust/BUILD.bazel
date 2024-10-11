@@ -83,9 +83,3 @@ cras_cbindgen(
     copyright_year = 2019,
     extra_args = ["--with-sys-include=time.h"],
 )
-
-cras_cbindgen(
-    name = "string_h",
-    srcs = ["src/string.rs"],
-    out = "include/string.h",
-)

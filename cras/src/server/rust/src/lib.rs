@@ -13,6 +13,5 @@ pub use cras_dlc::bindings as cras_dlc_bindings;
 pub use cras_features_backend;
 pub use logging::bindings as logging_bindings;
 mod proto;
-pub mod string;
 pub use cras_s2;
 pub use dsp_rust;

@@ -31,7 +31,6 @@
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras/src/server/rust/include/cras_processor.h"
-#include "cras/src/server/rust/include/string.h"
 #include "cras_audio_format.h"
 #include "third_party/utlist/utlist.h"
 #include "webrtc_apm/webrtc_apm.h"

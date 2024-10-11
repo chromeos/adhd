@@ -31,7 +31,6 @@
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_utf8.h"
-#include "cras/src/server/rust/include/string.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_audio_format.h"
 #include "cras_iodev_info.h"

@@ -139,6 +139,16 @@ int cras_rust_init_logging(void);
 uint32_t pseudonymize_stable_id(uint32_t stable_id);
 
 /**
+ * Free a string allocated from CRAS Rust functions.
+ *
+ * # Safety
+ *
+ * `s` must be a string allocated from CRAS Rust functions that asked for it to be freed
+ * with this function.
+ */
+void cras_rust_free_string(char *s);
+
+/**
  * Returns the name of the CrasProcessorEffect as a string.
  * The ownership of the string is static in Rust, so no need to free in C.
  */
@@ -173,6 +183,16 @@ int cras_rust_init_logging(void);
  * Returns the salted stable_id.
  */
 uint32_t pseudonymize_stable_id(uint32_t stable_id);
+
+/**
+ * Free a string allocated from CRAS Rust functions.
+ *
+ * # Safety
+ *
+ * `s` must be a string allocated from CRAS Rust functions that asked for it to be freed
+ * with this function.
+ */
+void cras_rust_free_string(char *s);
 
 /**
  * Returns the name of the CrasProcessorEffect as a string.

@@ -12,5 +12,4 @@ WRITE_SOURCE_FILE_TARGETS = [
     "@//cras/src/dsp/rust:generate_dsp.h",
     "@//cras/src/server/rust:generate_cras_processor_h",
     "@//cras/src/server/rust:generate_rate_estimator_h",
-    "@//cras/src/server/rust:generate_string_h",
 ]

@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 #include "cras/common/rust_common.h"
-#include "cras/src/server/rust/include/string.h"
 
 void print_cras_stream_active_ap_effects(FILE* f,
                                          CRAS_STREAM_ACTIVE_AP_EFFECT effects) {
