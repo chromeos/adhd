@@ -702,7 +702,7 @@ mod tests {
 
         // Set AP NC supported and allowed.
         s.set_ap_nc_featured_allowed(true);
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         // DSP NC priority is higher than AP NC.
         assert_eq!(
             s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
