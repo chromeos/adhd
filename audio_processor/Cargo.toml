@@ -11,26 +11,26 @@ authors = ["The ChromiumOS Authors"]
 bazel = []
 
 [dependencies]
-anyhow = "1.0.70"
-assert_matches = "1.5.0"
-clap = { version = "4.5.4", features = ["derive"] }
-command-fds = "0.3.0"
-dasp_sample = "0.11.0"
-hound = "3.4.0"
-libc = "0.2.124"
-nix = { version = "0.28.0", features = ["resource", "socket", "uio"] }
-serde = { version = "1.0.52", features = ["derive"]}
-serde_json = "1.0.96"
-thiserror = "1.0.30"
-log = "0.4.17"
-protobuf = "3.2.0"
-zerocopy = "0.7.32"
+anyhow = { workspace = true }
+assert_matches = { workspace = true }
+clap = { workspace = true }
+command-fds = { workspace = true }
+dasp_sample = { workspace = true }
+hound = { workspace = true }
+libc = { workspace = true }
+nix = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+protobuf = { workspace = true }
+zerocopy = { workspace = true }
 
 [build-dependencies]
-bindgen = "0.63.0"
-cc = "1.0.73"
-protobuf-codegen = "3.2.0"
-protobuf-parse = "3.2.0"
+bindgen = { workspace = true }
+cc = { workspace = true }
+protobuf-codegen = { workspace = true }
+protobuf-parse = { workspace = true }
 
 [dev-dependencies]
-tempfile = "3.4.0"
+tempfile = { workspace = true }

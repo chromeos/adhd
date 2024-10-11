@@ -61,13 +61,19 @@ for path in ADHD_DIR.glob('**/Cargo.toml'):
     with open(path, encoding='utf-8') as file:
         manifest = toml.load(path)
         for section, items in manifest.items():
+            # For [workspace.dependencies].
+            if section == 'workspace' and 'dependencies' in items:
+                section = 'dependencies'
+                items = items['dependencies']
+
             # Merge all [dependencies], [dev-dependencies], etc.
             # For the purposes of src/third_party/rust_crates vendoring, the differences
             # between the dependency types do not matter.
             if section.endswith('dependencies'):
                 for name, spec in items.items():
                     if spec == '*' or (
-                        isinstance(spec, dict) and (spec.get('version') == '*' or 'path' in spec)
+                        isinstance(spec, dict)
+                        and (spec.get('workspace') or spec.get('version') == '*' or 'path' in spec)
                     ):
                         continue
                     s = Spec.parse(spec)

@@ -5,17 +5,17 @@ authors = ["The ChromiumOS Authors"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.32"
-cras_common = "*"
-cras_s2 = "*"
-dbus = "0.9"
-libc = "0.2.44"
-log = "0.4.17"
-once_cell = "1.17.0"
-protobuf = "3.2"
-static_assertions = "1.1.0"
-system_api = { version = "*", optional = true }
-thiserror = "1.0.20"
+anyhow = { workspace = true }
+cras_common = { workspace = true }
+cras_s2 = { workspace = true }
+dbus = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
+protobuf = { workspace = true }
+static_assertions = { workspace = true }
+system_api = { workspace = true, optional = true }
+thiserror = { workspace = true }
 
 [features]
 dlc = ["system_api"]

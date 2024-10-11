@@ -5,21 +5,21 @@ authors = ["The ChromiumOS Authors"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.32"
-cfg-if = "1.0.0"
-dbus = { version = "0.9", features = ["futures"] }
-dbus-tokio = "0.7.6"
-featured = { version = "*", optional = true } # provided by ebuild
-fixedbitset = "0.4.2"
-futures = "0.3.28"
-libc = "0.2.124"
-log = "0.4.17"
-once_cell = "1.17.0"
-tokio = { version = "1.19.2", features = ["rt", "net", "time", "rt-multi-thread"]}
+anyhow = { workspace = true }
+cfg-if = { workspace = true }
+dbus = { workspace = true }
+dbus-tokio = { workspace = true }
+featured = { workspace = true, optional = true }
+fixedbitset = { workspace = true }
+futures = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
+tokio = { workspace = true }
 
 [build-dependencies]
-bindgen = "0.63.0"
-regex = "1.6.0"
+bindgen = { workspace = true }
+regex = { workspace = true }
 
 [features]
 chromiumos = ["featured"]

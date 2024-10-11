@@ -5,23 +5,23 @@ authors = ["The ChromiumOS Authors"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.68"
-hound = "3.5.0"
-libc = "0.2.44"
-log = "0.4.17"
-protobuf = "3.2.0"
+anyhow = { workspace = true }
+hound = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+protobuf = { workspace = true }
 
-cras_common = "*"
-cras_dlc = "*"
-dsp_rust = "*"
-audio_processor = "*"
-cras_features_backend = "*"
-cras_s2 = "*"
-minijail = { version = "*", optional = true } # provided by ebuild
+cras_common = { workspace = true }
+cras_dlc = { workspace = true }
+dsp_rust = { workspace = true }
+audio_processor = { workspace = true }
+cras_features_backend = { workspace = true }
+cras_s2 = { workspace = true }
+minijail = { workspace = true, optional = true }
 
 [build-dependencies]
-protobuf-codegen = "3.2.0"
-protobuf-parse = "3.2.0"
+protobuf-codegen = { workspace = true }
+protobuf-parse = { workspace = true }
 
 [features]
 chromiumos = ["minijail"]
