@@ -3,8 +3,7 @@
 # found in the LICENSE file.
 
 load("@crate_index//:defs.bzl", "all_crate_deps")
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_rust//rust:defs.bzl", "rust_test")
 load("//:utils.bzl", "require_no_config")
 load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
@@ -14,12 +13,12 @@ cras_rust_library(
     name = "rust",
     srcs = glob(include = ["src/**/*.rs"]),
     deps = [
-        ":build_script",
         "//audio_processor",
         "//cras/common:rust_common",
         "//cras/server/platform/dlc",
         "//cras/server/platform/features:backend",
         "//cras/server/feature_tier",
+        "//cras/server/processor",
         "//cras/server/s2",
         "//cras/src/dsp/rust:dsp_rust",
     ] + all_crate_deps(),
@@ -32,15 +31,6 @@ cc_library(
     deps = [":rust"],
 )
 
-cargo_build_script(
-    name = "build_script",
-    srcs = ["build.rs"],
-    data = [
-        "proto/cras_processor.proto",
-    ],
-    deps = all_crate_deps(build = True),
-)
-
 rust_test(
     name = "test",
     crate = ":rust",
@@ -48,29 +38,6 @@ rust_test(
         "tsan-broken",
     ],
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
-)
-
-cc_test(
-    name = "cras_processor_test",
-    srcs = ["cras_processor_test.cc"],
-    deps = [
-        ":cc",
-        "//audio_processor/c:plugin_processor",
-        "//cras/common:rust_common_cc",
-        "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
-    ],
-)
-
-cras_cbindgen(
-    name = "cras_processor_h",
-    srcs = ["src/cras_processor.rs"],
-    out = "include/cras_processor.h",
-    extra_args = [
-        "--with-include=audio_processor/c/plugin_processor.h",
-        "--with-include=cras/common/rust_common.h",
-        "--add-keyword-enum",
-    ],
 )
 
 cras_cbindgen(

@@ -1,5 +1,5 @@
 {
-  "checksum": "e58a8c31f302eaa217b2af114fbc2f9d2d29d39fcbbf7f9359bc7ad807a2dac1",
+  "checksum": "e3af85829e49125de8a0e94f1307d882246338a08bb2c2f0e7c4fedfe9a6b66f",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -1848,18 +1848,6 @@
               ]
             }
           }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
         }
       ],
       "library_target_name": "cras",
@@ -1872,10 +1860,6 @@
             {
               "id": "anyhow 1.0.75",
               "target": "anyhow"
-            },
-            {
-              "id": "cras 0.1.1",
-              "target": "build_script_build"
             },
             {
               "id": "hound 3.5.0",
@@ -1898,24 +1882,6 @@
         },
         "edition": "2021",
         "version": "0.1.1"
-      },
-      "build_script_attrs": {
-        "data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "protobuf-codegen 3.2.0",
-              "target": "protobuf_codegen"
-            },
-            {
-              "id": "protobuf-parse 3.2.0",
-              "target": "protobuf_parse"
-            }
-          ],
-          "selects": {}
-        }
       },
       "license": null,
       "license_ids": [],
@@ -2253,6 +2219,84 @@
             {
               "id": "regex 1.10.5",
               "target": "regex"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
+    "cras_processor 0.1.0": {
+      "name": "cras_processor",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras_processor",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "cras_processor",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
+            {
+              "id": "cras_processor 0.1.0",
+              "target": "build_script_build"
+            },
+            {
+              "id": "log 0.4.20",
+              "target": "log"
+            },
+            {
+              "id": "protobuf 3.2.0",
+              "target": "protobuf"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "protobuf-codegen 3.2.0",
+              "target": "protobuf_codegen"
             }
           ],
           "selects": {}
@@ -11609,6 +11653,7 @@
     "cras_dlc 0.1.0": "cras/server/platform/dlc",
     "cras_feature_tier 0.1.0": "cras/server/feature_tier",
     "cras_features_backend 0.1.0": "cras/server/platform/features",
+    "cras_processor 0.1.0": "cras/server/processor",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",
     "dsp_rust 0.1.0": "cras/src/dsp/rust",

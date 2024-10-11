@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "audio_processor/c/plugin_processor.h"
-#include "cras/src/server/rust/include/cras_processor.h"
+#include "cras/server/processor/processor.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 

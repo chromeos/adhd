@@ -30,6 +30,7 @@ use cras_dlc::get_dlc_state_cached;
 use cras_s2::BEAMFORMING_CONFIG_PATH;
 
 mod processor_override;
+mod proto;
 
 #[repr(C)]
 #[derive(Clone, Debug)]

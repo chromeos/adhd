@@ -1,4 +1,4 @@
-// Copyright 2023 The ChromiumOS Authors
+// Copyright 2024 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#ifndef CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_
-#define CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_
+#ifndef CRAS_SERVER_PROCESSOR_PROCESSOR_H_
+#define CRAS_SERVER_PROCESSOR_PROCESSOR_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -59,7 +59,7 @@ struct CrasProcessorCreateResult cras_processor_create(const struct CrasProcesso
  */
 bool cras_processor_is_override_enabled(void);
 
-#endif  /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_ */
+#endif  /* CRAS_SERVER_PROCESSOR_PROCESSOR_H_ */
 
 #ifdef __cplusplus
 }

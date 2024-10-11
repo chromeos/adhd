@@ -12,7 +12,7 @@ cras_rust_library(
     srcs = glob(include = ["src/*.rs"]),
     crate_name = "cras_dlc",
     visibility = [
-        "//cras/server/platform:__pkg__",
+        "//cras/server:__subpackages__",
         "//cras/src/server/rust:__pkg__",
     ],
     deps = all_crate_deps() + [

@@ -1,0 +1,76 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_test")
+load("//:utils.bzl", "require_no_config")
+load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
+load("//rules/rust:defs.bzl", "cras_rust_library")
+
+cras_rust_library(
+    name = "processor",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+    ),
+    crate_name = "cras_processor",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        "//audio_processor",
+        "//cras/server/s2",
+        "//cras/server/platform/dlc",
+        "//cras/common:rust_common",
+        ":build_script",
+    ],
+)
+
+rust_test(
+    name = "processor_test",
+    crate = ":processor",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+)
+
+cras_cbindgen(
+    name = "processor_h",
+    srcs = ["src/lib.rs"],
+    out = "processor.h",
+    copyright_year = 2024,
+    extra_args = [
+        "--with-include=audio_processor/c/plugin_processor.h",
+        "--with-include=cras/common/rust_common.h",
+        "--add-keyword-enum",
+    ],
+)
+
+cc_library(
+    name = "cc",
+    hdrs = ["processor.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":processor",
+        "//audio_processor/c:plugin_processor",
+        "//cras/common:rust_common_cc",
+    ],
+)
+
+cc_test(
+    name = "cras_processor_test",
+    srcs = ["cras_processor_test.cc"],
+    deps = [
+        ":cc",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    data = [
+        "proto/cras_processor.proto",
+    ],
+    deps = all_crate_deps(build = True),
+)

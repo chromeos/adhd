@@ -6,6 +6,7 @@ members = [
     "cras/server/feature_tier",
     "cras/server/platform/dlc",
     "cras/server/platform/features",
+    "cras/server/processor",
     "cras/server/s2",
     "cras/src/dsp/rust",
     "cras/src/server/rust",
@@ -28,6 +29,7 @@ cras_common = { path = "cras/common" }
 cras_dlc = { path = "cras/server/platform/dlc" }
 cras_features_backend = { path = "cras/server/platform/features" }
 cras_feature_tier = { path = "cras/server/feature_tier" }
+cras_processor = { path = "cras/server/processor" }
 cras_s2 = { path = "cras/server/s2" }
 dsp_rust = { path = "cras/src/dsp/rust" }
 

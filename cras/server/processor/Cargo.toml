@@ -1,0 +1,17 @@
+[package]
+name = "cras_processor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+log = { workspace = true }
+protobuf = { workspace = true }
+
+audio_processor = { workspace = true }
+cras_common = { workspace = true }
+cras_dlc = { workspace = true }
+cras_s2 = { workspace = true }
+
+[build-dependencies]
+protobuf-codegen = { workspace = true }

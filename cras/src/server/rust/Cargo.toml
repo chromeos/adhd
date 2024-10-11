@@ -18,6 +18,7 @@ audio_processor = { workspace = true }
 cras_features_backend = { workspace = true }
 cras_s2 = { workspace = true }
 cras_feature_tier = { workspace = true }
+cras_processor = { workspace = true }
 minijail = { workspace = true, optional = true }
 
 [build-dependencies]

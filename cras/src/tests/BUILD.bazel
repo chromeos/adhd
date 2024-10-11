@@ -1969,6 +1969,7 @@ cc_test(
         "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features",
+        "//cras/server/processor:cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
