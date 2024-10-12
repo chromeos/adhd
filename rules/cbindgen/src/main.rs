@@ -53,18 +53,6 @@ struct Command {
 
     #[arg(long, default_value = "2023")]
     copyright_year: u32,
-
-    #[arg(
-        long,
-        help = "Add the `enum` keyword to generated enums. Useful if the enums are not automatically prefixed with `enum`."
-    )]
-    add_keyword_enum: bool,
-
-    #[arg(
-        long,
-        help = "Add the `struct` keyword to generated structs. Useful if the structs are not automatically prefixed with `struct`."
-    )]
-    add_keyword_struct: bool,
 }
 
 fn main() {
@@ -116,17 +104,14 @@ fn main() {
         .include_item("CrasProcessorEffect")
         .include_item("CrasEffectUIAppearance");
 
+    // Type tag fixes.
+    // See also comment for fixed_source below.
+    let b = b
+        .rename_item("CrasDlcId", "enum CrasDlcId")
+        .rename_item("CrasProcessorEffect", "enum CrasProcessorEffect")
+        .rename_item("CrasEffectUIAppearance", "struct CrasEffectUIAppearance");
+
     let mut b = b;
-
-    if c.add_keyword_enum {
-        b = b
-            .rename_item("CrasDlcId", "enum CrasDlcId")
-            .rename_item("CrasProcessorEffect", "enum CrasProcessorEffect");
-    }
-
-    if c.add_keyword_struct {
-        b = b.rename_item("CrasEffectUIAppearance", "struct CrasEffectUIAppearance");
-    }
 
     for src in c.with_src {
         b = b.with_src(src);
@@ -138,7 +123,24 @@ fn main() {
         b = b.with_sys_include(sys_include);
     }
 
+    let mut source = Vec::<u8>::new();
     b.generate()
         .unwrap_or_else(|e| panic!("cannot generate {}: {e}", c.output))
-        .write_to_file(c.output);
+        .write(&mut source);
+
+    // With with_src(), when a type is defined out of the current crate,
+    // cbindgen doesn't know the correct type tag (struct T, enum T, etc) for it.
+    // So we unconditionally tag the type with rename_item.
+    // However that creates duplicated tags for the crate that defines T
+    // This workaround fixes that.
+    //
+    // with_crate() doesn't have this problem because cbindgen knows to parse
+    // dependant crates as well. However passing cargo metadata is hard when
+    // this tool is invoked from Bazel.
+    let fixed_source = String::from_utf8(source)
+        .unwrap()
+        .replace("struct struct ", "struct ")
+        .replace("enum enum ", "enum ");
+
+    std::fs::write(&c.output, fixed_source).unwrap();
 }

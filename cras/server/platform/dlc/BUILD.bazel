@@ -29,7 +29,6 @@ cras_cbindgen(
     copyright_year = 2023,
     extra_args = [
         "--with-include=cras/common/rust_common.h",
-        "--add-keyword-enum",
     ],
     lib = ":dlc",
 )

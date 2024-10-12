@@ -40,7 +40,6 @@ cras_cbindgen(
     extra_args = [
         "--with-include=audio_processor/c/plugin_processor.h",
         "--with-include=cras/common/rust_common.h",
-        "--add-keyword-enum",
     ],
     lib = ":processor",
 )
