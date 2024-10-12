@@ -1241,6 +1241,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/server:cras_trace",
+        "//cras/server/rate_estimator:cc",
         "//cras/src/common",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1478,6 +1479,7 @@ cc_test(
         "//cras/server:cras_trace",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",
+        "//cras/server/rate_estimator:cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1639,6 +1641,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server/rate_estimator:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",

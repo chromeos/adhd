@@ -8,8 +8,8 @@
 //    within an `extern "C"` block. This ensures C++ code sees C linkage,
 //    while C code remains unaffected.
 #include "cras/server/cras_trace.h"
+#include "cras/server/rate_estimator/rate_estimator.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/rust/include/rate_estimator.h"
 extern "C" {
 #include "cras/src/server/cras_floop_iodev.c"
 }

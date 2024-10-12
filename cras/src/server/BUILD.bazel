@@ -610,6 +610,7 @@ cc_library(
         "//cras/server/platform/features",
         "//cras/server/platform/features:override",
         "//cras/server/platform/segmentation",
+        "//cras/server/rate_estimator:cc",
         "//cras/server/s2:cc",
         "//cras/src/common",
         "//cras/src/dsp",

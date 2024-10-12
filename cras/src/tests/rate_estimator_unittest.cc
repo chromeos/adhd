@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/src/server/rust/include/rate_estimator.h"
+#include "cras/server/rate_estimator/rate_estimator.h"
 
 static struct timespec window = {.tv_sec = 0, .tv_nsec = 10000000};
 

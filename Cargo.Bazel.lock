@@ -1,5 +1,5 @@
 {
-  "checksum": "e3af85829e49125de8a0e94f1307d882246338a08bb2c2f0e7c4fedfe9a6b66f",
+  "checksum": "0a16d0c96d690b5045340c49e707449ec2f88cecf7d1a6bfafcd1752e6e97a19",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2301,6 +2301,50 @@
           ],
           "selects": {}
         }
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
+    "cras_rate_estimator 0.1.0": {
+      "name": "cras_rate_estimator",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras_rate_estimator",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "cras_rate_estimator",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "libc 0.2.155",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.20",
+              "target": "log"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
       },
       "license": null,
       "license_ids": [],
@@ -11654,6 +11698,7 @@
     "cras_feature_tier 0.1.0": "cras/server/feature_tier",
     "cras_features_backend 0.1.0": "cras/server/platform/features",
     "cras_processor 0.1.0": "cras/server/processor",
+    "cras_rate_estimator 0.1.0": "cras/server/rate_estimator",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",
     "dsp_rust 0.1.0": "cras/src/dsp/rust",

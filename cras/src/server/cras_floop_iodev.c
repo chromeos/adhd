@@ -14,12 +14,12 @@
 #include <time.h>
 
 #include "cras/server/cras_trace.h"
+#include "cras/server/rate_estimator/rate_estimator.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/rust/include/rate_estimator.h"
 #include "cras_audio_format.h"
 #include "cras_types.h"
 #include "cras_util.h"

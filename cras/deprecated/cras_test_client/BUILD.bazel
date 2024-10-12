@@ -12,6 +12,5 @@ cc_binary(
         "//cras/common:rust_common_cc",
         "//cras/src/common:cras_types_internal",
         "//cras/src/libcras:cras_client",
-        "//cras/src/server/rust:cc",
     ],
 )

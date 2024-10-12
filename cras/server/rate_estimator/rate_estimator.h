@@ -1,4 +1,4 @@
-// Copyright 2019 The ChromiumOS Authors
+// Copyright 2024 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -9,15 +9,14 @@
 extern "C" {
 #endif
 
-#ifndef CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_
-#define CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_
+#ifndef CRAS_SERVER_RATE_ESTIMATOR_RATE_ESTIMATOR_H_
+#define CRAS_SERVER_RATE_ESTIMATOR_RATE_ESTIMATOR_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
 
 struct rate_estimator;
 
@@ -93,7 +92,7 @@ int32_t rate_estimator_get_last_add_frames_value_for_test(const struct rate_esti
  */
 uint64_t rate_estimator_get_add_frames_called_count_for_test(const struct rate_estimator *re);
 
-#endif  /* CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_ */
+#endif  /* CRAS_SERVER_RATE_ESTIMATOR_RATE_ESTIMATOR_H_ */
 
 #ifdef __cplusplus
 }

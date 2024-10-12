@@ -4,9 +4,6 @@
 
 load("@crate_index//:defs.bzl", "all_crate_deps")
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@rules_rust//rust:defs.bzl", "rust_test")
-load("//:utils.bzl", "require_no_config")
-load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
 load("//rules/rust:defs.bzl", "cras_rust_library")
 
 cras_rust_library(
@@ -19,6 +16,7 @@ cras_rust_library(
         "//cras/server/platform/features:backend",
         "//cras/server/feature_tier",
         "//cras/server/processor",
+        "//cras/server/rate_estimator",
         "//cras/server/s2",
         "//cras/src/dsp/rust:dsp_rust",
     ] + all_crate_deps(),
@@ -29,24 +27,4 @@ cc_library(
     hdrs = glob(include = ["include/*.h"]),
     visibility = ["//visibility:public"],
     deps = [":rust"],
-)
-
-rust_test(
-    name = "test",
-    crate = ":rust",
-    tags = [
-        "tsan-broken",
-    ],
-    target_compatible_with = require_no_config("//:system_cras_rust_build"),
-)
-
-cras_cbindgen(
-    name = "rate_estimator_h",
-    srcs = [
-        "src/rate_estimator.rs",
-        "src/rate_estimator_bindings.rs",
-    ],
-    out = "include/rate_estimator.h",
-    copyright_year = 2019,
-    extra_args = ["--with-sys-include=time.h"],
 )

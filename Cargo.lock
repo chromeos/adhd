@@ -302,6 +302,7 @@ dependencies = [
  "cras_feature_tier",
  "cras_features_backend",
  "cras_processor",
+ "cras_rate_estimator",
  "cras_s2",
  "dsp_rust",
  "hound",
@@ -396,6 +397,14 @@ dependencies = [
  "log",
  "protobuf",
  "protobuf-codegen",
+]
+
+[[package]]
+name = "cras_rate_estimator"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "log",
 ]
 
 [[package]]

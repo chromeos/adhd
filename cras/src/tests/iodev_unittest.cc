@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "cras/include/cras_types.h"
+#include "cras/server/rate_estimator/rate_estimator.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -16,7 +17,6 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras/src/server/input_data.h"
-#include "cras/src/server/rust/include/rate_estimator.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 

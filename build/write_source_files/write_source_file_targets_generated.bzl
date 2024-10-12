@@ -9,7 +9,7 @@ WRITE_SOURCE_FILE_TARGETS = [
     "@//cras/server/feature_tier:generate_feature_tier_h",
     "@//cras/server/platform/dlc:generate_dlc_h",
     "@//cras/server/processor:generate_processor_h",
+    "@//cras/server/rate_estimator:generate_rate_estimator_h",
     "@//cras/server/s2:generate_s2_h",
     "@//cras/src/dsp/rust:generate_dsp.h",
-    "@//cras/src/server/rust:generate_rate_estimator_h",
 ]

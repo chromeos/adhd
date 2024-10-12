@@ -184,7 +184,6 @@ cc_library(
     deps = [
         "//cras/common:rust_common_cc",
         "//cras/include",
-        "//cras/src/server/rust:cc",
     ],
 )
 
