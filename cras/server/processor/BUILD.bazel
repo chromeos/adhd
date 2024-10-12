@@ -35,7 +35,6 @@ rust_test(
 
 cras_cbindgen(
     name = "processor_h",
-    srcs = ["src/lib.rs"],
     out = "processor.h",
     copyright_year = 2024,
     extra_args = [
@@ -43,6 +42,7 @@ cras_cbindgen(
         "--with-include=cras/common/rust_common.h",
         "--add-keyword-enum",
     ],
+    lib = ":processor",
 )
 
 cc_library(

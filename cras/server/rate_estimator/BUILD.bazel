@@ -28,10 +28,10 @@ rust_test(
 
 cras_cbindgen(
     name = "rate_estimator_h",
-    srcs = ["src/rate_estimator_bindings.rs"],
     out = "rate_estimator.h",
     copyright_year = 2024,
     extra_args = [],
+    lib = ":rate_estimator",
 )
 
 cc_library(

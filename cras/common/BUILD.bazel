@@ -51,11 +51,9 @@ rust_test(
 
 cras_cbindgen(
     name = "rust_common_h",
-    srcs = glob(
-        include = ["src/**/*.rs"],
-    ),
     out = "rust_common.h",
     copyright_year = 2023,
+    lib = ":rust_common",
 )
 
 cc_library(

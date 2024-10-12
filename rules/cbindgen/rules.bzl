@@ -5,21 +5,24 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_file")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
+load("@rules_rust//rust:rust_common.bzl", "CrateInfo")
 load("//:utils.bzl", "require_no_config")
 
 def _do_cras_cbindgen_impl(ctx):
     args = ctx.actions.args()
 
+    crate_info = ctx.attr.lib[CrateInfo]
+
     args.add(ctx.outputs.out, format = "--output=%s")
     args.add(ctx.file.assume_output.short_path, format = "--assume-output=%s")
-    args.add_all(ctx.files.srcs, format_each = "--with-src=%s")
+    args.add(crate_info.root, format = "--with-src=%s")
     args.add_all(ctx.attr.extra_args)
     if ctx.attr.copyright_year:
         args.add(ctx.attr.copyright_year, format = "--copyright-year=%s")
 
     ctx.actions.run(
         executable = ctx.executable._cbindgen,
-        inputs = ctx.files.srcs,
+        inputs = crate_info.srcs,
         arguments = [args],
         outputs = [ctx.outputs.out],
         mnemonic = "CrasCbindgen",
@@ -31,7 +34,7 @@ def _do_cras_cbindgen_impl(ctx):
 do_cras_cbindgen = rule(
     implementation = _do_cras_cbindgen_impl,
     attrs = dict(
-        srcs = attr.label_list(allow_files = [".rs"]),
+        lib = attr.label(providers = [CrateInfo]),
         out = attr.output(mandatory = True),
         assume_output = attr.label(allow_single_file = True),
         extra_args = attr.string_list(),
@@ -47,7 +50,7 @@ do_cras_cbindgen = rule(
     ),
 )
 
-def cras_cbindgen(name, srcs, out, extra_args = [], copyright_year = None):
+def cras_cbindgen(name, lib, out, extra_args = [], copyright_year = None):
     if ":" in out:
         fail("out = {} should not contain a colon {}".format(repr(out), repr(":")))
 
@@ -55,7 +58,7 @@ def cras_cbindgen(name, srcs, out, extra_args = [], copyright_year = None):
 
     do_cras_cbindgen(
         name = "do_generate_{}".format(name),
-        srcs = srcs,
+        lib = lib,
         out = generated_out,
         assume_output = out,
         copyright_year = copyright_year,

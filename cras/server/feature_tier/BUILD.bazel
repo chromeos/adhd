@@ -28,10 +28,10 @@ rust_test(
 
 cras_cbindgen(
     name = "feature_tier_h",
-    srcs = ["src/lib.rs"],
     out = "feature_tier.h",
     copyright_year = 2024,
     extra_args = [],
+    lib = ":feature_tier",
 )
 
 cc_library(

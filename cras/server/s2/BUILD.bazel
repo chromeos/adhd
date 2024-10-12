@@ -31,7 +31,6 @@ rust_test(
 
 cras_cbindgen(
     name = "s2_h",
-    srcs = ["src/global.rs"],
     out = "s2.h",
     copyright_year = 2023,
     extra_args = [
@@ -39,6 +38,7 @@ cras_cbindgen(
         "--add-keyword-enum",
         "--add-keyword-struct",
     ],
+    lib = ":s2",
 )
 
 cc_library(

@@ -19,9 +19,9 @@ cras_rust_library(
 
 cras_cbindgen(
     name = "dsp.h",
-    srcs = glob(include = ["src/**/*.rs"]),
     out = "dsp.h",
     copyright_year = 2024,
+    lib = ":dsp_rust",
 )
 
 rust_test(
