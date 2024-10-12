@@ -17,8 +17,7 @@ def _do_cras_cbindgen_impl(ctx):
     args.add(ctx.file.assume_output.short_path, format = "--assume-output=%s")
     args.add(crate_info.root, format = "--with-src=%s")
     args.add_all(ctx.attr.extra_args)
-    if ctx.attr.copyright_year:
-        args.add(ctx.attr.copyright_year, format = "--copyright-year=%s")
+    args.add(ctx.attr.copyright_year, format = "--copyright-year=%s")
 
     ctx.actions.run(
         executable = ctx.executable._cbindgen,
@@ -38,7 +37,7 @@ do_cras_cbindgen = rule(
         out = attr.output(mandatory = True),
         assume_output = attr.label(allow_single_file = True),
         extra_args = attr.string_list(),
-        copyright_year = attr.int(),
+        copyright_year = attr.int(mandatory = True),
         _cbindgen = attr.label(
             executable = True,
             cfg = "exec",
@@ -50,7 +49,7 @@ do_cras_cbindgen = rule(
     ),
 )
 
-def cras_cbindgen(name, lib, out, extra_args = [], copyright_year = None):
+def cras_cbindgen(name, lib, out, copyright_year, extra_args = []):
     if ":" in out:
         fail("out = {} should not contain a colon {}".format(repr(out), repr(":")))
 

@@ -51,7 +51,7 @@ struct Command {
     #[arg(long)]
     with_sys_include: Vec<String>,
 
-    #[arg(long, default_value = "2023")]
+    #[arg(long)]
     copyright_year: u32,
 }
 
