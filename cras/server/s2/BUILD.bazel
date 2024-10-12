@@ -45,4 +45,5 @@ cc_library(
     name = "cc",
     hdrs = ["s2.h"],
     visibility = ["//visibility:public"],
+    deps = [":s2"],
 )

@@ -10,7 +10,6 @@ members = [
     "cras/server/rate_estimator",
     "cras/server/s2",
     "cras/src/dsp/rust",
-    "cras/src/server/rust",
     "cras/src/server/rust/staticlib",
     "rock",
     "rules/cbindgen",
@@ -25,7 +24,6 @@ overflow-checks = true
 [workspace.dependencies]
 # Local crates.
 audio_processor = { path = "audio_processor" }
-cras = { path = "cras/src/server/rust" }
 cras_common = { path = "cras/common" }
 cras_dlc = { path = "cras/server/platform/dlc" }
 cras_features_backend = { path = "cras/server/platform/features" }

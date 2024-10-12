@@ -5,8 +5,7 @@
 load("@crate_index//:defs.bzl", "all_crate_deps")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_library")
-load("//:utils.bzl", "require_no_config")
+load("//rules/rust:defs.bzl", "cras_rust_library")
 
 cc_library(
     name = "features",
@@ -22,9 +21,9 @@ cc_library(
         "//cras/src/tests:__pkg__",
     ],
     deps = [
+        ":backend",
         "//cras/common:check",
         "//cras/server:main_message",
-        "//cras/src/server/rust:cc",
     ],
 )
 
@@ -51,14 +50,13 @@ cc_test(
     ],
 )
 
-rust_library(
+cras_rust_library(
     name = "backend",
     srcs = glob(
         include = ["src/**/*.rs"],
     ),
     crate_name = "cras_features_backend",
     edition = "2021",
-    target_compatible_with = require_no_config("//:system_cras_rust_build"),
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",

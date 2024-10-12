@@ -292,29 +292,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cras"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "audio_processor",
- "cras_common",
- "cras_dlc",
- "cras_feature_tier",
- "cras_features_backend",
- "cras_processor",
- "cras_rate_estimator",
- "cras_s2",
- "dsp_rust",
- "hound",
- "libc",
- "log",
- "minijail",
- "protobuf",
- "protobuf-codegen",
- "protobuf-parse",
-]
-
-[[package]]
 name = "cras_cbindgen"
 version = "0.1.0"
 dependencies = [
@@ -411,7 +388,14 @@ dependencies = [
 name = "cras_rust"
 version = "0.1.1"
 dependencies = [
- "cras",
+ "cras_common",
+ "cras_dlc",
+ "cras_feature_tier",
+ "cras_features_backend",
+ "cras_processor",
+ "cras_rate_estimator",
+ "cras_s2",
+ "dsp_rust",
 ]
 
 [[package]]
@@ -847,10 +831,6 @@ checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
 ]
-
-[[package]]
-name = "minijail"
-version = "0.1.0"
 
 [[package]]
 name = "minimal-lexical"
@@ -1735,3 +1715,8 @@ dependencies = [
  "quote",
  "syn 2.0.77",
 ]
+
+[[patch.unused]]
+name = "minijail"
+version = "0.1.0"
+

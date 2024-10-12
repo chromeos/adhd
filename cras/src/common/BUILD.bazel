@@ -13,8 +13,6 @@ cc_library(
         "//cras/src/common:__pkg__",
         "//cras/src/server:__pkg__",
     ],
-    deps = [
-    ],
 )
 
 cc_library(
@@ -138,10 +136,7 @@ cc_library(
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
     ],
-    deps = [
-        "//cras/common:rust_common_cc",
-        "//cras/src/server/rust:cc",
-    ],
+    deps = ["//cras/common:rust_common_cc"],
 )
 
 cc_library(

@@ -1,5 +1,5 @@
 {
-  "checksum": "0a16d0c96d690b5045340c49e707449ec2f88cecf7d1a6bfafcd1752e6e97a19",
+  "checksum": "bc4b8a897e1ab8541ca675f23d861d0b054861d15e8fb2680b10dfccb8448927",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -1830,62 +1830,6 @@
         "Apache-2.0"
       ],
       "license_file": "LICENSE"
-    },
-    "cras 0.1.1": {
-      "name": "cras",
-      "version": "0.1.1",
-      "package_url": null,
-      "repository": null,
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "cras",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "cras",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "anyhow 1.0.75",
-              "target": "anyhow"
-            },
-            {
-              "id": "hound 3.5.0",
-              "target": "hound"
-            },
-            {
-              "id": "libc 0.2.155",
-              "target": "libc"
-            },
-            {
-              "id": "log 0.4.20",
-              "target": "log"
-            },
-            {
-              "id": "protobuf 3.2.0",
-              "target": "protobuf"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "0.1.1"
-      },
-      "license": null,
-      "license_ids": [],
-      "license_file": null
     },
     "cras_cbindgen 0.1.0": {
       "name": "cras_cbindgen",
@@ -11691,7 +11635,6 @@
   "binary_crates": [],
   "workspace_members": {
     "audio_processor 0.1.0": "audio_processor",
-    "cras 0.1.1": "cras/src/server/rust",
     "cras_cbindgen 0.1.0": "rules/cbindgen",
     "cras_common 0.1.0": "cras/common",
     "cras_dlc 0.1.0": "cras/server/platform/dlc",

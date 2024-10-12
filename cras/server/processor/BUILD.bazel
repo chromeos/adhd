@@ -19,11 +19,11 @@ cras_rust_library(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
-        "//audio_processor",
-        "//cras/server/s2",
-        "//cras/server/platform/dlc",
-        "//cras/common:rust_common",
         ":build_script",
+        "//audio_processor",
+        "//cras/common:rust_common",
+        "//cras/server/platform/dlc",
+        "//cras/server/s2",
     ],
 )
 
