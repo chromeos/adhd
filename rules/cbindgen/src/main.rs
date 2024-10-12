@@ -68,6 +68,10 @@ struct Command {
 }
 
 fn main() {
+    // CRAS_CBINDGEN_LOG=warn to turn on warning.
+    // Or pass --//rules/cbindgen:log_level=warn to bazel.
+    env_logger::init_from_env(env_logger::Env::new().filter("CRAS_CBINDGEN_LOG"));
+
     let c = Command::parse();
 
     let config = Config {

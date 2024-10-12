@@ -52,7 +52,7 @@ WRITE_SOURCE_FILE_TARGETS = {targets_string}
     encoding='utf-8',
 )
 
-run(['bazel', 'run', '//build/write_source_files'])
+run(['bazel', 'run', '//build/write_source_files', '--//rules/cbindgen:log_level=warn'])
 
 t1 = time.perf_counter()
 print(f'Done in {t1-t0:.2f} seconds')

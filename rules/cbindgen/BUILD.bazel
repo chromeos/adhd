@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("@crate_index//:defs.bzl", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("//:utils.bzl", "require_no_config")
@@ -15,4 +16,18 @@ rust_binary(
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     visibility = ["//:__subpackages__"],
     deps = all_crate_deps(normal = True),
+)
+
+string_flag(
+    name = "log_level",
+    build_setting_default = "off",
+    values = [
+        "error",
+        "warn",
+        "info",
+        "debug",
+        "trace",
+        "off",
+    ],
+    visibility = ["//:__subpackages__"],
 )

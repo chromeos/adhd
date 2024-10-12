@@ -49,6 +49,7 @@ dasp_sample = "0.11.0"
 dbus = { version = "0.9.0", features = ["futures"] }
 dbus-tokio = "0.7.6"
 either = "1.9.0"
+env_logger = "0.9.3"
 fixedbitset = "0.4.2"
 float-cmp = "0.9.0"
 futures = "0.3.28"

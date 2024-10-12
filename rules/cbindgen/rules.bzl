@@ -4,6 +4,7 @@
 
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_file")
 load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("//:utils.bzl", "require_no_config")
 
 def _do_cras_cbindgen_impl(ctx):
@@ -22,6 +23,9 @@ def _do_cras_cbindgen_impl(ctx):
         arguments = [args],
         outputs = [ctx.outputs.out],
         mnemonic = "CrasCbindgen",
+        env = {
+            "CRAS_CBINDGEN_LOG": ctx.attr._log_level[BuildSettingInfo].value,
+        },
     )
 
 do_cras_cbindgen = rule(
@@ -36,6 +40,9 @@ do_cras_cbindgen = rule(
             executable = True,
             cfg = "exec",
             default = Label(":cbindgen"),
+        ),
+        _log_level = attr.label(
+            default = Label(":log_level"),
         ),
     ),
 )
