@@ -18,8 +18,8 @@ func (cl *gerritCL) makeQuickVerifierBuild(name string) *cloudbuildpb.Build {
 func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build {
 	var b buildplan.Build
 	git := b.Add(gitSteps)
-	ensureBazel := b.Add(ensureBazelSteps())
-	setup := b.Add(setupCompleteMarkerSteps().WithDep(git).WithDep(ensureBazel))
+	ensureBazel := b.Add(ensureBazelSteps()).WithDep(git)
+	setup := ensureBazel
 
 	b.Add(copgenCheckSteps().WithDep(setup))
 	b.Add(rustGenerateSteps().WithDep(setup))
@@ -105,10 +105,12 @@ func MakeCopBuild() *cloudbuildpb.Build {
 func ensureBazelSteps() *buildplan.Sequence {
 	return buildplan.Commands(
 		"ensure-bazel",
+		// Run with adhd/ sources so bazelisk has access to the .bazelversion file.
+		prepareSourceStep,
 		// Run bazel once to ensure bazel is available and to avoid
 		// races between bazelisk downloading bazel from multiple invocations.
 		buildplan.Command(archlinuxBuilder, "bazel", "version"),
-	).WithManualIsolation()
+	).WithVolume()
 }
 
 func setupCompleteMarkerSteps() *buildplan.Sequence {
@@ -161,6 +163,7 @@ func systemCrasRustSteps() *buildplan.Sequence {
 					"test", "//...", "--config=ci", "-c", "dbg",
 					"--//:system_cras_rust",
 					"--repo_env=SYSTEM_CRAS_RUST_LIB=/workspace-archlinux-system-cras-rust/target/debug/libcras_rust.a",
+					"--override_repository=rules_rust=/workspace-archlinux-system-cras-rust/cras/rules_rust_stub",
 					"--config=local-clang",
 				},
 			},
