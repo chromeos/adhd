@@ -67,6 +67,8 @@ pub extern "C" fn cras_s2_get_audio_effect_dlcs() -> *mut c_char {
     let s = state()
         .input
         .dlc_installed
+        .as_ref()
+        .unwrap_or(&HashMap::new())
         .keys()
         .cloned()
         .collect::<Vec<String>>()

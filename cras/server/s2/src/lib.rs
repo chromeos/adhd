@@ -29,7 +29,7 @@ struct Input {
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
-    dlc_installed: HashMap<String, bool>,
+    dlc_installed: Option<HashMap<String, bool>>,
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
@@ -91,15 +91,18 @@ fn resolve(input: &Input) -> Output {
     let beamforming_supported = input.cras_config_dir.ends_with(".3mic");
     let beamforming_allowed = match &input.beamforming_required_dlcs {
         None => false,
-        Some(dlcs) => dlcs
-            .iter()
-            .all(|dlc| input.dlc_installed.get(dlc).cloned().unwrap_or(false)),
+        Some(dlcs) => dlcs.iter().all(|dlc| {
+            input
+                .dlc_installed
+                .as_ref()
+                .is_some_and(|d| d.get(dlc).cloned().unwrap_or(false))
+        }),
     };
-    let dlc_nc_ap_installed = input
-        .dlc_installed
-        .get(CrasDlcId::CrasDlcNcAp.as_str())
-        .cloned()
-        .unwrap_or(false);
+    let dlc_nc_ap_installed = input.dlc_installed.as_ref().is_some_and(|d| {
+        d.get(CrasDlcId::CrasDlcNcAp.as_str())
+            .cloned()
+            .unwrap_or(false)
+    });
     let dsp_input_effects_blocked = if input.bypass_block_dsp_nc {
         false
     } else if input.nc_standalone_mode {
@@ -189,7 +192,10 @@ fn resolve(input: &Input) -> Output {
         .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union);
 
     Output {
-        audio_effects_ready: input.dlc_installed.values().all(|&installed| installed),
+        audio_effects_ready: input
+            .dlc_installed
+            .as_ref()
+            .is_some_and(|d| d.values().all(|&installed| installed)),
         dsp_input_effects_blocked,
         audio_effects_status,
         audio_effect_ui_appearance,
@@ -322,18 +328,20 @@ impl S2 {
     }
 
     fn init_dlc_installed(&mut self, dlc_installed: HashMap<CrasDlcId, bool>) {
-        self.input.dlc_installed = HashMap::from_iter(
-            dlc_installed
-                .into_iter()
-                .map(|(dlc, installed)| (dlc.as_str().to_string(), installed)),
-        );
+        self.input.dlc_installed =
+            Some(HashMap::from_iter(dlc_installed.into_iter().map(
+                |(dlc, installed)| (dlc.as_str().to_string(), installed),
+            )));
         self.update();
     }
 
     fn set_dlc_installed(&mut self, dlc: CrasDlcId, installed: bool) {
-        self.input
-            .dlc_installed
-            .insert(dlc.as_str().to_string(), installed);
+        if self.input.dlc_installed.is_none() {
+            self.init_dlc_installed(Default::default());
+        }
+        if let Some(ref mut dlc_installed) = self.input.dlc_installed {
+            dlc_installed.insert(dlc.as_str().to_string(), installed);
+        }
         self.update();
     }
 
@@ -558,9 +566,8 @@ mod tests {
     #[test]
     fn test_dlc() {
         let mut s = S2::new();
+        assert!(s.input.dlc_installed.is_none());
         assert!(!s.input.dlc_manager_ready);
-        assert!(s.input.dlc_installed.is_empty());
-
         s.set_dlc_manager_ready();
         assert!(s.input.dlc_manager_ready);
 
@@ -568,11 +575,9 @@ mod tests {
             (CrasDlcId::CrasDlcNcAp, false),
             (CrasDlcId::CrasDlcIntelligoBeamforming, false),
         ]));
-        assert!(!s.output.audio_effects_ready);
-
         assert_eq!(
-            s.input.dlc_installed,
-            HashMap::from([
+            s.input.dlc_installed.as_ref().unwrap_or(&HashMap::new()),
+            &HashMap::from([
                 (CrasDlcId::CrasDlcNcAp.as_str().to_string(), false),
                 (
                     CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
@@ -580,12 +585,11 @@ mod tests {
                 )
             ])
         );
-        assert!(!s.output.audio_effects_ready);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         assert_eq!(
-            s.input.dlc_installed,
-            HashMap::from([
+            s.input.dlc_installed.as_ref().unwrap_or(&HashMap::new()),
+            &HashMap::from([
                 (CrasDlcId::CrasDlcNcAp.as_str().to_string(), true),
                 (
                     CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
@@ -593,12 +597,11 @@ mod tests {
                 )
             ])
         );
-        assert!(!s.output.audio_effects_ready);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         assert_eq!(
-            s.input.dlc_installed,
-            HashMap::from([
+            s.input.dlc_installed.as_ref().unwrap_or(&HashMap::new()),
+            &HashMap::from([
                 (CrasDlcId::CrasDlcNcAp.as_str().to_string(), true),
                 (
                     CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
@@ -611,6 +614,7 @@ mod tests {
     #[test]
     fn test_audio_effects_ready() {
         let mut s = S2::new();
+        assert!(!s.output.audio_effects_ready);
 
         static CALLED: AtomicBool = AtomicBool::new(false);
         static IS_READY: AtomicBool = AtomicBool::new(false);
@@ -622,15 +626,15 @@ mod tests {
         s.set_notify_audio_effects_ready_changed(fake_notify_audio_effects_ready_changed);
         s.update();
         assert!(!CALLED.load(Ordering::SeqCst));
+        assert!(!s.output.audio_effects_ready);
 
         s.init_dlc_installed(HashMap::from([
             (CrasDlcId::CrasDlcNcAp, false),
             (CrasDlcId::CrasDlcIntelligoBeamforming, false),
         ]));
         assert!(!s.output.audio_effects_ready);
-        assert!(CALLED.load(Ordering::SeqCst));
+        assert!(!CALLED.load(Ordering::SeqCst));
         assert!(!IS_READY.load(Ordering::SeqCst));
-        CALLED.store(false, Ordering::SeqCst);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         assert!(!s.output.audio_effects_ready);
@@ -755,6 +759,7 @@ mod tests {
     #[test]
     fn test_show_effect_fallback_message() {
         let mut s = S2::new();
+        s.init_dlc_installed(Default::default());
         assert_eq!(
             s.output
                 .audio_effect_ui_appearance
