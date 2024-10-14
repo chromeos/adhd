@@ -15,6 +15,8 @@ use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
 use serde::Serialize;
 
+use crate::global::NotifyAudioEffectsReadyChanged;
+
 pub mod global;
 
 pub const BEAMFORMING_CONFIG_PATH: &str = "/etc/cras/processor/beamforming.txtpb";
@@ -274,17 +276,29 @@ impl AudioEffectStatus {
     }
 }
 
+#[derive(Default)]
+struct CrasS2Callbacks {
+    notify_audio_effects_ready_changed: Option<NotifyAudioEffectsReadyChanged>,
+}
+
 #[derive(Serialize)]
 struct S2 {
     input: Input,
     output: Output,
+
+    #[serde(skip)]
+    callbacks: CrasS2Callbacks,
 }
 
 impl S2 {
     fn new() -> Self {
         let input = Default::default();
         let output = resolve(&input);
-        Self { input, output }
+        Self {
+            input,
+            output,
+            callbacks: Default::default(),
+        }
     }
 
     fn set_ap_nc_featured_allowed(&mut self, allowed: bool) {
@@ -401,8 +415,24 @@ impl S2 {
         self.update();
     }
 
+    fn set_notify_audio_effects_ready_changed(
+        &mut self,
+        notify_audio_effects_ready_changed: NotifyAudioEffectsReadyChanged,
+    ) {
+        self.callbacks.notify_audio_effects_ready_changed =
+            Some(notify_audio_effects_ready_changed);
+    }
+
     fn update(&mut self) {
+        let prev_audio_effects_ready = self.output.audio_effects_ready;
+
         self.output = resolve(&self.input);
+
+        if let Some(callback) = self.callbacks.notify_audio_effects_ready_changed {
+            if prev_audio_effects_ready != self.output.audio_effects_ready {
+                callback(self.output.audio_effects_ready)
+            }
+        }
     }
 
     fn reset_for_testing(&mut self) {
@@ -414,6 +444,8 @@ impl S2 {
 mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::Ordering;
 
     use cras_common::types_internal::CrasDlcId;
     use cras_common::types_internal::CRAS_NC_PROVIDER;
@@ -574,7 +606,46 @@ mod tests {
                 )
             ])
         );
+    }
+
+    #[test]
+    fn test_audio_effects_ready() {
+        let mut s = S2::new();
+
+        static CALLED: AtomicBool = AtomicBool::new(false);
+        static IS_READY: AtomicBool = AtomicBool::new(false);
+        extern "C" fn fake_notify_audio_effects_ready_changed(ready: bool) {
+            CALLED.store(true, Ordering::SeqCst);
+            IS_READY.store(ready, Ordering::SeqCst);
+        }
+
+        s.set_notify_audio_effects_ready_changed(fake_notify_audio_effects_ready_changed);
+        s.update();
+        assert!(!CALLED.load(Ordering::SeqCst));
+
+        s.init_dlc_installed(HashMap::from([
+            (CrasDlcId::CrasDlcNcAp, false),
+            (CrasDlcId::CrasDlcIntelligoBeamforming, false),
+        ]));
+        assert!(!s.output.audio_effects_ready);
+        assert!(CALLED.load(Ordering::SeqCst));
+        assert!(!IS_READY.load(Ordering::SeqCst));
+        CALLED.store(false, Ordering::SeqCst);
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        assert!(!s.output.audio_effects_ready);
+        assert!(!CALLED.load(Ordering::SeqCst));
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         assert!(s.output.audio_effects_ready);
+        assert!(CALLED.load(Ordering::SeqCst));
+        assert!(IS_READY.load(Ordering::SeqCst));
+        CALLED.store(false, Ordering::SeqCst);
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, false);
+        assert!(!s.output.audio_effects_ready);
+        assert!(CALLED.load(Ordering::SeqCst));
+        assert!(!IS_READY.load(Ordering::SeqCst));
     }
 
     #[test]

@@ -46,6 +46,17 @@ pub extern "C" fn cras_s2_are_audio_effects_ready() -> bool {
     state().output.audio_effects_ready
 }
 
+// Called when audio_effects_ready is changed, with the following arguments:
+// - bool: indicates whether the audio effects is ready.
+pub type NotifyAudioEffectsReadyChanged = extern "C" fn(bool);
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_notify_audio_effects_ready_changed(
+    notify_audio_effects_ready_changed: NotifyAudioEffectsReadyChanged,
+) {
+    state().set_notify_audio_effects_ready_changed(notify_audio_effects_ready_changed);
+}
+
 pub fn cras_s2_init_dlc_installed(dlc_installed: HashMap<CrasDlcId, bool>) {
     state().init_dlc_installed(dlc_installed);
 }
