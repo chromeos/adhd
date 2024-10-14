@@ -220,6 +220,8 @@ void cras_system_state_init(const char* device_config_dir,
     exit(-ENOMEM);
   }
   cras_s2_init();
+  cras_s2_set_notify_audio_effects_ready_changed(
+      cras_observer_notify_audio_effects_ready_changed);
 
   // Initial system state.
   exp_state->state_version = CRAS_SERVER_STATE_VERSION;

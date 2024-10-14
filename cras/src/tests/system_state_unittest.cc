@@ -823,5 +823,7 @@ void cras_iodev_list_reset_for_noise_cancellation() {
   cras_iodev_list_reset_for_noise_cancellation_called++;
 }
 
+void cras_observer_notify_audio_effects_ready_changed(bool) {}
+
 }  // extern "C"
 }  // namespace
