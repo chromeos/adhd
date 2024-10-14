@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 28;
+static const size_t kNumAlert = 29;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -75,6 +75,8 @@ static size_t cb_ewma_power_reported_called;
 static std::vector<double> cb_ewma_power_reported_values;
 static size_t cb_sidetone_supported_changed_called;
 static std::vector<bool> cb_sidetone_supported_changed_values;
+static size_t cb_audio_effects_ready_changed_called;
+static std::vector<bool> cb_audio_effects_ready_changed_values;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -132,6 +134,8 @@ static void ResetStubData() {
   cb_ewma_power_reported_values.clear();
   cb_sidetone_supported_changed_called = 0;
   cb_sidetone_supported_changed_values.clear();
+  cb_audio_effects_ready_changed_called = 0;
+  cb_audio_effects_ready_changed_values.clear();
 }
 
 // System output volume changed.
@@ -275,6 +279,12 @@ void cb_ewma_power_reported(void* context, double power) {
 void cb_sidetone_supported_changed(void* context, bool supported) {
   cb_sidetone_supported_changed_called++;
   cb_sidetone_supported_changed_values.push_back(supported);
+  cb_context.push_back(context);
+}
+
+void cb_audio_effects_ready_changed(void* context, bool audio_effects_ready) {
+  cb_audio_effects_ready_changed_called++;
+  cb_audio_effects_ready_changed_values.push_back(audio_effects_ready);
   cb_context.push_back(context);
 }
 
@@ -877,6 +887,26 @@ TEST_F(ObserverTest, SidetoneSupportedChanged) {
             (std::vector<bool>{true, true}));
 
   DoObserverRemoveClear(sidetone_supported_changed_alert, data);
+}
+
+TEST_F(ObserverTest, AudioEffectsReadyChanged) {
+  cras_observer_notify_audio_effects_ready_changed(true);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.audio_effects_ready_changed);
+  auto* data = reinterpret_cast<
+      struct cras_observer_alert_data_audio_effects_ready_changed*>(
+      cras_alert_pending_data_value);
+  EXPECT_EQ(data->audio_effects_ready, true);
+
+  ops1_.audio_effects_ready_changed = cb_audio_effects_ready_changed;
+  ops2_.audio_effects_ready_changed = cb_audio_effects_ready_changed;
+
+  DoObserverAlert(audio_effects_ready_changed_alert, data);
+  ASSERT_EQ(cb_audio_effects_ready_changed_called, 2);
+  EXPECT_EQ(cb_audio_effects_ready_changed_values,
+            (std::vector<bool>{true, true}));
+
+  DoObserverRemoveClear(audio_effects_ready_changed_alert, data);
 }
 
 // Stubs

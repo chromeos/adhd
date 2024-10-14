@@ -53,6 +53,7 @@ struct cras_observer_alerts {
   struct cras_alert* num_stream_ignore_ui_gains_changed;
   struct cras_alert* ewma_power_reported;
   struct cras_alert* sidetone_supported_changed;
+  struct cras_alert* audio_effects_ready_changed;
 };
 
 struct cras_observer_server {
@@ -144,6 +145,10 @@ struct cras_observer_alert_data_ewma_power_reported {
 
 struct cras_observer_alert_data_sidetone_supported_changed {
   bool supported;
+};
+
+struct cras_observer_alert_data_audio_effects_ready_changed {
+  bool audio_effects_ready;
 };
 
 // Global observer instance.
@@ -484,6 +489,19 @@ static void sidetone_supported_changed_alert(void* arg, void* data) {
   }
 }
 
+static void audio_effects_ready_changed_alert(void* arg, void* data) {
+  struct cras_observer_client* client;
+  struct cras_observer_alert_data_audio_effects_ready_changed* report =
+      (struct cras_observer_alert_data_audio_effects_ready_changed*)data;
+
+  DL_FOREACH (g_observer->clients, client) {
+    if (client->ops.audio_effects_ready_changed) {
+      client->ops.audio_effects_ready_changed(client->context,
+                                              report->audio_effects_ready);
+    }
+  }
+}
+
 static int cras_observer_server_set_alert(struct cras_alert** alert,
                                           cras_alert_cb cb,
                                           cras_alert_prepare prepare,
@@ -550,6 +568,7 @@ int cras_observer_server_init() {
   CRAS_OBSERVER_SET_ALERT(num_arc_streams, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(ewma_power_reported, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(sidetone_supported_changed, NULL, 0);
+  CRAS_OBSERVER_SET_ALERT(audio_effects_ready_changed, NULL, 0);
 
   CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
                                          CRAS_STREAM_OUTPUT);
@@ -597,7 +616,8 @@ void cras_observer_server_free() {
   cras_alert_destroy(g_observer->alerts.num_arc_streams);
   cras_alert_destroy(g_observer->alerts.ewma_power_reported);
   cras_alert_destroy(g_observer->alerts.sidetone_supported_changed);
-  ;
+  cras_alert_destroy(g_observer->alerts.audio_effects_ready_changed);
+
   free(g_observer);
   g_observer = NULL;
 }
@@ -879,5 +899,13 @@ void cras_observer_notify_sidetone_supported_changed(bool supported) {
   struct cras_observer_alert_data_sidetone_supported_changed data = {
       .supported = supported};
   cras_alert_pending_data(g_observer->alerts.sidetone_supported_changed, &data,
+                          sizeof(data));
+}
+
+void cras_observer_notify_audio_effects_ready_changed(
+    bool audio_effects_ready) {
+  struct cras_observer_alert_data_audio_effects_ready_changed data = {
+      .audio_effects_ready = audio_effects_ready};
+  cras_alert_pending_data(g_observer->alerts.audio_effects_ready_changed, &data,
                           sizeof(data));
 }

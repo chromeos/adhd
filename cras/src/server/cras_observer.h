@@ -148,6 +148,9 @@ void cras_observer_notify_ewma_power_reported(double power);
 // Notify observers whether the current node supports sidetone.
 void cras_observer_notify_sidetone_supported_changed(bool supported);
 
+// Notify observers whether the audio effects are ready.
+void cras_observer_notify_audio_effects_ready_changed(bool audio_effects_ready);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

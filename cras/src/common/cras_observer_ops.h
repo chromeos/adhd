@@ -98,6 +98,9 @@ struct cras_observer_ops {
 
   // State regarding whether the current audio node supports sidetone.
   void (*sidetone_supported_changed)(void* context, bool supported);
+
+  // State regarding whether the audio effects are ready.
+  void (*audio_effects_ready_changed)(void* context, bool audio_effects_ready);
 };
 
 #ifdef __cplusplus
