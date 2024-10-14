@@ -1568,6 +1568,12 @@ static DBusHandlerResult handle_set_spatial_audio_enabled(DBusConnection* conn,
   return send_empty_reply(conn, message);
 }
 
+static DBusHandlerResult handle_is_spatial_audio_supported(DBusConnection* conn,
+                                                           DBusMessage* message,
+                                                           void* arg) {
+  return send_bool_reply(conn, message, cras_s2_get_spatial_audio_supported());
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1816,6 +1822,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetSpatialAudio")) {
     return handle_set_spatial_audio_enabled(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "IsSpatialAudioSupported")) {
+    return handle_is_spatial_audio_supported(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

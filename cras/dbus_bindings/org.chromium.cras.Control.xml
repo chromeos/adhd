@@ -716,6 +716,13 @@
         (5) this signal was not sent in the past 1 second
       </tp:docstring>
     </signal>
+
+    <method name="IsSpatialAudioSupported">
+      <tp:docstring>
+        Tells whether the system can support spatial audio.
+      </tp:docstring>
+      <arg name="supported" type="b" direction="out"/>
+    </method>
   </interface>
 
   <interface name="org.freedesktop.DBus.Introspectable">

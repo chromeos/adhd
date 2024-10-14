@@ -244,3 +244,13 @@ pub extern "C" fn cras_s2_set_spatial_audio_enabled(enabled: bool) {
 pub extern "C" fn cras_s2_get_spatial_audio_enabled() -> bool {
     state().input.spatial_audio_enabled
 }
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_spatial_audio_supported(supported: bool) {
+    state().set_spatial_audio_supported(supported);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_spatial_audio_supported() -> bool {
+    state().input.spatial_audio_supported
+}

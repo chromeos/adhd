@@ -2614,6 +2614,16 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
   if (node && str_equals(node->name, SCO_LINE_IN)) {
     cras_system_set_bt_hfp_offload_supported(true);
   }
+
+  /*
+   * Update the flag of spatial audio supported to cras_system_state.
+   * The flag is set to true if there is any device supporting spatial
+   * audio on UCM modifier.
+   */
+  if (aio->common.ucm && iodev->direction == CRAS_STREAM_OUTPUT &&
+      ucm_node_spatial_audio_exists(aio->common.ucm)) {
+    cras_s2_set_spatial_audio_supported(true);
+  }
 }
 
 void alsa_iodev_destroy(struct cras_iodev* iodev) {

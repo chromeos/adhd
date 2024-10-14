@@ -73,6 +73,7 @@ struct Input {
     nc_standalone_mode: bool,
     bypass_block_dsp_nc: bool,
     spatial_audio_enabled: bool,
+    spatial_audio_supported: bool,
 }
 
 #[derive(Serialize)]
@@ -420,6 +421,11 @@ impl S2 {
 
     fn set_spatial_audio_enabled(&mut self, enabled: bool) {
         self.input.spatial_audio_enabled = enabled;
+        self.update();
+    }
+
+    fn set_spatial_audio_supported(&mut self, supported: bool) {
+        self.input.spatial_audio_supported = supported;
         self.update();
     }
 
@@ -898,5 +904,17 @@ mod tests {
 
         s.set_spatial_audio_enabled(false);
         assert_eq!(s.input.spatial_audio_enabled, false);
+    }
+
+    #[test]
+    fn test_spatial_audio_supported() {
+        let mut s = S2::new();
+        assert_eq!(s.input.spatial_audio_supported, false);
+
+        s.set_spatial_audio_supported(true);
+        assert_eq!(s.input.spatial_audio_supported, true);
+
+        s.set_spatial_audio_supported(false);
+        assert_eq!(s.input.spatial_audio_supported, false);
     }
 }

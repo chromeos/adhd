@@ -89,6 +89,10 @@ void cras_s2_set_spatial_audio_enabled(bool enabled);
 
 bool cras_s2_get_spatial_audio_enabled(void);
 
+void cras_s2_set_spatial_audio_supported(bool supported);
+
+bool cras_s2_get_spatial_audio_supported(void);
+
 #endif  /* CRAS_SERVER_S2_S2_H_ */
 
 #ifdef __cplusplus
