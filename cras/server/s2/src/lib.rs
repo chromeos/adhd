@@ -15,7 +15,7 @@ use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
 use serde::Serialize;
 
-use crate::global::NotifyAudioEffectsReadyChanged;
+use crate::global::NotifyAudioEffectUIAppearanceChanged;
 
 pub mod global;
 
@@ -284,7 +284,7 @@ impl AudioEffectStatus {
 
 #[derive(Default)]
 struct CrasS2Callbacks {
-    notify_audio_effects_ready_changed: Option<NotifyAudioEffectsReadyChanged>,
+    notify_audio_effect_ui_appearance_changed: Option<NotifyAudioEffectUIAppearanceChanged>,
 }
 
 #[derive(Serialize)]
@@ -423,12 +423,12 @@ impl S2 {
         self.update();
     }
 
-    fn set_notify_audio_effects_ready_changed(
+    fn set_notify_audio_effect_ui_appearance_changed(
         &mut self,
-        notify_audio_effects_ready_changed: NotifyAudioEffectsReadyChanged,
+        notify_audio_effect_ui_appearance_changed: NotifyAudioEffectUIAppearanceChanged,
     ) {
-        self.callbacks.notify_audio_effects_ready_changed =
-            Some(notify_audio_effects_ready_changed);
+        self.callbacks.notify_audio_effect_ui_appearance_changed =
+            Some(notify_audio_effect_ui_appearance_changed);
     }
 
     fn update(&mut self) {
@@ -436,7 +436,7 @@ impl S2 {
 
         self.output = resolve(&self.input);
 
-        if let Some(callback) = self.callbacks.notify_audio_effects_ready_changed {
+        if let Some(callback) = self.callbacks.notify_audio_effect_ui_appearance_changed {
             if prev_audio_effects_ready != self.output.audio_effects_ready {
                 callback(self.output.audio_effects_ready)
             }
@@ -618,12 +618,14 @@ mod tests {
 
         static CALLED: AtomicBool = AtomicBool::new(false);
         static IS_READY: AtomicBool = AtomicBool::new(false);
-        extern "C" fn fake_notify_audio_effects_ready_changed(ready: bool) {
+        extern "C" fn fake_notify_audio_effect_ui_appearance_changed(ready: bool) {
             CALLED.store(true, Ordering::SeqCst);
             IS_READY.store(ready, Ordering::SeqCst);
         }
 
-        s.set_notify_audio_effects_ready_changed(fake_notify_audio_effects_ready_changed);
+        s.set_notify_audio_effect_ui_appearance_changed(
+            fake_notify_audio_effect_ui_appearance_changed,
+        );
         s.update();
         assert!(!CALLED.load(Ordering::SeqCst));
         assert!(!s.output.audio_effects_ready);

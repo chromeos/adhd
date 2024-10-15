@@ -19,7 +19,7 @@ extern "C" {
 #include <stdlib.h>
 #include "cras/common/rust_common.h"
 
-typedef void (*NotifyAudioEffectsReadyChanged)(bool);
+typedef void (*NotifyAudioEffectUIAppearanceChanged)(bool);
 
 void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
@@ -29,7 +29,7 @@ void cras_s2_set_ap_nc_feature_tier_allowed(bool allowed);
 
 bool cras_s2_are_audio_effects_ready(void);
 
-void cras_s2_set_notify_audio_effects_ready_changed(NotifyAudioEffectsReadyChanged notify_audio_effects_ready_changed);
+void cras_s2_set_notify_audio_effect_ui_appearance_changed(NotifyAudioEffectUIAppearanceChanged notify_audio_effect_ui_appearance_changed);
 
 char *cras_s2_get_audio_effect_dlcs(void);
 

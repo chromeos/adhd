@@ -2377,13 +2377,14 @@ static void signal_sidetone_supported_changed(void* context, bool supported) {
   dbus_message_unref(msg);
 }
 
-static void signal_audio_effects_ready_changed(void* context,
-                                               bool audio_effects_ready) {
+static void signal_audio_effect_ui_appearance_changed(
+    void* context,
+    bool audio_effects_ready) {
   struct cras_dbus_control* control = (struct cras_dbus_control*)context;
   dbus_uint32_t serial = 0;
   dbus_bool_t ready = audio_effects_ready;
 
-  DBusMessage* msg = create_dbus_message("AudioEffectsReadyChanged");
+  DBusMessage* msg = create_dbus_message("AudioEffectUIAppearanceChanged");
   if (!msg) {
     return;
   }
@@ -2445,7 +2446,8 @@ void cras_dbus_control_start(DBusConnection* conn) {
   observer_ops.num_arc_streams_changed = signal_number_of_arc_stream_changed;
   observer_ops.ewma_power_reported = signal_ewma_power_reported;
   observer_ops.sidetone_supported_changed = signal_sidetone_supported_changed;
-  observer_ops.audio_effects_ready_changed = signal_audio_effects_ready_changed;
+  observer_ops.audio_effect_ui_appearance_changed =
+      signal_audio_effect_ui_appearance_changed;
 
   dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }

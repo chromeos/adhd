@@ -149,7 +149,8 @@ void cras_observer_notify_ewma_power_reported(double power);
 void cras_observer_notify_sidetone_supported_changed(bool supported);
 
 // Notify observers whether the audio effects are ready.
-void cras_observer_notify_audio_effects_ready_changed(bool audio_effects_ready);
+void cras_observer_notify_audio_effect_ui_appearance_changed(
+    bool audio_effects_ready);
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -100,7 +100,8 @@ struct cras_observer_ops {
   void (*sidetone_supported_changed)(void* context, bool supported);
 
   // State regarding whether the audio effects are ready.
-  void (*audio_effects_ready_changed)(void* context, bool audio_effects_ready);
+  void (*audio_effect_ui_appearance_changed)(void* context,
+                                             bool audio_effects_ready);
 };
 
 #ifdef __cplusplus
