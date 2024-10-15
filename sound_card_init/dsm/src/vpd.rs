@@ -28,6 +28,8 @@ pub struct VPD {
 pub struct Tas2563VPD {
     // The calibrated value of each channel has 21 bytes in total.
     pub dsm_calib_value: Vec<u8>,
+    // The array of id and register addresses have 16 bytes in total.
+    pub dsm_calib_register_array: Vec<u8>,
 }
 
 impl VPDTrait for VPD {
@@ -62,6 +64,15 @@ impl VPDTrait for Tas2563VPD {
     fn new(channel: usize) -> Result<Tas2563VPD> {
         let mut vpd: Tas2563VPD = Default::default();
         vpd.dsm_calib_value = read_vpd_files_hex_string(&format!("dsm_calib_value_{}", channel))?;
+        vpd.dsm_calib_register_array =
+            match read_vpd_files_hex_string(&format!("dsm_calib_register_array")) {
+                Ok(array) => array,
+                // If the register_array is not given, use a set of fixed values.
+                Err(e) => vec![
+                    0x72, 0x00, 0x0f, 0x34, 0x00, 0x0f, 0x48, 0x00, 0x0f, 0x40, 0x00, 0x0d, 0x3c,
+                    0x00, 0x10, 0x14,
+                ],
+            };
         Ok(vpd)
     }
     fn new_from_datastore(datastore: Datastore, channel: usize) -> Result<Tas2563VPD> {
@@ -79,7 +90,7 @@ pub fn update_vpd(channel: usize, vpd: VPD) -> Result<()> {
 }
 
 fn write_to_vpd(key: &str, value: i32) -> Result<()> {
-    let output = Command::new("vpd")
+    let _output = Command::new("vpd")
         .arg("-s")
         .arg(&format!("{}={}", key, value))
         .output()?;
@@ -103,9 +114,7 @@ fn read_vpd_files_hex_string(file: &str) -> Result<Vec<u8>> {
     let mut line = String::new();
     reader.read_line(&mut line).map_err(io_err)?;
     // Convert hex string to bytes
-    // 1 byte is 2 characters.
-    // 21 bytes is 42 characters in total.
-    if line.len() != 42 {
+    if line.len() % 2 != 0 {
         return Err(Error::VPDParseHexStringFailed(
             path.to_string_lossy().to_string(),
             line.clone(),
@@ -113,7 +122,7 @@ fn read_vpd_files_hex_string(file: &str) -> Result<Vec<u8>> {
         ));
     }
     let mut vec = Vec::new();
-    for i in (0..42).step_by(2) {
+    for i in (0..line.len()).step_by(2) {
         vec.push(u8::from_str_radix(&line[i..i + 2], 16).unwrap())
     }
     Ok(vec)

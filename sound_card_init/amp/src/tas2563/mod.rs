@@ -32,6 +32,9 @@ use crate::Result;
 
 /// The calibration values in `Speaker Calibrated Data` are in the following
 /// format:
+/// Data length (1 byte)
+/// ID (1 byte)
+/// register_array_address (15 bytes)
 /// dev id0 (1 byte)
 /// - PRM_R0_REG (4 bytes)
 /// - PRM_R0_LOW_REG (4 bytes)
@@ -40,8 +43,8 @@ use crate::Result;
 /// - PRM_TLIMIT_REG (4 bytes)
 /// dev id1 (1 byte)
 /// - ...
-/// Therefore, if device has two channels, there are 42 bytes. If the device has
-/// 8 channels, then there are 82 bytes.
+/// Therefore, if device has two channels, there are 59 bytes. If the device has
+/// 8 channels, then there are 101 bytes.
 
 /// `TwoChannelsControl` that reads and writes a multi-byte entry for TAS2563
 /// speaker calibrated data.
@@ -51,14 +54,14 @@ pub struct TwoChannelsControl<'a> {
     id: ElemId,
 }
 impl<'a> Control<'a> for TwoChannelsControl<'a> {
-    type Item = [u8; 43];
+    type Item = [u8; 59];
     fn new(handle: &'a mut Ctl, id: ElemId) -> Self {
         Self { handle, id }
     }
 }
 
 impl<'a> TwoChannelsControl<'a> {
-    pub fn get(&mut self) -> Result<[u8; 43]> {
+    pub fn get(&mut self) -> Result<[u8; 59]> {
         let data = self.load()?;
         Ok(data)
     }
@@ -77,14 +80,14 @@ pub struct FourChannelsControl<'a> {
     id: ElemId,
 }
 impl<'a> Control<'a> for FourChannelsControl<'a> {
-    type Item = [u8; 85];
+    type Item = [u8; 101];
     fn new(handle: &'a mut Ctl, id: ElemId) -> Self {
         Self { handle, id }
     }
 }
 
 impl<'a> FourChannelsControl<'a> {
-    pub fn get(&mut self) -> Result<[u8; 85]> {
+    pub fn get(&mut self) -> Result<[u8; 101]> {
         let data = self.load()?;
         Ok(data)
     }
@@ -114,6 +117,8 @@ struct TAS2563CalibData {
     pub rms_pow: u32,
     /// Delta temperature limit coefficient
     pub tlimit: u32,
+    // The id and register addresses
+    pub register_array: Vec<u8>,
 }
 
 impl CalibData for TAS2563CalibData {
@@ -220,6 +225,7 @@ impl From<Tas2563VPD> for TAS2563CalibData {
             invr0: u32::from_be_bytes(vpd.dsm_calib_value[9..13].try_into().unwrap()),
             rms_pow: u32::from_be_bytes(vpd.dsm_calib_value[13..17].try_into().unwrap()),
             tlimit: u32::from_be_bytes(vpd.dsm_calib_value[17..21].try_into().unwrap()),
+            register_array: vpd.dsm_calib_register_array,
         }
     }
 }
@@ -310,9 +316,13 @@ impl TAS2563 {
                 invr0,
                 rms_pow,
                 tlimit,
+                ref register_array,
             },
         ) in calib.iter().enumerate()
         {
+            if ch == 0 {
+                values.extend(register_array);
+            }
             values.push(ch as u8);
             values.extend(r0.to_be_bytes());
             values.extend(r0_low.to_be_bytes());
@@ -320,6 +330,7 @@ impl TAS2563 {
             values.extend(rms_pow.to_be_bytes());
             values.extend(tlimit.to_be_bytes());
         }
+        // Add the extra byte for fitting the total length of the data.
         values.push(0 as u8);
 
         if calib.len() == 2 {
