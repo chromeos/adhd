@@ -21,6 +21,7 @@ def normalized_control_value(value):
 def parse_ucm_config(ucm_file):
     """Parses the UCM config file and extracts relevant sections."""
     config_data = {}
+    sum_disable_sequence = set()
     with open(ucm_file, 'r') as file:
         current_section = None
         current_sequence = None  # Track the current sequence (Enable/Disable)
@@ -44,14 +45,20 @@ def parse_ucm_config(ucm_file):
 
             # Extract cset/cset-tlv commands
             if line.startswith("cset"):
-                match = re.search(r"name='(.*?)'\s*(.*)\"", line)
+                match = re.search(r"name='(.*?)'\s*,?\s*(.*)\"", line)
                 if match:
                     key, value = match.groups()
                     value = normalized_control_value(value)
-                    # TODO: /opt/${File}} does not exist in the image, add it back after bin files are deployed. (b/352466778)
-                    if "/opt/" in value:
-                        continue
                     config_data[current_section][current_sequence].append((key, value))
+                    if current_sequence == "DisableSequence":
+                        sum_disable_sequence.add((key, value))
+
+    for key in config_data.keys():
+        seq_set = sum_disable_sequence.copy()
+        if "DisableSequence" in config_data[key]:
+            seq_set -= set(config_data[key]["DisableSequence"])
+        if len(seq_set) > 0:
+            config_data[key]["EnableSequence"] = [*seq_set] + config_data[key]["EnableSequence"]
 
     return config_data
 
@@ -93,7 +100,7 @@ def generate_mixer_paths_xml(config_data, output_file):
     # Process devices and modifiers (EnableSequence)
     for section_name, data in config_data.items():
         if section_name.startswith("SectionDevice") or section_name.startswith("SectionModifier"):
-            device_type = section_name.split('.')[1].strip('"').replace(" ", "")
+            device_type = re.search(r'"([^"]*)"', section_name).group(1).replace(" ", "-").lower()
             path = ET.SubElement(mixer, "path", name=device_type)
             for key, value in data.get("EnableSequence", []):
                 ET.SubElement(path, "ctl", name=key, value=value)
@@ -108,7 +115,6 @@ def generate_mixer_paths_xml(config_data, output_file):
     tree = ET.ElementTree(mixer)
     ET.indent(tree, space="\t", level=0)  # For better readability
     tree.write(output_file, encoding="utf-8", xml_declaration=True)
-    print(f"XML written to {output_file}")
 
 
 if __name__ == "__main__":
