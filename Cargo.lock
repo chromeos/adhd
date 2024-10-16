@@ -1765,8 +1765,3 @@ dependencies = [
  "quote",
  "syn 2.0.77",
 ]
-
-[[patch.unused]]
-name = "minijail"
-version = "0.1.0"
-

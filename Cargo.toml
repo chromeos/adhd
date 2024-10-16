@@ -86,7 +86,6 @@ zerocopy = "0.7.32"
 # ChromiumOS crates
 system_api = "*"  # provided by ebuild
 featured = "*"  # provided by ebuild
-minijail = "*"  # provided by ebuild
 
 [patch.crates-io]
 # When building out of ChromiumOS, we do not actually use system_api.
@@ -100,4 +99,3 @@ system_api = { path = "repositories/system_api_stub" } # ignored by ebuild
 # system_api = { path = "../../platform2/system_api" } # ignored by ebuild
 
 featured = { path = "repositories/featured_stub" } # ignored by ebuild
-minijail = { path = "repositories/minijail_stub" } # ignored by ebuild
