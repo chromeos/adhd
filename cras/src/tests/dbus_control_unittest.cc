@@ -81,6 +81,15 @@ TEST_F(DBusControlTestSuite, GetFeatureFlagForTestBadArgs) {
   WaitForMatches();
 }
 
+TEST_F(DBusControlTestSuite, GetVoiceIsolationUIAppearance) {
+  CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
+                    "GetVoiceIsolationUIAppearance")
+      .Send();
+  // WaitForMatches() will check each of the argument's type is matched
+  // with the specified DBUS_TYPE.
+  WaitForMatches();
+}
+
 }  // namespace
 
 extern "C" {

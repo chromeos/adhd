@@ -1115,10 +1115,15 @@ static DBusHandlerResult handle_get_voice_isolation_ui_appearance(
 
   struct CrasEffectUIAppearance appearance =
       cras_s2_get_audio_effect_ui_appearance();
+  dbus_uint32_t toggle_type = appearance.toggle_type;
+  dbus_uint32_t effect_mode_options = appearance.effect_mode_options;
+  // boolean size must be fixed at 4 bytes due to wire protocol!
+  dbus_bool_t show_effect_fallback_message =
+      appearance.show_effect_fallback_message;
   if (!dbus_message_append_args(
-          reply, DBUS_TYPE_UINT32, &appearance.toggle_type, DBUS_TYPE_UINT32,
-          &appearance.effect_mode_options, DBUS_TYPE_BOOLEAN,
-          &appearance.show_effect_fallback_message)) {
+          reply, DBUS_TYPE_UINT32, &toggle_type, DBUS_TYPE_UINT32,
+          &effect_mode_options, DBUS_TYPE_BOOLEAN,
+          &show_effect_fallback_message, DBUS_TYPE_INVALID)) {
     ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
     goto unref_reply;
   }
