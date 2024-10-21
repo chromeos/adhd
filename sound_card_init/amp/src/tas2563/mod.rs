@@ -282,6 +282,9 @@ impl Amp for TAS2563 {
 impl TAS2563 {
     const TEMP_UPPER_LIMIT_CELSIUS: f32 = 40.0;
     const TEMP_LOWER_LIMIT_CELSIUS: f32 = 0.0;
+    const CALIB_DATA_LEN_2_CH: usize = 59;
+    const CALIB_DATA_LEN_4_CH: usize = 101;
+
     /// Creates an `TAS2563`.
     /// # Arguments
     ///
@@ -308,6 +311,13 @@ impl TAS2563 {
     /// Applies the calibration value to the amp.
     fn apply_calibration_value(&mut self, calib: &[TAS2563CalibData]) -> Result<()> {
         let mut values: Vec<u8> = Vec::new();
+        if calib.len() == 2 {
+            values.push(Self::CALIB_DATA_LEN_2_CH as u8);
+        } else if calib.len() == 4 {
+            values.push(Self::CALIB_DATA_LEN_4_CH as u8);
+        } else {
+            return Err(Error::InvalidChannelNumber(calib.len().try_into().unwrap()).into());
+        }
         for (
             ch,
             &TAS2563CalibData {
@@ -330,8 +340,6 @@ impl TAS2563 {
             values.extend(rms_pow.to_be_bytes());
             values.extend(tlimit.to_be_bytes());
         }
-        // Add the extra byte for fitting the total length of the data.
-        values.push(0 as u8);
 
         if calib.len() == 2 {
             self.card
