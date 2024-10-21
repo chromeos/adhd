@@ -320,9 +320,8 @@ cc_library(
     name = "linear_resampler",
     srcs = ["linear_resampler.c"],
     hdrs = ["linear_resampler.h"],
-    visibility = [
-        "//cras/src/tests:__pkg__",
-    ],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = ["//cras/src/common:cras_util"],
 )
 
 cc_library(

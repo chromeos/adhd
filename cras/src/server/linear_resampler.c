@@ -7,6 +7,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <syslog.h>
+
+#include "cras/common/check.h"
 
 // A linear resampler.
 struct linear_resampler {
@@ -14,6 +17,8 @@ struct linear_resampler {
   unsigned int num_channels;
   // The size of one frame in bytes.
   unsigned int format_bytes;
+  // The byte-width of the format;
+  unsigned int format_width;
   // The accumulated offset for resampled src data.
   unsigned int src_offset;
   // The accumulated offset for resampled dst data.
@@ -38,6 +43,13 @@ struct linear_resampler* linear_resampler_create(unsigned int num_channels,
   }
   lr->num_channels = num_channels;
   lr->format_bytes = format_bytes;
+  lr->format_width = format_bytes / num_channels;
+  // Only support 16 and 32 bits for now.
+  if (lr->format_width != 2 && lr->format_width != 4) {
+    syslog(LOG_WARNING,
+           "The format byte-width %u is not supported by the linear resampler",
+           lr->format_width);
+  }
 
   linear_resampler_set_rates(lr, src_rate, dst_rate);
 
@@ -104,6 +116,9 @@ unsigned int linear_resampler_in_frames_to_out(struct linear_resampler* lr,
 }
 
 int linear_resampler_needed(struct linear_resampler* lr) {
+  if (lr->format_width != 2 && lr->format_width != 4) {
+    return 0;
+  }
   return lr->from_times_100 != lr->to_times_100;
 }
 
@@ -115,8 +130,9 @@ unsigned int linear_resampler_resample(struct linear_resampler* lr,
   int ch;
   unsigned int src_idx = 0;
   unsigned int dst_idx = 0;
-  float src_pos;
+  double src_pos;
   int16_t *in, *out;
+  int32_t *in32, *out32;
 
   /* Check for corner cases so that we can assume both src_idx and
    * dst_idx are valid with value 0 in the loop below. */
@@ -126,7 +142,7 @@ unsigned int linear_resampler_resample(struct linear_resampler* lr,
   }
 
   for (dst_idx = 0; dst_idx <= dst_frames; dst_idx++) {
-    src_pos = (float)(lr->dst_offset + dst_idx) / lr->f;
+    src_pos = (double)(lr->dst_offset + dst_idx) / lr->f;
     if (src_pos > lr->src_offset) {
       src_pos -= lr->src_offset;
     } else {
@@ -143,19 +159,37 @@ unsigned int linear_resampler_resample(struct linear_resampler* lr,
       break;
     }
 
-    in = (int16_t*)(src + src_idx * lr->format_bytes);
-    out = (int16_t*)(dst + dst_idx * lr->format_bytes);
-
-    /* Don't do linear interpolcation if src_pos falls on the
-     * last index. */
-    if (src_idx == *src_frames - 1) {
-      for (ch = 0; ch < lr->num_channels; ch++) {
-        out[ch] = in[ch];
+    if (lr->format_width == 2) {  // 16bits
+      in = (int16_t*)(src + src_idx * lr->format_bytes);
+      out = (int16_t*)(dst + dst_idx * lr->format_bytes);
+      /* Don't do linear interpolcation if src_pos falls on the
+       * last index. */
+      if (src_idx == *src_frames - 1) {
+        for (ch = 0; ch < lr->num_channels; ch++) {
+          out[ch] = in[ch];
+        }
+      } else {
+        for (ch = 0; ch < lr->num_channels; ch++) {
+          out[ch] = in[ch] +
+                    (src_pos - src_idx) * (in[lr->num_channels + ch] - in[ch]);
+        }
       }
-    } else {
-      for (ch = 0; ch < lr->num_channels; ch++) {
-        out[ch] =
-            in[ch] + (src_pos - src_idx) * (in[lr->num_channels + ch] - in[ch]);
+    } else if (lr->format_width == 4) {  // 24 or 32bits
+      in32 = (int32_t*)(src + src_idx * lr->format_bytes);
+      out32 = (int32_t*)(dst + dst_idx * lr->format_bytes);
+      CRAS_CHECK(((uintptr_t)in32) % _Alignof(int32_t) == 0);
+      CRAS_CHECK(((uintptr_t)out32) % _Alignof(int32_t) == 0);
+      /* Don't do linear interpolcation if src_pos falls on the
+       * last index. */
+      if (src_idx == *src_frames - 1) {
+        for (ch = 0; ch < lr->num_channels; ch++) {
+          out32[ch] = in32[ch];
+        }
+      } else {
+        for (ch = 0; ch < lr->num_channels; ch++) {
+          out32[ch] = in32[ch] + (src_pos - src_idx) *
+                                     (in32[lr->num_channels + ch] - in32[ch]);
+        }
       }
     }
   }
