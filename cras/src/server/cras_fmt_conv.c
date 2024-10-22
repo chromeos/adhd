@@ -215,10 +215,17 @@ static int is_supported_format(const struct cras_audio_format* fmt) {
   }
 }
 
+static bool use_s32_conversion(struct cras_fmt_conv* conv) {
+  return false;
+}
+
 static size_t mono_to_stereo(struct cras_fmt_conv* conv,
                              const uint8_t* in,
                              size_t in_frames,
                              uint8_t* out) {
+  if (use_s32_conversion(conv)) {
+    return s32_mono_to_stereo(in, in_frames, out);
+  }
   return s16_mono_to_stereo(in, in_frames, out);
 }
 
@@ -226,6 +233,9 @@ static size_t stereo_to_mono(struct cras_fmt_conv* conv,
                              const uint8_t* in,
                              size_t in_frames,
                              uint8_t* out) {
+  if (use_s32_conversion(conv)) {
+    return s32_stereo_to_mono(in, in_frames, out);
+  }
   return s16_stereo_to_mono(in, in_frames, out);
 }
 
@@ -240,6 +250,9 @@ static size_t mono_to_5(struct cras_fmt_conv* conv,
   left = conv->out_fmt.channel_layout[CRAS_CH_FL];
   right = conv->out_fmt.channel_layout[CRAS_CH_FR];
 
+  if (use_s32_conversion(conv)) {
+    return s32_mono_to_5(left, right, in, in_frames, out);
+  }
   return s16_mono_to_5(left, right, in, in_frames, out);
 }
 
@@ -253,6 +266,9 @@ static size_t mono_to_51(struct cras_fmt_conv* conv,
   right = conv->out_fmt.channel_layout[CRAS_CH_FR];
   center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
+  if (use_s32_conversion(conv)) {
+    return s32_mono_to_51(left, right, center, in, in_frames, out);
+  }
   return s16_mono_to_51(left, right, center, in, in_frames, out);
 }
 
@@ -267,6 +283,9 @@ static size_t stereo_to_5(struct cras_fmt_conv* conv,
   left = conv->out_fmt.channel_layout[CRAS_CH_FL];
   right = conv->out_fmt.channel_layout[CRAS_CH_FR];
 
+  if (use_s32_conversion(conv)) {
+    return s32_stereo_to_5(left, right, in, in_frames, out);
+  }
   return s16_stereo_to_5(left, right, in, in_frames, out);
 }
 
@@ -280,6 +299,9 @@ static size_t stereo_to_51(struct cras_fmt_conv* conv,
   right = conv->out_fmt.channel_layout[CRAS_CH_FR];
   center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
+  if (use_s32_conversion(conv)) {
+    return s32_stereo_to_51(left, right, center, in, in_frames, out);
+  }
   return s16_stereo_to_51(left, right, center, in, in_frames, out);
 }
 
@@ -294,6 +316,9 @@ static size_t quad_to_51(struct cras_fmt_conv* conv,
   rl = conv->out_fmt.channel_layout[CRAS_CH_RL];
   rr = conv->out_fmt.channel_layout[CRAS_CH_RR];
 
+  if (use_s32_conversion(conv)) {
+    return s32_quad_to_51(fl, fr, rl, rr, in, in_frames, out);
+  }
   return s16_quad_to_51(fl, fr, rl, rr, in, in_frames, out);
 }
 
@@ -307,6 +332,9 @@ static size_t mono_to_71(struct cras_fmt_conv* conv,
   right = conv->out_fmt.channel_layout[CRAS_CH_FR];
   center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
+  if (use_s32_conversion(conv)) {
+    return s32_mono_to_71(left, right, center, in, in_frames, out);
+  }
   return s16_mono_to_71(left, right, center, in, in_frames, out);
 }
 
@@ -320,6 +348,9 @@ static size_t stereo_to_71(struct cras_fmt_conv* conv,
   right = conv->out_fmt.channel_layout[CRAS_CH_FR];
   center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
+  if (use_s32_conversion(conv)) {
+    return s32_stereo_to_71(left, right, center, in, in_frames, out);
+  }
   return s16_stereo_to_71(left, right, center, in, in_frames, out);
 }
 
@@ -334,6 +365,9 @@ static size_t quad_to_71(struct cras_fmt_conv* conv,
   rl = conv->out_fmt.channel_layout[CRAS_CH_RL];
   rr = conv->out_fmt.channel_layout[CRAS_CH_RR];
 
+  if (use_s32_conversion(conv)) {
+    return s32_quad_to_71(fl, fr, rl, rr, in, in_frames, out);
+  }
   return s16_quad_to_71(fl, fr, rl, rr, in, in_frames, out);
 }
 
@@ -341,6 +375,9 @@ static size_t _51_to_71(struct cras_fmt_conv* conv,
                         const uint8_t* in,
                         size_t in_frames,
                         uint8_t* out) {
+  if (use_s32_conversion(conv)) {
+    return s32_51_to_71(&conv->in_fmt, &conv->out_fmt, in, in_frames, out);
+  }
   return s16_51_to_71(&conv->in_fmt, &conv->out_fmt, in, in_frames, out);
 }
 
@@ -348,6 +385,9 @@ static size_t _51_to_stereo(struct cras_fmt_conv* conv,
                             const uint8_t* in,
                             size_t in_frames,
                             uint8_t* out) {
+  if (use_s32_conversion(conv)) {
+    return s32_51_to_stereo(in, in_frames, out);
+  }
   return s16_51_to_stereo(in, in_frames, out);
 }
 
@@ -355,6 +395,9 @@ static size_t _51_to_quad(struct cras_fmt_conv* conv,
                           const uint8_t* in,
                           size_t in_frames,
                           uint8_t* out) {
+  if (use_s32_conversion(conv)) {
+    return s32_51_to_quad(in, in_frames, out);
+  }
   return s16_51_to_quad(in, in_frames, out);
 }
 
@@ -367,6 +410,9 @@ static size_t stereo_to_quad(struct cras_fmt_conv* conv,
   front_left = conv->out_fmt.channel_layout[CRAS_CH_FL];
   front_right = conv->out_fmt.channel_layout[CRAS_CH_FR];
 
+  if (use_s32_conversion(conv)) {
+    return s32_stereo_to_quad(front_left, front_right, in, in_frames, out);
+  }
   return s16_stereo_to_quad(front_left, front_right, in, in_frames, out);
 }
 
@@ -381,6 +427,10 @@ static size_t quad_to_stereo(struct cras_fmt_conv* conv,
   rear_left = conv->in_fmt.channel_layout[CRAS_CH_RL];
   rear_right = conv->in_fmt.channel_layout[CRAS_CH_RR];
 
+  if (use_s32_conversion(conv)) {
+    return s32_quad_to_stereo(front_left, front_right, rear_left, rear_right,
+                              in, in_frames, out);
+  }
   return s16_quad_to_stereo(front_left, front_right, rear_left, rear_right, in,
                             in_frames, out);
 }
@@ -394,6 +444,10 @@ static size_t default_all_to_all(struct cras_fmt_conv* conv,
   num_in_ch = conv->in_fmt.num_channels;
   num_out_ch = conv->out_fmt.num_channels;
 
+  if (use_s32_conversion(conv)) {
+    return s32_default_all_to_all(&conv->out_fmt, num_in_ch, num_out_ch, in,
+                                  in_frames, out);
+  }
   return s16_default_all_to_all(&conv->out_fmt, num_in_ch, num_out_ch, in,
                                 in_frames, out);
 }
@@ -408,6 +462,10 @@ static size_t default_some_to_some(struct cras_fmt_conv* conv,
   num_in_ch = conv->in_fmt.num_channels;
   num_out_ch = conv->out_fmt.num_channels;
 
+  if (use_s32_conversion(conv)) {
+    return s32_some_to_some(&conv->out_fmt, num_in_ch, num_out_ch, in,
+                            in_frames, out);
+  }
   return s16_some_to_some(&conv->out_fmt, num_in_ch, num_out_ch, in, in_frames,
                           out);
 }
@@ -423,6 +481,10 @@ static size_t convert_channels(struct cras_fmt_conv* conv,
   num_in_ch = conv->in_fmt.num_channels;
   num_out_ch = conv->out_fmt.num_channels;
 
+  if (use_s32_conversion(conv)) {
+    return s32_convert_channels(ch_conv_mtx, num_in_ch, num_out_ch, in,
+                                in_frames, out);
+  }
   return s16_convert_channels(ch_conv_mtx, num_in_ch, num_out_ch, in, in_frames,
                               out);
 }
