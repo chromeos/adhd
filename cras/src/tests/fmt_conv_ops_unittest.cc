@@ -1,7 +1,6 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-
 #include <gtest/gtest.h>
 #include <limits.h>
 #include <math.h>
@@ -232,6 +231,76 @@ TEST(FormatConverterOpsTest, ConvertS16LEToS32LE) {
   for (size_t i = 0; i < frames * in_ch; ++i) {
     EXPECT_EQ((int32_t)((uint32_t)src[i] << 16) & 0xffffff00,
               dst[i] & 0xffffff00);
+  }
+}
+
+// Test S24_LE to S32_LE conversion.
+TEST(FormatConverterOpsTest, ConvertS24LEToS32LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 2;
+
+  S24LEPtr src = CreateS24LE(frames * in_ch);
+  S32LEPtr dst = CreateS32LE(frames * out_ch);
+
+  convert_s24le_to_s32le((uint8_t*)src.get(), frames * in_ch,
+                         (uint8_t*)dst.get());
+
+  for (size_t i = 0; i < frames * in_ch; ++i) {
+    EXPECT_EQ(src[i] << 8, dst[i]);
+  }
+}
+
+// Test S32_LE to S24_LE conversion.
+TEST(FormatConverterOpsTest, ConvertS32LEToS24LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 2;
+
+  S32LEPtr src = CreateS32LE(frames * in_ch);
+  S24LEPtr dst = CreateS24LE(frames * out_ch);
+
+  convert_s32le_to_s24le((uint8_t*)src.get(), frames * in_ch,
+                         (uint8_t*)dst.get());
+
+  for (size_t i = 0; i < frames * in_ch; ++i) {
+    EXPECT_EQ((src[i] >> 8) & 0x00ffffff, dst[i]);
+  }
+}
+
+// Test S24_3LE to S32_LE conversion.
+TEST(FormatConverterOpsTest, ConvertS243LEToS32LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 2;
+
+  S243LEPtr src = CreateS243LE(frames * in_ch);
+  S32LEPtr dst = CreateS32LE(frames * out_ch);
+
+  convert_s243le_to_s32le(src.get(), frames * in_ch, (uint8_t*)dst.get());
+
+  uint8_t* p = src.get();
+  for (size_t i = 0; i < frames * in_ch; ++i) {
+    EXPECT_EQ(ToS243LE(p) << 8, dst[i]);
+    p += 3;
+  }
+}
+
+// Test S32_LE to S24_3LE conversion.
+TEST(FormatConverterOpsTest, ConvertS32LEToS243LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 2;
+
+  S32LEPtr src = CreateS32LE(frames * in_ch);
+  S243LEPtr dst = CreateS243LE(frames * out_ch);
+
+  convert_s32le_to_s243le((uint8_t*)src.get(), frames * in_ch, dst.get());
+
+  uint8_t* p = dst.get();
+  for (size_t i = 0; i < frames * in_ch; ++i) {
+    EXPECT_EQ((src[i] >> 8) & 0x00ffffff, ToS243LE(p));
+    p += 3;
   }
 }
 

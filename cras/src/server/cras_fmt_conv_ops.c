@@ -159,6 +159,58 @@ void convert_f32le_to_s16le(const float* in, size_t in_samples, int16_t* out) {
   }
 }
 
+void convert_s24le_to_s32le(const uint8_t* in,
+                            size_t in_samples,
+                            uint8_t* out) {
+  size_t i;
+  int32_t* _in = (int32_t*)in;
+  int32_t* _out = (int32_t*)out;
+
+  for (i = 0; i < in_samples; i++, _in++, _out++) {
+    *_out = (*_in & 0x00ffffff) << 8;
+  }
+}
+
+void convert_s32le_to_s24le(const uint8_t* in,
+                            size_t in_samples,
+                            uint8_t* out) {
+  size_t i;
+  int32_t* _in = (int32_t*)in;
+  int32_t* _out = (int32_t*)out;
+
+  for (i = 0; i < in_samples; i++, _in++, _out++) {
+    *_out = (*_in >> 8) & 0x00ffffff;
+  }
+}
+
+void convert_s243le_to_s32le(const uint8_t* in,
+                             size_t in_samples,
+                             uint8_t* out) {
+  /* find how to calculate in and out size, implement the conversion
+   * between S24_3LE and S32 */
+
+  size_t i;
+  uint8_t* _in = (uint8_t*)in;
+  uint8_t* _out = (uint8_t*)out;
+
+  for (i = 0; i < in_samples; i++, _in += 3, _out += 4) {
+    *_out = 0;
+    memcpy(_out + 1, _in, 3);
+  }
+}
+
+void convert_s32le_to_s243le(const uint8_t* in,
+                             size_t in_samples,
+                             uint8_t* out) {
+  size_t i;
+  uint8_t* _in = (uint8_t*)in;
+  uint8_t* _out = (uint8_t*)out;
+
+  for (i = 0; i < in_samples; i++, _in += 4, _out += 3) {
+    memcpy(_out, _in + 1, 3);
+  }
+}
+
 /*
  * Channel converter: mono to stereo.
  */

@@ -31,6 +31,14 @@ void convert_s16le_to_s24le(const uint8_t* in, size_t in_samples, uint8_t* out);
 void convert_s16le_to_s32le(const uint8_t* in, size_t in_samples, uint8_t* out);
 void convert_s16le_to_f32le(const int16_t* in, size_t in_samples, float* out);
 void convert_f32le_to_s16le(const float* in, size_t in_samples, int16_t* out);
+void convert_s243le_to_s32le(const uint8_t* in,
+                             size_t in_samples,
+                             uint8_t* out);
+void convert_s32le_to_s243le(const uint8_t* in,
+                             size_t in_samples,
+                             uint8_t* out);
+void convert_s24le_to_s32le(const uint8_t* in, size_t in_samples, uint8_t* out);
+void convert_s32le_to_s24le(const uint8_t* in, size_t in_samples, uint8_t* out);
 
 /*
  * Channel converter: mono to stereo.

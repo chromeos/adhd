@@ -216,7 +216,11 @@ static int is_supported_format(const struct cras_audio_format* fmt) {
 }
 
 static bool use_s32_conversion(struct cras_fmt_conv* conv) {
-  return false;
+  // Only use 32-bit conversion when the rate is not changed since speex doesn't
+  // support 32 bits.
+  return PCM_FORMAT_WIDTH(conv->in_fmt.format) > 16 &&
+         PCM_FORMAT_WIDTH(conv->out_fmt.format) > 16 &&
+         conv->in_fmt.frame_rate == conv->out_fmt.frame_rate;
 }
 
 static size_t mono_to_stereo(struct cras_fmt_conv* conv,
@@ -560,48 +564,79 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
   }
 
   // Set up sample format conversion.
-  /* TODO(dgreid) - modify channel and sample rate conversion so
-   * converting to s16 isn't necessary. */
-  if (in->format != SND_PCM_FORMAT_S16_LE) {
-    conv->num_converters++;
-    syslog(LOG_DEBUG, "Convert from format %d to %d.", in->format, out->format);
-    switch (in->format) {
-      case SND_PCM_FORMAT_U8:
-        conv->in_format_converter = convert_u8_to_s16le;
-        break;
-      case SND_PCM_FORMAT_S24_LE:
-        conv->in_format_converter = convert_s24le_to_s16le;
-        break;
-      case SND_PCM_FORMAT_S32_LE:
-        conv->in_format_converter = convert_s32le_to_s16le;
-        break;
-      case SND_PCM_FORMAT_S24_3LE:
-        conv->in_format_converter = convert_s243le_to_s16le;
-        break;
-      default:
-        syslog(LOG_ERR, "Should never reachable");
-        break;
+  if (use_s32_conversion(conv)) {
+    if (in->format != SND_PCM_FORMAT_S32_LE) {
+      conv->num_converters++;
+      syslog(LOG_DEBUG, "Convert from format %d to S32.", in->format);
+      switch (in->format) {
+        case SND_PCM_FORMAT_S24_LE:
+          conv->in_format_converter = convert_s24le_to_s32le;
+          break;
+        case SND_PCM_FORMAT_S24_3LE:
+          conv->in_format_converter = convert_s243le_to_s32le;
+          break;
+        default:
+          syslog(LOG_ERR, "Should never reachable");
+          break;
+      }
     }
-  }
-  if (out->format != SND_PCM_FORMAT_S16_LE) {
-    conv->num_converters++;
-    syslog(LOG_DEBUG, "Convert from format %d to %d.", in->format, out->format);
-    switch (out->format) {
-      case SND_PCM_FORMAT_U8:
-        conv->out_format_converter = convert_s16le_to_u8;
-        break;
-      case SND_PCM_FORMAT_S24_LE:
-        conv->out_format_converter = convert_s16le_to_s24le;
-        break;
-      case SND_PCM_FORMAT_S32_LE:
-        conv->out_format_converter = convert_s16le_to_s32le;
-        break;
-      case SND_PCM_FORMAT_S24_3LE:
-        conv->out_format_converter = convert_s16le_to_s243le;
-        break;
-      default:
-        syslog(LOG_ERR, "Should never reachable");
-        break;
+    if (out->format != SND_PCM_FORMAT_S32_LE) {
+      conv->num_converters++;
+      syslog(LOG_DEBUG, "Convert from format S32 to %d.", out->format);
+      switch (out->format) {
+        case SND_PCM_FORMAT_S24_LE:
+          conv->out_format_converter = convert_s32le_to_s24le;
+          break;
+        case SND_PCM_FORMAT_S24_3LE:
+          conv->out_format_converter = convert_s32le_to_s243le;
+          break;
+        default:
+          syslog(LOG_ERR, "Should never reachable");
+          break;
+      }
+    }
+  } else {
+    if (in->format != SND_PCM_FORMAT_S16_LE) {
+      conv->num_converters++;
+      syslog(LOG_DEBUG, "Convert from format %d to S16.", in->format);
+      switch (in->format) {
+        case SND_PCM_FORMAT_U8:
+          conv->in_format_converter = convert_u8_to_s16le;
+          break;
+        case SND_PCM_FORMAT_S24_LE:
+          conv->in_format_converter = convert_s24le_to_s16le;
+          break;
+        case SND_PCM_FORMAT_S32_LE:
+          conv->in_format_converter = convert_s32le_to_s16le;
+          break;
+        case SND_PCM_FORMAT_S24_3LE:
+          conv->in_format_converter = convert_s243le_to_s16le;
+          break;
+        default:
+          syslog(LOG_ERR, "Should never reachable");
+          break;
+      }
+    }
+    if (out->format != SND_PCM_FORMAT_S16_LE) {
+      conv->num_converters++;
+      syslog(LOG_DEBUG, "Convert from format S16 to %d.", out->format);
+      switch (out->format) {
+        case SND_PCM_FORMAT_U8:
+          conv->out_format_converter = convert_s16le_to_u8;
+          break;
+        case SND_PCM_FORMAT_S24_LE:
+          conv->out_format_converter = convert_s16le_to_s24le;
+          break;
+        case SND_PCM_FORMAT_S32_LE:
+          conv->out_format_converter = convert_s16le_to_s32le;
+          break;
+        case SND_PCM_FORMAT_S24_3LE:
+          conv->out_format_converter = convert_s16le_to_s243le;
+          break;
+        default:
+          syslog(LOG_ERR, "Should never reachable");
+          break;
+      }
     }
   }
 
@@ -731,10 +766,15 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
    * rate for inaccurate device consumption rate.
    */
   conv->num_converters++;
-  // Force to use 16 bits linear resampler for now
-  conv->resampler =
-      linear_resampler_create(out->num_channels, 2 * out->num_channels,
-                              out->frame_rate, out->frame_rate);
+  if (use_s32_conversion(conv)) {
+    conv->resampler =
+        linear_resampler_create(out->num_channels, 4 * out->num_channels,
+                                out->frame_rate, out->frame_rate);
+  } else {  // 16 bits
+    conv->resampler =
+        linear_resampler_create(out->num_channels, 2 * out->num_channels,
+                                out->frame_rate, out->frame_rate);
+  }
   if (conv->resampler == NULL) {
     syslog(LOG_ERR, "Fail to create linear resampler");
     cras_fmt_conv_destroy(&conv);
@@ -938,8 +978,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
   buffers[0] = (uint8_t*)in_buf;
   buffers[used_converters] = out_buf;
 
-  // If the input format isn't S16_LE convert to it.
-  if (conv->in_fmt.format != SND_PCM_FORMAT_S16_LE) {
+  if (conv->in_format_converter) {
     conv->in_format_converter(buffers[buf_idx],
                               fr_in * conv->in_fmt.num_channels,
                               (uint8_t*)buffers[buf_idx + 1]);
@@ -1013,8 +1052,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
     buf_idx++;
   }
 
-  // If the output format isn't S16_LE convert to it.
-  if (conv->out_fmt.format != SND_PCM_FORMAT_S16_LE) {
+  if (conv->out_format_converter) {
     conv->out_format_converter(buffers[buf_idx],
                                fr_out * conv->out_fmt.num_channels,
                                (uint8_t*)buffers[buf_idx + 1]);
