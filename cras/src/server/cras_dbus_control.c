@@ -205,10 +205,6 @@ void cras_dbus_notify_rtc_active(bool active) {
   DBusMessage* msg;
   int active_val = !!active;
 
-  if (cras_feature_enabled(CrOSLateBootAudioSuppressSetRTCAudioActive)) {
-    return;
-  }
-
   if (!dbus_control.conn) {
     syslog(LOG_WARNING, "%s: cras dbus connection not ready yet.", __func__);
     return;
