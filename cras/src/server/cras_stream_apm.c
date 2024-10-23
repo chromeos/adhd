@@ -432,9 +432,7 @@ static inline bool apm_needed_for_effects(uint64_t effects,
     // Required for webrtc-apm.
     return true;
   }
-  if (cras_processor_needed &&
-      cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor)) {
-    // Required for hosting cras_processor.
+  if (cras_processor_needed) {
     return true;
   }
   if (cras_processor_is_override_enabled()) {

@@ -57,48 +57,19 @@ class StreamApm : public ::testing::Test {
 
 TEST_F(StreamApm, StreamApmCreateNoDspAEC) {
   cras_system_aec_on_dsp_supported_ret = 0;
-  {
-    ScopedFeaturesOverride override(
-        {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
 
-    stream = cras_stream_apm_create(0);
-    EXPECT_EQ(nullptr, stream)
-        << "Should not create APM when empty APM is not allowed";
+  stream = cras_stream_apm_create(0);
+  EXPECT_NE(nullptr, stream)
+      << "Should create APM with no effects when empty APM is allowed";
+  EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
 
-    stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
-    EXPECT_NE(nullptr, stream);
-    EXPECT_EQ(APM_ECHO_CANCELLATION, cras_stream_apm_get_effects(stream));
-
-    cras_stream_apm_destroy(stream);
-  }
-
-  {
-    ScopedFeaturesOverride override({CrOSLateBootAudioEmptyAPMForCrasProcessor},
-                                    {});
-
-    stream = cras_stream_apm_create(0);
-    EXPECT_NE(nullptr, stream)
-        << "Should create APM with no effects when empty APM is allowed";
-    EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
-
-    cras_stream_apm_destroy(stream);
-  }
+  cras_stream_apm_destroy(stream);
 }
 
 TEST_F(StreamApm, StreamApmCreateDspAEC) {
   cras_system_aec_on_dsp_supported_ret = 1;
-  {
-    ScopedFeaturesOverride override(
-        {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
-
-    stream = cras_stream_apm_create(0);
-    EXPECT_EQ(nullptr, stream) << "Should not create APM with empty effects";
-  }
 
   {
-    ScopedFeaturesOverride override(
-        {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
-
     stream = cras_stream_apm_create(PRIVATE_DONT_CARE_APM_EFFECTS);
     EXPECT_NE(nullptr, stream) << "Should create APM to store effect bits";
     EXPECT_EQ(PRIVATE_DONT_CARE_APM_EFFECTS,
@@ -113,9 +84,6 @@ TEST_F(StreamApm, StreamApmCreateDspAEC) {
   }
 
   {
-    ScopedFeaturesOverride override({CrOSLateBootAudioEmptyAPMForCrasProcessor},
-                                    {});
-
     stream = cras_stream_apm_create(PRIVATE_DONT_CARE_APM_EFFECTS);
     EXPECT_NE(nullptr, stream)
         << "Should create APM with no effects when empty APM is allowed";
