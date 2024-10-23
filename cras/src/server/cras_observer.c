@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -148,7 +149,7 @@ struct cras_observer_alert_data_sidetone_supported_changed {
 };
 
 struct cras_observer_alert_data_audio_effect_ui_appearance_changed {
-  bool audio_effects_ready;
+  struct CrasEffectUIAppearance ui_appearance;
 };
 
 // Global observer instance.
@@ -496,8 +497,8 @@ static void audio_effect_ui_appearance_changed_alert(void* arg, void* data) {
 
   DL_FOREACH (g_observer->clients, client) {
     if (client->ops.audio_effect_ui_appearance_changed) {
-      client->ops.audio_effect_ui_appearance_changed(
-          client->context, report->audio_effects_ready);
+      client->ops.audio_effect_ui_appearance_changed(client->context,
+                                                     report->ui_appearance);
     }
   }
 }
@@ -903,9 +904,9 @@ void cras_observer_notify_sidetone_supported_changed(bool supported) {
 }
 
 void cras_observer_notify_audio_effect_ui_appearance_changed(
-    bool audio_effects_ready) {
+    struct CrasEffectUIAppearance ui_appearance) {
   struct cras_observer_alert_data_audio_effect_ui_appearance_changed data = {
-      .audio_effects_ready = audio_effects_ready};
+      .ui_appearance = ui_appearance};
   cras_alert_pending_data(g_observer->alerts.audio_effect_ui_appearance_changed,
                           &data, sizeof(data));
 }

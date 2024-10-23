@@ -723,6 +723,15 @@
       </tp:docstring>
       <arg name="supported" type="b" direction="out"/>
     </method>
+
+    <signal name="AudioEffectUIAppearanceChanged">
+      <tp:docstring>
+        Signal that indicates the audio effect ui appearance needs update. See also GetVoiceIsolationUIAppearance.
+      </tp:docstring>
+      <arg name="toggle_type" type="u"/>
+      <arg name="effect_mode_options" type="u"/>
+      <arg name="show_effect_fallback_message" type="b"/>
+    </signal>
   </interface>
 
   <interface name="org.freedesktop.DBus.Introspectable">

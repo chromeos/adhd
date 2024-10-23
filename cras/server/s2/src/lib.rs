@@ -444,7 +444,7 @@ impl S2 {
 
         if let Some(callback) = self.callbacks.notify_audio_effect_ui_appearance_changed {
             if prev_audio_effects_ready != self.output.audio_effects_ready {
-                callback(self.output.audio_effects_ready)
+                callback(self.output.audio_effect_ui_appearance)
             }
         }
     }
@@ -459,9 +459,11 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::AtomicU32;
     use std::sync::atomic::Ordering;
 
     use cras_common::types_internal::CrasDlcId;
+    use cras_common::types_internal::CrasEffectUIAppearance;
     use cras_common::types_internal::CRAS_NC_PROVIDER;
     use cras_common::types_internal::EFFECT_TYPE;
 
@@ -622,11 +624,19 @@ mod tests {
         let mut s = S2::new();
         assert!(!s.output.audio_effects_ready);
 
+        // Simply verifies the callback is called.
         static CALLED: AtomicBool = AtomicBool::new(false);
-        static IS_READY: AtomicBool = AtomicBool::new(false);
-        extern "C" fn fake_notify_audio_effect_ui_appearance_changed(ready: bool) {
+        static TOGGLE_TYPE: AtomicU32 = AtomicU32::new(0);
+        static EFFECT_MODE_OPTIONS: AtomicU32 = AtomicU32::new(0);
+        static SHOW_EFFECT_FALLBACK_MESSAGE: AtomicBool = AtomicBool::new(false);
+        extern "C" fn fake_notify_audio_effect_ui_appearance_changed(
+            appearance: CrasEffectUIAppearance,
+        ) {
             CALLED.store(true, Ordering::SeqCst);
-            IS_READY.store(ready, Ordering::SeqCst);
+            TOGGLE_TYPE.store(appearance.toggle_type.bits(), Ordering::SeqCst);
+            EFFECT_MODE_OPTIONS.store(appearance.effect_mode_options.bits(), Ordering::SeqCst);
+            SHOW_EFFECT_FALLBACK_MESSAGE
+                .store(appearance.show_effect_fallback_message, Ordering::SeqCst);
         }
 
         s.set_notify_audio_effect_ui_appearance_changed(
@@ -642,7 +652,6 @@ mod tests {
         ]));
         assert!(!s.output.audio_effects_ready);
         assert!(!CALLED.load(Ordering::SeqCst));
-        assert!(!IS_READY.load(Ordering::SeqCst));
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         assert!(!s.output.audio_effects_ready);
@@ -651,13 +660,45 @@ mod tests {
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         assert!(s.output.audio_effects_ready);
         assert!(CALLED.load(Ordering::SeqCst));
-        assert!(IS_READY.load(Ordering::SeqCst));
+        assert_eq!(
+            TOGGLE_TYPE.load(Ordering::SeqCst),
+            s.output.audio_effect_ui_appearance.toggle_type.bits()
+        );
+        assert_eq!(
+            EFFECT_MODE_OPTIONS.load(Ordering::SeqCst),
+            s.output
+                .audio_effect_ui_appearance
+                .effect_mode_options
+                .bits()
+        );
+        assert_eq!(
+            SHOW_EFFECT_FALLBACK_MESSAGE.load(Ordering::SeqCst),
+            s.output
+                .audio_effect_ui_appearance
+                .show_effect_fallback_message
+        );
         CALLED.store(false, Ordering::SeqCst);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, false);
         assert!(!s.output.audio_effects_ready);
         assert!(CALLED.load(Ordering::SeqCst));
-        assert!(!IS_READY.load(Ordering::SeqCst));
+        assert_eq!(
+            TOGGLE_TYPE.load(Ordering::SeqCst),
+            s.output.audio_effect_ui_appearance.toggle_type.bits()
+        );
+        assert_eq!(
+            EFFECT_MODE_OPTIONS.load(Ordering::SeqCst),
+            s.output
+                .audio_effect_ui_appearance
+                .effect_mode_options
+                .bits()
+        );
+        assert_eq!(
+            SHOW_EFFECT_FALLBACK_MESSAGE.load(Ordering::SeqCst),
+            s.output
+                .audio_effect_ui_appearance
+                .show_effect_fallback_message
+        );
     }
 
     #[test]

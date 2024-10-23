@@ -678,6 +678,7 @@ cc_test(
     name = "cras_abi_unittest",
     srcs = [
         ":cras_abi_unittest.cc",
+        "//cras/common:rust_common_h_generated",
         "//cras/src/common:cras_audio_format.c",
         "//cras/src/common:cras_config.c",
         "//cras/src/common:cras_file_wait.c",
@@ -700,6 +701,7 @@ cc_test(
     name = "cras_client_unittest",
     srcs = [
         ":cras_client_unittest.cc",
+        "//cras/common:rust_common_h_generated",
         "//cras/src/common:cras_config.c",
         "//cras/src/common:cras_file_wait.c",
         "//cras/src/common:cras_shm.c",

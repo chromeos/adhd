@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unordered_map>
 
+#include "cras/common/rust_common.h"
 #include "cras/server/feature_tier/feature_tier.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
@@ -823,7 +824,8 @@ void cras_iodev_list_reset_for_noise_cancellation() {
   cras_iodev_list_reset_for_noise_cancellation_called++;
 }
 
-void cras_observer_notify_audio_effect_ui_appearance_changed(bool) {}
+void cras_observer_notify_audio_effect_ui_appearance_changed(
+    struct CrasEffectUIAppearance ui_appearance) {}
 
 }  // extern "C"
 }  // namespace

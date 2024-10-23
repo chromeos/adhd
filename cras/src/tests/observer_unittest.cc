@@ -8,6 +8,7 @@
 #include <syslog.h>
 #include <vector>
 
+#include "cras/common/rust_common.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras_types.h"
 
@@ -76,7 +77,8 @@ static std::vector<double> cb_ewma_power_reported_values;
 static size_t cb_sidetone_supported_changed_called;
 static std::vector<bool> cb_sidetone_supported_changed_values;
 static size_t cb_audio_effect_ui_appearance_changed_called;
-static std::vector<bool> cb_audio_effect_ui_appearance_changed_values;
+static std::vector<struct CrasEffectUIAppearance>
+    cb_audio_effect_ui_appearance_changed_values;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -282,10 +284,11 @@ void cb_sidetone_supported_changed(void* context, bool supported) {
   cb_context.push_back(context);
 }
 
-void cb_audio_effect_ui_appearance_changed(void* context,
-                                           bool audio_effects_ready) {
+void cb_audio_effect_ui_appearance_changed(
+    void* context,
+    struct CrasEffectUIAppearance appearance) {
   cb_audio_effect_ui_appearance_changed_called++;
-  cb_audio_effect_ui_appearance_changed_values.push_back(audio_effects_ready);
+  cb_audio_effect_ui_appearance_changed_values.push_back(appearance);
   cb_context.push_back(context);
 }
 
@@ -891,25 +894,47 @@ TEST_F(ObserverTest, SidetoneSupportedChanged) {
 }
 
 TEST_F(ObserverTest, AudioEffectUIAppearanceChanged) {
-  cras_observer_notify_audio_effect_ui_appearance_changed(true);
+  struct CrasEffectUIAppearance appearance {
+    .toggle_type = EFFECT_TYPE_STYLE_TRANSFER,
+    .effect_mode_options = EFFECT_TYPE_STYLE_TRANSFER,
+    .show_effect_fallback_message = true
+  };
+  cras_observer_notify_audio_effect_ui_appearance_changed(appearance);
   EXPECT_EQ(cras_alert_pending_alert_value,
             g_observer->alerts.audio_effect_ui_appearance_changed);
   auto* data = reinterpret_cast<
       struct cras_observer_alert_data_audio_effect_ui_appearance_changed*>(
       cras_alert_pending_data_value);
-  EXPECT_EQ(data->audio_effects_ready, true);
+  EXPECT_EQ(data->ui_appearance.toggle_type, appearance.toggle_type);
+  EXPECT_EQ(data->ui_appearance.effect_mode_options,
+            appearance.effect_mode_options);
+  EXPECT_EQ(data->ui_appearance.show_effect_fallback_message,
+            appearance.show_effect_fallback_message);
 
   ops1_.audio_effect_ui_appearance_changed =
       cb_audio_effect_ui_appearance_changed;
   ops2_.audio_effect_ui_appearance_changed =
       cb_audio_effect_ui_appearance_changed;
 
-  DoObserverAlert(audio_effect_ui_appearance_changed_alert, data);
+  DoObserverAlert(audio_effect_ui_appearance_changed_alert, &appearance);
   ASSERT_EQ(cb_audio_effect_ui_appearance_changed_called, 2);
-  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values,
-            (std::vector<bool>{true, true}));
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values.size(), 2);
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values[0].toggle_type,
+            appearance.toggle_type);
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values[1].toggle_type,
+            appearance.toggle_type);
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values[0].effect_mode_options,
+            appearance.effect_mode_options);
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values[1].effect_mode_options,
+            appearance.effect_mode_options);
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values[0]
+                .show_effect_fallback_message,
+            appearance.show_effect_fallback_message);
+  EXPECT_EQ(cb_audio_effect_ui_appearance_changed_values[1]
+                .show_effect_fallback_message,
+            appearance.show_effect_fallback_message);
 
-  DoObserverRemoveClear(audio_effect_ui_appearance_changed_alert, data);
+  DoObserverRemoveClear(audio_effect_ui_appearance_changed_alert, &appearance);
 }
 
 // Stubs

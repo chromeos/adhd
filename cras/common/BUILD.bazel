@@ -56,6 +56,15 @@ cras_cbindgen(
     lib = ":rust_common",
 )
 
+filegroup(
+    name = "rust_common_h_generated",
+    srcs = ["rust_common.h"],
+    visibility = [
+        "//cras/src/common:__pkg__",
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
 cc_library(
     name = "rust_common_cc",
     hdrs = ["rust_common.h"],

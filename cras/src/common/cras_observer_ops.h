@@ -6,6 +6,7 @@
 #ifndef CRAS_SRC_COMMON_CRAS_OBSERVER_OPS_H_
 #define CRAS_SRC_COMMON_CRAS_OBSERVER_OPS_H_
 
+#include "cras/common/rust_common.h"
 #include "cras_types.h"
 
 #ifdef __cplusplus
@@ -100,8 +101,9 @@ struct cras_observer_ops {
   void (*sidetone_supported_changed)(void* context, bool supported);
 
   // State regarding whether the audio effects are ready.
-  void (*audio_effect_ui_appearance_changed)(void* context,
-                                             bool audio_effects_ready);
+  void (*audio_effect_ui_appearance_changed)(
+      void* context,
+      struct CrasEffectUIAppearance ui_appearance);
 };
 
 #ifdef __cplusplus

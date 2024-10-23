@@ -1096,6 +1096,23 @@ static DBusHandlerResult handle_get_audio_effect_dlcs(DBusConnection* conn,
   return ret;
 }
 
+// Appends args for audio effect ui appearance.
+// Returns 0 if success. Otherwise, DBusHandlerResult is returned.
+static int append_args_audio_effect_ui_appearance(
+    DBusMessage* msg,
+    struct CrasEffectUIAppearance appearance) {
+  // boolean size must be fixed at 4 bytes due to wire protocol!
+  dbus_bool_t show_effect_fallback_message =
+      appearance.show_effect_fallback_message;
+  if (!dbus_message_append_args(
+          msg, DBUS_TYPE_UINT32, &appearance.toggle_type, DBUS_TYPE_UINT32,
+          &appearance.effect_mode_options, DBUS_TYPE_BOOLEAN,
+          &show_effect_fallback_message, DBUS_TYPE_INVALID)) {
+    return DBUS_HANDLER_RESULT_NEED_MEMORY;
+  }
+  return 0;
+}
+
 static DBusHandlerResult handle_get_voice_isolation_ui_appearance(
     DBusConnection* conn,
     DBusMessage* message,
@@ -1109,18 +1126,8 @@ static DBusHandlerResult handle_get_voice_isolation_ui_appearance(
     return DBUS_HANDLER_RESULT_NEED_MEMORY;
   }
 
-  struct CrasEffectUIAppearance appearance =
-      cras_s2_get_audio_effect_ui_appearance();
-  dbus_uint32_t toggle_type = appearance.toggle_type;
-  dbus_uint32_t effect_mode_options = appearance.effect_mode_options;
-  // boolean size must be fixed at 4 bytes due to wire protocol!
-  dbus_bool_t show_effect_fallback_message =
-      appearance.show_effect_fallback_message;
-  if (!dbus_message_append_args(
-          reply, DBUS_TYPE_UINT32, &toggle_type, DBUS_TYPE_UINT32,
-          &effect_mode_options, DBUS_TYPE_BOOLEAN,
-          &show_effect_fallback_message, DBUS_TYPE_INVALID)) {
-    ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+  if (append_args_audio_effect_ui_appearance(
+          reply, cras_s2_get_audio_effect_ui_appearance()) != 0) {
     goto unref_reply;
   }
   if (!dbus_connection_send(conn, reply, &serial)) {
@@ -2389,17 +2396,17 @@ static void signal_sidetone_supported_changed(void* context, bool supported) {
 
 static void signal_audio_effect_ui_appearance_changed(
     void* context,
-    bool audio_effects_ready) {
+    struct CrasEffectUIAppearance ui_appearance) {
   struct cras_dbus_control* control = (struct cras_dbus_control*)context;
   dbus_uint32_t serial = 0;
-  dbus_bool_t ready = audio_effects_ready;
 
   DBusMessage* msg = create_dbus_message("AudioEffectUIAppearanceChanged");
   if (!msg) {
     return;
   }
-
-  dbus_message_append_args(msg, DBUS_TYPE_BOOLEAN, &ready, DBUS_TYPE_INVALID);
+  if (append_args_audio_effect_ui_appearance(msg, ui_appearance) != 0) {
+    return;
+  }
   dbus_connection_send(control->conn, msg, &serial);
   dbus_message_unref(msg);
 }

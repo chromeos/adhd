@@ -48,7 +48,7 @@ pub extern "C" fn cras_s2_are_audio_effects_ready() -> bool {
 
 // Called when audio_effects_ready is changed, with the following arguments:
 // - bool: indicates whether the audio effects is ready.
-pub type NotifyAudioEffectUIAppearanceChanged = extern "C" fn(bool);
+pub type NotifyAudioEffectUIAppearanceChanged = extern "C" fn(CrasEffectUIAppearance);
 
 #[no_mangle]
 pub extern "C" fn cras_s2_set_notify_audio_effect_ui_appearance_changed(

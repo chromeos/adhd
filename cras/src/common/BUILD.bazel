@@ -61,6 +61,7 @@ cc_library(
     name = "cras_observer_ops",
     hdrs = [
         "cras_observer_ops.h",
+        "//cras/common:rust_common_h_generated",
     ],
     visibility = [
         "//cras/src/libcras:__pkg__",

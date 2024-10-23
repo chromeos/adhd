@@ -19,7 +19,7 @@ extern "C" {
 #include <stdlib.h>
 #include "cras/common/rust_common.h"
 
-typedef void (*NotifyAudioEffectUIAppearanceChanged)(bool);
+typedef void (*NotifyAudioEffectUIAppearanceChanged)(struct CrasEffectUIAppearance);
 
 void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
