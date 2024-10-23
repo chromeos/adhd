@@ -708,25 +708,14 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   bool client_enabled = stream->effects & VOICE_ISOLATION;
   enum CrasProcessorEffect cp_effect = cras_s2_get_cras_processor_effect(
       nc_providers, client_controlled, client_enabled);
-  syslog(LOG_DEBUG, "Setting CrasProcessorEffect for idev: %s",
-         idev->info.name);
-  if (cras_feature_enabled(CrOSLateBootAudioAecRequiredForCrasProcessor) &&
-      !(stream->effects & APM_ECHO_CANCELLATION)) {
-    syslog(LOG_DEBUG,
-           "Set to NoEffects because "
-           "CrOSLateBootAudioAecRequiredForCrasProcessor is enabled while "
-           "stream->effects disallow AEC.");
-    cp_effect = NoEffects;
-  } else {
-    char* nc_providers_str = cras_nc_providers_bitset_to_str(nc_providers);
-    syslog(LOG_DEBUG,
-           "Effect: %s, compatible NC providers: %s, voice isolation "
-           "(client_controlled, client_enabled): (%s, %s)",
-           cras_processor_effect_to_str(cp_effect), nc_providers_str,
-           client_controlled ? "true" : "false",
-           client_enabled ? "true" : "false");
-    cras_rust_free_string(nc_providers_str);
-  }
+  char* nc_providers_str = cras_nc_providers_bitset_to_str(nc_providers);
+  syslog(LOG_DEBUG,
+         "idev: %s, Effect: %s, compatible NC providers: %s, voice isolation "
+         "(client_controlled, client_enabled): (%s, %s)",
+         idev->info.name, cras_processor_effect_to_str(cp_effect),
+         nc_providers_str, client_controlled ? "true" : "false",
+         client_enabled ? "true" : "false");
+  cras_rust_free_string(nc_providers_str);
 
   // TODO(hychao): Remove the check when we enable more effects.
   if (!apm_needed_for_effects(
