@@ -669,8 +669,9 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
    * rate for inaccurate device consumption rate.
    */
   conv->num_converters++;
+  // Force to use 16 bits linear resampler for now
   conv->resampler =
-      linear_resampler_create(out->num_channels, cras_get_format_bytes(out),
+      linear_resampler_create(out->num_channels, 2 * out->num_channels,
                               out->frame_rate, out->frame_rate);
   if (conv->resampler == NULL) {
     syslog(LOG_ERR, "Fail to create linear resampler");
@@ -875,6 +876,14 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
   buffers[0] = (uint8_t*)in_buf;
   buffers[used_converters] = out_buf;
 
+  // If the input format isn't S16_LE convert to it.
+  if (conv->in_fmt.format != SND_PCM_FORMAT_S16_LE) {
+    conv->in_format_converter(buffers[buf_idx],
+                              fr_in * conv->in_fmt.num_channels,
+                              (uint8_t*)buffers[buf_idx + 1]);
+    buf_idx++;
+  }
+
   if (pre_linear_resample) {
     linear_resample_fr = fr_in;
     unsigned resample_limit = out_frames;
@@ -901,14 +910,6 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
     fr_in = linear_resampler_resample(conv->resampler, buffers[buf_idx],
                                       &linear_resample_fr, buffers[buf_idx + 1],
                                       resample_limit);
-    buf_idx++;
-  }
-
-  // If the input format isn't S16_LE convert to it.
-  if (conv->in_fmt.format != SND_PCM_FORMAT_S16_LE) {
-    conv->in_format_converter(buffers[buf_idx],
-                              fr_in * conv->in_fmt.num_channels,
-                              (uint8_t*)buffers[buf_idx + 1]);
     buf_idx++;
   }
 

@@ -49,6 +49,8 @@ struct linear_resampler* linear_resampler_create(unsigned int num_channels,
     syslog(LOG_WARNING,
            "The format byte-width %u is not supported by the linear resampler",
            lr->format_width);
+    free(lr);
+    return NULL;
   }
 
   linear_resampler_set_rates(lr, src_rate, dst_rate);
@@ -116,9 +118,6 @@ unsigned int linear_resampler_in_frames_to_out(struct linear_resampler* lr,
 }
 
 int linear_resampler_needed(struct linear_resampler* lr) {
-  if (lr->format_width != 2 && lr->format_width != 4) {
-    return 0;
-  }
   return lr->from_times_100 != lr->to_times_100;
 }
 
