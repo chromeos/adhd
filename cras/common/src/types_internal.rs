@@ -84,7 +84,7 @@ pub extern "C" fn cras_stream_active_ap_effects_string(
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]
-    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize)]
+    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize, Default)]
     pub struct EFFECT_TYPE: u32 {
       const NONE = 0;
       const NOISE_CANCELLATION = 1 << 0;
@@ -92,6 +92,25 @@ bitflags! {
       const STYLE_TRANSFER = 1 << 2;
       const BEAMFORMING = 1 << 3;
     }
+}
+
+impl EFFECT_TYPE {
+    fn as_c_str(&self) -> &CStr {
+        match self {
+            &EFFECT_TYPE::NONE => c"EFFECT_TYPE_NONE",
+            &EFFECT_TYPE::NOISE_CANCELLATION => c"EFFECT_TYPE_NOISE_CANCELLATION",
+            &EFFECT_TYPE::STYLE_TRANSFER => c"EFFECT_TYPE_STYLE_TRANSFER",
+            &EFFECT_TYPE::BEAMFORMING => c"EFFECT_TYPE_BEAMFORMING",
+            _ => c"Invalid NC provider",
+        }
+    }
+}
+
+/// Returns the name of the effect type as a string.
+/// The ownership of the string is static in Rust, so no need to free in C.
+#[no_mangle]
+pub extern "C" fn cras_effect_type_to_str(effect_type: EFFECT_TYPE) -> *const libc::c_char {
+    effect_type.as_c_str().as_ptr()
 }
 
 bitflags! {
@@ -129,8 +148,8 @@ impl CRAS_NC_PROVIDER {
 }
 
 pub const CRAS_NC_PROVIDER_PREFERENCE_ORDER: &[CRAS_NC_PROVIDER] = &[
-    CRAS_NC_PROVIDER::AST,
     CRAS_NC_PROVIDER::BF,
+    CRAS_NC_PROVIDER::AST,
     CRAS_NC_PROVIDER::DSP,
     CRAS_NC_PROVIDER::AP,
     CRAS_NC_PROVIDER::NONE,

@@ -1151,7 +1151,25 @@ static DBusHandlerResult handle_set_voice_isolation_ui_enabled(
     return rc;
   }
 
-  cras_system_set_voice_isolation_ui_enabled(enabled);
+  cras_s2_set_voice_isolation_ui_enabled(enabled);
+
+  return send_empty_reply(conn, message);
+}
+
+static DBusHandlerResult handle_set_voice_isolation_ui_preferred_effect(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  int rc;
+  dbus_uint32_t preferred_effect;
+
+  rc = get_single_arg(message, DBUS_TYPE_UINT32, &preferred_effect);
+  if (rc) {
+    return rc;
+  }
+
+  cras_s2_set_voice_isolation_ui_preferred_effect(
+      (EFFECT_TYPE)preferred_effect);
 
   return send_empty_reply(conn, message);
 }
@@ -1731,6 +1749,10 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetVoiceIsolationUIEnabled")) {
     return handle_set_voice_isolation_ui_enabled(conn, message, arg);
+  } else if (dbus_message_is_method_call(
+                 message, CRAS_CONTROL_INTERFACE,
+                 "SetVoiceIsolationUIPreferredEffect")) {
+    return handle_set_voice_isolation_ui_preferred_effect(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetNoiseCancellationEnabled")) {
     return handle_set_voice_isolation_ui_enabled(conn, message, arg);

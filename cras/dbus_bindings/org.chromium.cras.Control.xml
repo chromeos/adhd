@@ -395,6 +395,10 @@
       <arg name="enabled" type="b" direction="in"/>
     </method>
 
+    <method name="SetVoiceIsolationUIPreferredEffect">
+      <arg name="preferred_effect" type="u" direction="in"/>
+    </method>
+
     <method name="SetNoiseCancellationEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>

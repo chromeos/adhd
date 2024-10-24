@@ -21,6 +21,8 @@ extern "C" {
 
 typedef void (*NotifyAudioEffectUIAppearanceChanged)(struct CrasEffectUIAppearance);
 
+typedef void (*ResetIodevListForVoiceIsolation)(void);
+
 void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
 void cras_s2_set_ap_nc_segmentation_allowed(bool allowed);
@@ -30,6 +32,8 @@ void cras_s2_set_ap_nc_feature_tier_allowed(bool allowed);
 bool cras_s2_are_audio_effects_ready(void);
 
 void cras_s2_set_notify_audio_effect_ui_appearance_changed(NotifyAudioEffectUIAppearanceChanged notify_audio_effect_ui_appearance_changed);
+
+void cras_s2_set_reset_iodev_list_for_voice_isolation(ResetIodevListForVoiceIsolation reset_iodev_list_for_voice_isolation);
 
 char *cras_s2_get_audio_effect_dlcs(void);
 
@@ -42,6 +46,8 @@ void cras_s2_set_style_transfer_featured_allowed(bool allowed);
 bool cras_s2_get_style_transfer_allowed(void);
 
 bool cras_s2_get_style_transfer_supported(void);
+
+void cras_s2_set_voice_isolation_ui_preferred_effect(EFFECT_TYPE preferred_effect);
 
 void cras_s2_set_voice_isolation_ui_enabled(bool enabled);
 

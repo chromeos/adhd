@@ -14,6 +14,7 @@ use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
+use cras_common::types_internal::EFFECT_TYPE;
 
 fn state() -> MutexGuard<'static, crate::S2> {
     static CELL: OnceLock<Mutex<crate::S2>> = OnceLock::new();
@@ -50,12 +51,23 @@ pub extern "C" fn cras_s2_are_audio_effects_ready() -> bool {
 // - bool: indicates whether the audio effects is ready.
 pub type NotifyAudioEffectUIAppearanceChanged = extern "C" fn(CrasEffectUIAppearance);
 
+// Called when voice isolation parameters are changed and might
+// need to reset cras_iodev_list.
+pub type ResetIodevListForVoiceIsolation = extern "C" fn();
+
 #[no_mangle]
 pub extern "C" fn cras_s2_set_notify_audio_effect_ui_appearance_changed(
     notify_audio_effect_ui_appearance_changed: NotifyAudioEffectUIAppearanceChanged,
 ) {
     state()
         .set_notify_audio_effect_ui_appearance_changed(notify_audio_effect_ui_appearance_changed);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_reset_iodev_list_for_voice_isolation(
+    reset_iodev_list_for_voice_isolation: ResetIodevListForVoiceIsolation,
+) {
+    state().set_reset_iodev_list_for_voice_isolation(reset_iodev_list_for_voice_isolation);
 }
 
 pub fn cras_s2_init_dlc_installed(dlc_installed: HashMap<CrasDlcId, bool>) {
@@ -100,6 +112,11 @@ pub extern "C" fn cras_s2_get_style_transfer_allowed() -> bool {
 #[no_mangle]
 pub extern "C" fn cras_s2_get_style_transfer_supported() -> bool {
     state().output.get_ast_status().supported
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_voice_isolation_ui_preferred_effect(preferred_effect: EFFECT_TYPE) {
+    state().set_voice_isolation_ui_preferred_effect(preferred_effect);
 }
 
 #[no_mangle]

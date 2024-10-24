@@ -170,9 +170,6 @@ void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
 // Gets the flag of Bluetooth fixed A2DP packet size.
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled();
 
-// Sets the flag to enable or disable Noise Cancellation.
-void cras_system_set_voice_isolation_ui_enabled(bool enabled);
-
 // Returns if Noise Cancellation is supported.
 bool cras_system_get_noise_cancellation_supported();
 

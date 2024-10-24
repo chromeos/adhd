@@ -505,21 +505,21 @@ TEST(SystemStateSuite, SetNoiseCancellationEnabled) {
 
   bool enabled = cras_s2_get_voice_isolation_ui_enabled();
 
-  cras_system_set_voice_isolation_ui_enabled(enabled);
+  cras_s2_set_voice_isolation_ui_enabled(enabled);
   EXPECT_EQ(enabled, cras_s2_get_voice_isolation_ui_enabled());
   EXPECT_EQ(0, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_voice_isolation_ui_enabled(!enabled);
+  cras_s2_set_voice_isolation_ui_enabled(!enabled);
   EXPECT_EQ(!enabled, cras_s2_get_voice_isolation_ui_enabled());
   EXPECT_EQ(1, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_voice_isolation_ui_enabled(!enabled);
+  cras_s2_set_voice_isolation_ui_enabled(!enabled);
   EXPECT_EQ(!enabled, cras_s2_get_voice_isolation_ui_enabled());
   // cras_iodev_list_reset_for_noise_cancellation shouldn't be called if state
   // is already enabled/disabled.
   EXPECT_EQ(1, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_voice_isolation_ui_enabled(enabled);
+  cras_s2_set_voice_isolation_ui_enabled(enabled);
   EXPECT_EQ(enabled, cras_s2_get_voice_isolation_ui_enabled());
   EXPECT_EQ(2, cras_iodev_list_reset_for_noise_cancellation_called);
 

@@ -222,6 +222,8 @@ void cras_system_state_init(const char* device_config_dir,
   cras_s2_init();
   cras_s2_set_notify_audio_effect_ui_appearance_changed(
       cras_observer_notify_audio_effect_ui_appearance_changed);
+  cras_s2_set_reset_iodev_list_for_voice_isolation(
+      cras_iodev_list_reset_for_noise_cancellation);
 
   // Initial system state.
   exp_state->state_version = CRAS_SERVER_STATE_VERSION;
@@ -529,17 +531,6 @@ void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled) {
 
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled() {
   return state.bt_fix_a2dp_packet_size;
-}
-
-void cras_system_set_voice_isolation_ui_enabled(bool enabled) {
-  // When the flag is toggled, propagate to all iodevs immediately.
-  if (cras_s2_get_voice_isolation_ui_enabled() != enabled) {
-    MAINLOG(main_log, MAIN_THREAD_NOISE_CANCELLATION, enabled, 0, 0);
-    syslog(LOG_DEBUG, "System Voice Isolation is %s",
-           enabled ? "enabled" : "disabled");
-    cras_s2_set_voice_isolation_ui_enabled(enabled);
-    cras_iodev_list_reset_for_noise_cancellation();
-  }
 }
 
 void cras_system_set_ewma_power_report_enabled(bool enabled) {

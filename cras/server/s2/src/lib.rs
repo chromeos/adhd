@@ -13,6 +13,7 @@ use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
+use global::ResetIodevListForVoiceIsolation;
 use serde::Serialize;
 
 use crate::global::NotifyAudioEffectUIAppearanceChanged;
@@ -38,6 +39,7 @@ struct Input {
     beamforming_required_dlcs: Option<HashSet<String>>,
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
     voice_isolation_ui_enabled: bool,
+    voice_isolation_ui_preferred_effect: EFFECT_TYPE,
 
     /*
      * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
@@ -85,6 +87,8 @@ struct Output {
     // The NC providers that can be used if the node is compatible and the
     // effect should be enabled.
     system_valid_nc_providers: CRAS_NC_PROVIDER,
+    // Added voice_isolation_ui_enabled here to track the value change in S2::update().
+    voice_isolation_ui_enabled: bool,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -140,7 +144,7 @@ fn resolve(input: &Input) -> Output {
         (
             CRAS_NC_PROVIDER::AST,
             AudioEffectStatus {
-                supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
+                supported: input.ap_nc_segmentation_allowed,
                 allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
                 compatible_with_active_input_node: input
                     .active_input_node_compatible_nc_providers
@@ -161,8 +165,19 @@ fn resolve(input: &Input) -> Output {
     let nc_effect_for_ui_toggle = resolve_effect_toggle_type(&audio_effects_status);
     let audio_effect_ui_appearance = CrasEffectUIAppearance {
         toggle_type: nc_effect_for_ui_toggle,
-        // TODO(b/353627012): Set effect_mode_options for when ST and BF are both supported.
-        effect_mode_options: EFFECT_TYPE::NONE,
+        effect_mode_options: if audio_effects_status
+            .get(&CRAS_NC_PROVIDER::AST)
+            .unwrap()
+            .supported_and_allowed()
+            && audio_effects_status
+                .get(&CRAS_NC_PROVIDER::BF)
+                .unwrap()
+                .supported_and_allowed()
+        {
+            EFFECT_TYPE::STYLE_TRANSFER | EFFECT_TYPE::BEAMFORMING
+        } else {
+            EFFECT_TYPE::NONE
+        },
         show_effect_fallback_message: match nc_effect_for_ui_toggle {
             EFFECT_TYPE::STYLE_TRANSFER => {
                 !audio_effects_status
@@ -179,9 +194,8 @@ fn resolve(input: &Input) -> Output {
             _ => false,
         },
     };
-    // TODO(b/353627012): Set system_valid_nc_providers considering
-    // nc_ui_selected_mode after the "Effect Mode options" in UI is implemented.
-    let system_valid_nc_providers = audio_effects_status
+
+    let mut system_valid_nc_providers = audio_effects_status
         .iter()
         .filter_map(|(provider, status)| {
             if status.supported_and_allowed() {
@@ -191,6 +205,9 @@ fn resolve(input: &Input) -> Output {
             }
         })
         .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union);
+    if input.voice_isolation_ui_preferred_effect == EFFECT_TYPE::STYLE_TRANSFER {
+        system_valid_nc_providers.remove(CRAS_NC_PROVIDER::BF);
+    }
 
     Output {
         audio_effects_ready: input
@@ -201,6 +218,7 @@ fn resolve(input: &Input) -> Output {
         audio_effects_status,
         audio_effect_ui_appearance,
         system_valid_nc_providers,
+        voice_isolation_ui_enabled: input.voice_isolation_ui_enabled,
     }
 }
 
@@ -286,6 +304,7 @@ impl AudioEffectStatus {
 #[derive(Default)]
 struct CrasS2Callbacks {
     notify_audio_effect_ui_appearance_changed: Option<NotifyAudioEffectUIAppearanceChanged>,
+    reset_iodev_list_for_voice_isolation: Option<ResetIodevListForVoiceIsolation>,
 }
 
 #[derive(Serialize)]
@@ -353,6 +372,11 @@ impl S2 {
 
     fn set_voice_isolation_ui_enabled(&mut self, enabled: bool) {
         self.input.voice_isolation_ui_enabled = enabled;
+        self.update();
+    }
+
+    fn set_voice_isolation_ui_preferred_effect(&mut self, preferred_effect: EFFECT_TYPE) {
+        self.input.voice_isolation_ui_preferred_effect = preferred_effect;
         self.update();
     }
 
@@ -437,14 +461,31 @@ impl S2 {
             Some(notify_audio_effect_ui_appearance_changed);
     }
 
+    fn set_reset_iodev_list_for_voice_isolation(
+        &mut self,
+        reset_iodev_list_for_voice_isolation: ResetIodevListForVoiceIsolation,
+    ) {
+        self.callbacks.reset_iodev_list_for_voice_isolation =
+            Some(reset_iodev_list_for_voice_isolation);
+    }
+
     fn update(&mut self) {
         let prev_audio_effects_ready = self.output.audio_effects_ready;
+        let prev_system_valid_nc_providers = self.output.system_valid_nc_providers;
+        let prev_voice_isolation_ui_enabled = self.output.voice_isolation_ui_enabled;
 
         self.output = resolve(&self.input);
 
         if let Some(callback) = self.callbacks.notify_audio_effect_ui_appearance_changed {
             if prev_audio_effects_ready != self.output.audio_effects_ready {
                 callback(self.output.audio_effect_ui_appearance)
+            }
+        }
+        if self.output.system_valid_nc_providers != prev_system_valid_nc_providers
+            || self.output.voice_isolation_ui_enabled != prev_voice_isolation_ui_enabled
+        {
+            if let Some(callback) = self.callbacks.reset_iodev_list_for_voice_isolation {
+                callback()
             }
         }
     }
@@ -508,9 +549,6 @@ mod tests {
 
         s.set_ap_nc_segmentation_allowed(true);
         assert_eq!(s.output.get_ast_status().supported, true);
-
-        s.set_cras_config_dir("omniknight.3mic");
-        assert_eq!(s.output.get_ast_status().supported, false);
     }
 
     #[test]
@@ -553,7 +591,6 @@ mod tests {
 
         s.set_cras_config_dir("omniknight.3mic");
         assert!(s.output.get_bf_status().supported);
-        assert!(!s.output.get_ast_status().supported);
 
         assert!(!s.output.get_bf_status().allowed);
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
@@ -842,9 +879,6 @@ mod tests {
 
     #[test]
     fn test_system_valid_nc_providers() {
-        // TODO(b/353627012): Set system_valid_nc_providers considering
-        // nc_ui_selected_mode after the "Effect Mode options" in UI is implemented.
-
         let mut s = S2::new();
         let mut expected = CRAS_NC_PROVIDER::NONE;
         assert_eq!(s.output.system_valid_nc_providers, expected);
@@ -868,15 +902,16 @@ mod tests {
             .to_string()]));
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
         s.set_cras_config_dir("omniknight.3mic");
+
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
+        assert_eq!(s.output.system_valid_nc_providers, expected);
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::BEAMFORMING);
         expected |= CRAS_NC_PROVIDER::BF;
-        // TODO(b/353627012): Currently BF and AST are mutually exclusive. Update test when they're not.
-        expected.remove(CRAS_NC_PROVIDER::AST);
         assert_eq!(s.output.system_valid_nc_providers, expected);
     }
 
     #[test]
     fn test_resolve_nc_provider() {
-        // TODO(b/353627012): Update test for Beamforming after "effect mode" selection is ready.
         let mut s = S2::new();
         s.set_voice_isolation_ui_enabled(true);
 
@@ -933,6 +968,70 @@ mod tests {
             s.resolve_nc_provider(compatible, true),
             &CRAS_NC_PROVIDER::AST
         );
+
+        // Test for UI preferred effect
+        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+            .as_str()
+            .to_string()]));
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_cras_config_dir("omniknight.3mic");
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
+            &CRAS_NC_PROVIDER::AST
+        );
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::BEAMFORMING);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
+            &CRAS_NC_PROVIDER::BF
+        );
+    }
+
+    #[test]
+    fn test_reset_iodev_list_for_voice_isolation() {
+        let mut s = S2::new();
+        // Set AP NC and AST supported, DLC not installed yet.
+        s.set_ap_nc_segmentation_allowed(true);
+        s.set_ap_nc_featured_allowed(true);
+        s.set_style_transfer_featured_allowed(true);
+
+        static CALLED: AtomicBool = AtomicBool::new(false);
+        extern "C" fn fake_reset_iodev_list_for_voice_isolation() {
+            CALLED.store(true, Ordering::SeqCst);
+        }
+        s.set_reset_iodev_list_for_voice_isolation(fake_reset_iodev_list_for_voice_isolation);
+        s.update();
+        assert!(!CALLED.load(Ordering::SeqCst));
+
+        // Install the DLC should set AST and AP NC allowed.
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        assert!(CALLED.load(Ordering::SeqCst));
+
+        CALLED.store(false, Ordering::SeqCst);
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
+        // Set BF as supported and allowed.
+        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+            .as_str()
+            .to_string()]));
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_cras_config_dir("omniknight.3mic");
+        // No need to reset iodev list because the preferred effect is AST.
+        assert!(!CALLED.load(Ordering::SeqCst));
+
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::BEAMFORMING);
+        assert!(CALLED.load(Ordering::SeqCst));
+
+        // Test changing "enabled".
+        CALLED.store(false, Ordering::SeqCst);
+        // Enabled not changed.
+        s.set_voice_isolation_ui_enabled(false);
+        assert!(!CALLED.load(Ordering::SeqCst));
+        // Enabled changed.
+        s.set_voice_isolation_ui_enabled(true);
+        assert!(CALLED.load(Ordering::SeqCst));
+        CALLED.store(false, Ordering::SeqCst);
+        s.set_voice_isolation_ui_enabled(false);
+        assert!(CALLED.load(Ordering::SeqCst));
     }
 
     #[test]
