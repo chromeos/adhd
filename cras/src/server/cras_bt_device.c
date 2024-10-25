@@ -813,6 +813,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device* device,
         CRAS_METRICS_SCO_SKT_POLL_ERR_HUP);
     cras_bt_policy_schedule_suspend(device, SCO_SUSPEND_DELAY_MS,
                                     HFP_SCO_SOCKET_ERROR);
+    err = -EIO;
     goto error;
   }
 
