@@ -245,7 +245,8 @@ static void cras_mix_add_scale_stride_s16_le(uint8_t* dst,
 static int32_t scale_s24_le(int32_t value, float scaler) {
   value = ((uint32_t)(value & 0x00ffffff)) << 8;
   value *= scaler;
-  return (value >> 8) & 0x00ffffff;
+  /* Keep the sign bit so that the comparison with int32_t are still valid. */
+  return value >> 8;
 }
 
 static void cras_mix_add_clip_s24_le(int32_t* dst,

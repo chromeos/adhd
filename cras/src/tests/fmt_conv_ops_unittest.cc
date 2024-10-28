@@ -264,7 +264,7 @@ TEST(FormatConverterOpsTest, ConvertS32LEToS24LE) {
                          (uint8_t*)dst.get());
 
   for (size_t i = 0; i < frames * in_ch; ++i) {
-    EXPECT_EQ((src[i] >> 8) & 0x00ffffff, dst[i]);
+    EXPECT_EQ((src[i] >> 8) & 0x00ffffff, dst[i] & 0x00ffffff);
   }
 }
 

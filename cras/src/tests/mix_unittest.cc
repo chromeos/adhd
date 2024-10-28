@@ -417,7 +417,7 @@ class MixTestSuiteS24_LE : public testing::Test {
   int32_t Scale(int32_t value, float scaler) {
     value = ((uint32_t)(value & 0x00ffffff)) << 8;
     value *= scaler;
-    return (value >> 8) & 0x00ffffff;
+    return value >> 8;
   }
 
   int32_t* mix_buffer_;

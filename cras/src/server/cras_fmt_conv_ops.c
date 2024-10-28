@@ -179,7 +179,8 @@ void convert_s32le_to_s24le(const uint8_t* in,
   int32_t* _out = (int32_t*)out;
 
   for (i = 0; i < in_samples; i++, _in++, _out++) {
-    *_out = (*_in >> 8) & 0x00ffffff;
+    // Keep the sign bit so that the comparison with int32_t are still valid.
+    *_out = (*_in >> 8);
   }
 }
 
