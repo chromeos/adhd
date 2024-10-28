@@ -163,8 +163,9 @@ void convert_s24le_to_s32le(const uint8_t* in,
                             size_t in_samples,
                             uint8_t* out) {
   size_t i;
-  int32_t* _in = (int32_t*)in;
-  int32_t* _out = (int32_t*)out;
+  // Cast these to uint32_t*, as the loop below may shift into the sign bit.
+  const uint32_t* _in = (const uint32_t*)in;
+  uint32_t* _out = (uint32_t*)out;
 
   for (i = 0; i < in_samples; i++, _in++, _out++) {
     *_out = (*_in & 0x00ffffff) << 8;
@@ -175,7 +176,7 @@ void convert_s32le_to_s24le(const uint8_t* in,
                             size_t in_samples,
                             uint8_t* out) {
   size_t i;
-  int32_t* _in = (int32_t*)in;
+  const int32_t* _in = (const int32_t*)in;
   int32_t* _out = (int32_t*)out;
 
   for (i = 0; i < in_samples; i++, _in++, _out++) {
@@ -191,7 +192,7 @@ void convert_s243le_to_s32le(const uint8_t* in,
    * between S24_3LE and S32 */
 
   size_t i;
-  uint8_t* _in = (uint8_t*)in;
+  const uint8_t* _in = (const uint8_t*)in;
   uint8_t* _out = (uint8_t*)out;
 
   for (i = 0; i < in_samples; i++, _in += 3, _out += 4) {
@@ -204,7 +205,7 @@ void convert_s32le_to_s243le(const uint8_t* in,
                              size_t in_samples,
                              uint8_t* out) {
   size_t i;
-  uint8_t* _in = (uint8_t*)in;
+  const uint8_t* _in = (const uint8_t*)in;
   uint8_t* _out = (uint8_t*)out;
 
   for (i = 0; i < in_samples; i++, _in += 4, _out += 3) {
