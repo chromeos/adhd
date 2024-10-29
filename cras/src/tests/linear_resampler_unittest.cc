@@ -11,8 +11,10 @@
 
 #define BUF_SIZE 2048
 
-static uint8_t in_buf[BUF_SIZE];
-static uint8_t out_buf[BUF_SIZE];
+// Ensure these are aligned to at least 4-bytes, so the below casts to int16_t
+// and int32_t work.
+alignas(int32_t) static uint8_t in_buf[BUF_SIZE];
+alignas(int32_t) static uint8_t out_buf[BUF_SIZE];
 
 TEST(LinearResampler, ReampleToSlightlyLargerRate) {
   int i, rc;
@@ -229,9 +231,9 @@ TEST(LinearResampler, ResampleIntegerFractionToLarger32bits) {
 
   // Assert linear interpotation result.
   for (i = 0; i < 90; i++) {
-    EXPECT_LE(*(int32_t*)(in_buf + 4 * i), *(int32_t*)(out_buf + 4 * i));
-    EXPECT_LE(*(int32_t*)(in_buf + 4 * i + 2),
-              *(int32_t*)(out_buf + 4 * i + 2));
+    EXPECT_LE(*(int32_t*)(in_buf + 8 * i), *(int32_t*)(out_buf + 8 * i));
+    EXPECT_LE(*(int32_t*)(in_buf + 8 * i + 4),
+              *(int32_t*)(out_buf + 8 * i + 4));
   }
   linear_resampler_destroy(lr);
 }
@@ -277,9 +279,9 @@ TEST(LinearResampler, ResampleIntegerFractionToLess32bits) {
 
   // Assert linear interpotation result.
   for (i = 0; i < 90; i++) {
-    EXPECT_LE(*(int16_t*)(in_buf + 8 * i), *(int16_t*)(out_buf + 8 * i));
-    EXPECT_LE(*(int16_t*)(in_buf + 8 * i + 4),
-              *(int16_t*)(out_buf + 8 * i + 4));
+    EXPECT_LE(*(int32_t*)(in_buf + 8 * i), *(int32_t*)(out_buf + 8 * i));
+    EXPECT_LE(*(int32_t*)(in_buf + 8 * i + 4),
+              *(int32_t*)(out_buf + 8 * i + 4));
   }
   linear_resampler_destroy(lr);
 }
