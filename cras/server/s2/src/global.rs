@@ -177,6 +177,16 @@ pub extern "C" fn cras_s2_get_nc_standalone_mode() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_set_dsp_nc_supported(dsp_nc_supported: bool) {
+    state().set_dsp_nc_supported(dsp_nc_supported);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_dsp_nc_supported() -> bool {
+    state().input.dsp_nc_supported
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_non_dsp_aec_echo_ref_dev_alive(non_dsp_aec_echo_ref_dev_alive: bool) {
     state().set_non_dsp_aec_echo_ref_dev_alive(non_dsp_aec_echo_ref_dev_alive);
 }
@@ -230,7 +240,11 @@ pub extern "C" fn cras_s2_get_cras_processor_effect(
     } else {
         state().input.voice_isolation_ui_enabled
     };
-    match state().resolve_nc_provider(compatible_nc_providers, enabled) {
+    match state().resolve_nc_provider_with_client_controlled_voice_isolation(
+        compatible_nc_providers,
+        enabled,
+        client_controlled,
+    ) {
         &CRAS_NC_PROVIDER::AP => CrasProcessorEffect::NoiseCancellation,
         &CRAS_NC_PROVIDER::DSP => CrasProcessorEffect::NoEffects,
         &CRAS_NC_PROVIDER::AST => CrasProcessorEffect::StyleTransfer,

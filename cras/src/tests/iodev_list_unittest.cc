@@ -2769,6 +2769,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     // A mismatch of NC providers should cause restarts.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
+    cras_s2_set_dsp_nc_supported(true);
     cras_s2_set_voice_isolation_ui_enabled(true);
     cras_iodev_list_reset_for_noise_cancellation();
   }
@@ -2791,6 +2792,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     // A match of NC providers should NOT cause restarts.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_DSP;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
+    cras_s2_set_dsp_nc_supported(true);
     cras_s2_set_voice_isolation_ui_enabled(true);
     cras_iodev_list_reset_for_noise_cancellation();
   }
@@ -3805,10 +3807,6 @@ void cras_system_state_update_complete() {}
 
 int cras_system_get_mute() {
   return system_get_mute_return;
-}
-
-bool cras_system_get_dsp_noise_cancellation_supported() {
-  return true;
 }
 
 struct audio_thread* audio_thread_create() {

@@ -149,7 +149,6 @@ static void* audio_thread_cb_data;
 static int hotword_send_triggered_msg_called;
 static struct timespec clock_gettime_retspec;
 static unsigned cras_iodev_reset_rate_estimator_called;
-static bool sys_get_dsp_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
 static int sys_get_max_internal_speaker_channels_called;
@@ -244,7 +243,6 @@ void ResetStubData() {
   ucm_get_default_node_gain_values.clear();
   ucm_get_intrinsic_sensitivity_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
-  sys_get_dsp_noise_cancellation_supported_return_value = 0;
   sys_aec_on_dsp_supported_return_value = 0;
   ucm_node_echo_cancellation_exists_ret_value = 0;
   sys_get_max_internal_speaker_channels_called = 0;
@@ -1472,7 +1470,7 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
   // i = 1: cras_system_get_noise_cancellation_supported is true
   for (i = 0; i < 2; i++) {
     ResetStubData();
-    sys_get_dsp_noise_cancellation_supported_return_value = (bool)i;
+    cras_s2_set_dsp_nc_supported((bool)i);
 
     // Create the IO device for Internal Microphone.
     iodev = alsa_iodev_create_with_default_parameters(
@@ -1490,7 +1488,7 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
     // However node.nc_providers will have CRAS_NC_PROVIDER_DSP on only if
     // cras_system_get_noise_cancellation_supported is true.
     ASSERT_EQ(
-        sys_get_dsp_noise_cancellation_supported_return_value,
+        cras_s2_get_dsp_nc_supported(),
         static_cast<bool>(iodev->nodes[0].nc_providers & CRAS_NC_PROVIDER_DSP));
 
     ucm_section_free_list(section);
@@ -1529,7 +1527,7 @@ TEST(AlsaOutputNode, InputBypassBlockNoiseCancellation) {
   // i = 3: sys_aec_on_dsp_supported is 1, ucm_aec_exists is 1
   for (i = 0; i < 4; i++) {
     ResetStubData();
-    sys_get_dsp_noise_cancellation_supported_return_value = true;
+    cras_s2_set_dsp_nc_supported(true);
     sys_aec_on_dsp_supported_return_value = i / 2;
     ucm_node_echo_cancellation_exists_ret_value = i % 2;
 
@@ -2744,10 +2742,6 @@ int cras_system_get_mute() {
 
 void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
-}
-
-bool cras_system_get_dsp_noise_cancellation_supported() {
-  return sys_get_dsp_noise_cancellation_supported_return_value;
 }
 
 bool cras_system_get_style_transfer_supported() {

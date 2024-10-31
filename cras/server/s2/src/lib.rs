@@ -40,6 +40,7 @@ struct Input {
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
     voice_isolation_ui_enabled: bool,
     voice_isolation_ui_preferred_effect: EFFECT_TYPE,
+    dsp_nc_supported: bool,
 
     /*
      * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
@@ -132,10 +133,8 @@ fn resolve(input: &Input) -> Output {
         (
             CRAS_NC_PROVIDER::DSP,
             AudioEffectStatus {
-                supported: true,
-                allowed: !dsp_input_effects_blocked
-                    // Prevent DSP NC from being selected by client controlled voice isolation.
-                    && input.voice_isolation_ui_enabled,
+                supported: input.dsp_nc_supported,
+                allowed: !dsp_input_effects_blocked,
                 compatible_with_active_input_node: input
                     .active_input_node_compatible_nc_providers
                     .contains(CRAS_NC_PROVIDER::DSP),
@@ -398,6 +397,11 @@ impl S2 {
         self.update();
     }
 
+    fn set_dsp_nc_supported(&mut self, dsp_nc_supported: bool) {
+        self.input.dsp_nc_supported = dsp_nc_supported;
+        self.update();
+    }
+
     fn set_nc_standalone_mode(&mut self, nc_standalone_mode: bool) {
         self.input.nc_standalone_mode = nc_standalone_mode;
         self.update();
@@ -423,10 +427,29 @@ impl S2 {
         compatible_nc_providers: CRAS_NC_PROVIDER,
         enabled: bool,
     ) -> &CRAS_NC_PROVIDER {
+        self.resolve_nc_provider_with_client_controlled_voice_isolation(
+            compatible_nc_providers,
+            enabled,
+            false,
+        )
+    }
+
+    fn resolve_nc_provider_with_client_controlled_voice_isolation(
+        &self,
+        compatible_nc_providers: CRAS_NC_PROVIDER,
+        enabled: bool,
+        client_controlled_voice_isolation: bool,
+    ) -> &CRAS_NC_PROVIDER {
         if !enabled {
             return &CRAS_NC_PROVIDER::NONE;
         }
-        let valid_nc_providers = compatible_nc_providers & self.output.system_valid_nc_providers;
+        let mut valid_nc_providers =
+            compatible_nc_providers & self.output.system_valid_nc_providers;
+        if client_controlled_voice_isolation && !self.input.voice_isolation_ui_enabled {
+            // TODO(b/376794387): Allow DSP NC to be selected by client controlled voice isolation.
+            // Prevent DSP NC from being selected by client controlled voice isolation.
+            valid_nc_providers.remove(CRAS_NC_PROVIDER::DSP);
+        }
         for nc_provider in CRAS_NC_PROVIDER_PREFERENCE_ORDER {
             if valid_nc_providers.contains(*nc_provider) {
                 return nc_provider;
@@ -883,7 +906,7 @@ mod tests {
         let mut expected = CRAS_NC_PROVIDER::NONE;
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
-        s.set_voice_isolation_ui_enabled(true);
+        s.set_dsp_nc_supported(true);
         expected |= CRAS_NC_PROVIDER::DSP;
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
@@ -915,7 +938,8 @@ mod tests {
         let mut s = S2::new();
         s.set_voice_isolation_ui_enabled(true);
 
-        // Set AP NC supported and allowed.
+        // Set DSP and AP NC supported and allowed.
+        s.set_dsp_nc_supported(true);
         s.set_ap_nc_featured_allowed(true);
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
         // DSP NC priority is higher than AP NC.

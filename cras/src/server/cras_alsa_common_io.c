@@ -88,7 +88,7 @@ CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
       provider |= CRAS_NC_PROVIDER_BF;
     }
   }
-  if (ucm && cras_system_get_dsp_noise_cancellation_supported() &&
+  if (ucm && cras_s2_get_dsp_nc_supported() &&
       ucm_node_noise_cancellation_exists(ucm, node->name)) {
     provider |= CRAS_NC_PROVIDER_DSP;
   }

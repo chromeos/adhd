@@ -248,7 +248,6 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->bt_hfp_offload_finch_applied =
       board_config->bt_hfp_offload_finch_applied;
   exp_state->deprioritize_bt_wbs_mic = board_config->deprioritize_bt_wbs_mic;
-  exp_state->dsp_noise_cancellation_supported = board_config->nc_supported;
   exp_state->hotword_pause_at_suspend = board_config->hotword_pause_at_suspend;
   exp_state->hw_echo_ref_disabled = board_config->hw_echo_ref_disabled;
   exp_state->max_internal_mic_gain = board_config->max_internal_mic_gain;
@@ -256,6 +255,7 @@ void cras_system_state_init(const char* device_config_dir,
       board_config->max_internal_speaker_channels;
   exp_state->max_headphone_channels = board_config->max_headphone_channels;
   exp_state->num_non_chrome_output_streams = 0;
+  cras_s2_set_dsp_nc_supported(board_config->nc_supported);
   cras_s2_set_nc_standalone_mode(board_config->nc_standalone_mode);
   cras_s2_set_bypass_block_dsp_nc(0);
 
@@ -582,10 +582,6 @@ bool cras_system_get_noise_cancellation_supported() {
 
 bool cras_system_get_style_transfer_supported() {
   return cras_s2_get_style_transfer_supported();
-}
-
-bool cras_system_get_dsp_noise_cancellation_supported() {
-  return !!state.exp_state->dsp_noise_cancellation_supported;
 }
 
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {

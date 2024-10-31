@@ -67,6 +67,10 @@ void cras_s2_set_nc_standalone_mode(bool nc_standalone_mode);
 
 bool cras_s2_get_nc_standalone_mode(void);
 
+void cras_s2_set_dsp_nc_supported(bool dsp_nc_supported);
+
+bool cras_s2_get_dsp_nc_supported(void);
+
 void cras_s2_set_non_dsp_aec_echo_ref_dev_alive(bool non_dsp_aec_echo_ref_dev_alive);
 
 bool cras_s2_get_non_dsp_aec_echo_ref_dev_alive(void);
