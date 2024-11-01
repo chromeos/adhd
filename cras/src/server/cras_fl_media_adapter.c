@@ -359,6 +359,20 @@ int handle_on_absolute_volume_supported_changed(struct fl_media* active_fm,
                                                 abs_vol_supported);
     bt_io_manager_set_use_hardware_volume(active_fm->bt_io_mgr,
                                           abs_vol_supported);
+
+    if (abs_vol_supported) {
+      struct cras_iodev* iodev = cras_floss_a2dp_get_iodev(active_fm->a2dp);
+      // Under certain conditions, this AVRCP capability update event could
+      // occur while there is an ongoing stream, in which case there needs
+      // to be an explicit |set_volume| request to synchronize the volume.
+      if (iodev && iodev->active_node) {
+        // This is a workaround for headsets that cache the previous volume,
+        // which Fluoride will read from and prevent dup requests. By setting 0
+        // immediately before the actual volume, we guarantee the volume is set.
+        cras_floss_a2dp_set_volume(active_fm->a2dp, 0);
+        cras_floss_a2dp_set_volume(active_fm->a2dp, iodev->active_node->volume);
+      }
+    }
   }
   return 0;
 }
