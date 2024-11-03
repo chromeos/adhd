@@ -31,6 +31,7 @@ ioctl: arg1 == 0x5401 || arg1 == FIONBIO || arg1 == 0xc4c85512 || arg1 == 0x540f
 lseek: 1
 madvise: 1
 mmap: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
+mseal: 1
 mprotect: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
 munmap: 1
 newfstatat: 1

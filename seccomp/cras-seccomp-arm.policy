@@ -32,6 +32,7 @@ faccessat: 1
 faccessat2: 1
 # Don't allow mmap2 with both PROT_WRITE and PROT_EXEC.
 mmap2: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
+mseal: 1
 epoll_wait: 1
 getsockopt: 1
 accept: 1

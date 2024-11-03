@@ -37,6 +37,7 @@ recvmsg: 1
 brk: 1
 # Don't allow mmap with both PROT_WRITE and PROT_EXEC.
 mmap: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
+mseal: 1
 getsockopt: 1
 accept: 1
 munmap: 1

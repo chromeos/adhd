@@ -27,6 +27,7 @@ faccessat: 1
 faccessat2: 1
 # Don't allow mmap with both PROT_WRITE and PROT_EXEC.
 mmap: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
+mseal: 1
 # Don't allow mprotect with PROT_EXEC.
 mprotect: arg2 in ~PROT_EXEC
 sendmsg: 1
