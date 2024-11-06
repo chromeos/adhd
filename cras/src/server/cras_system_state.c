@@ -222,8 +222,7 @@ void cras_system_state_init(const char* device_config_dir,
   cras_s2_init();
   cras_s2_set_notify_audio_effect_ui_appearance_changed(
       cras_observer_notify_audio_effect_ui_appearance_changed);
-  cras_s2_set_reset_iodev_list_for_voice_isolation(
-      cras_iodev_list_reset_for_noise_cancellation);
+  cras_s2_set_reset_iodev_list_for_voice_isolation(cras_observer_notify_nodes);
 
   // Initial system state.
   exp_state->state_version = CRAS_SERVER_STATE_VERSION;
