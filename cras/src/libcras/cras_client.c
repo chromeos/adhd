@@ -615,7 +615,7 @@ static void wait_for_socket_next_action(struct cras_client* client) {
  * server to ready for incoming messages.
  *
  * Create the socket to the server, and wait while a connect request results in
- * -EINPROGRESS. Otherwise, we assume that the socket file will be deleted by
+ * -EAGAIN. Otherwise, we assume that the socket file will be deleted by
  * the server and the server_fd_state will be changed in
  * sock_file_wait_dispatch().
  */
@@ -646,7 +646,7 @@ static int wait_for_writable_next_action(struct cras_client* client,
   rc = connect(client->server_fd, (struct sockaddr*)&address, sizeof(address));
   if (rc != 0) {
     rc = -errno;
-    /* For -EINPROGRESS, we wait for POLLOUT on the server_fd.
+    /* For -EAGAIN, we wait for POLLOUT on the server_fd.
      * Otherwise CRAS is not running and we assume that the socket
      * file will be deleted and recreated. Notification of that will
      * happen via the sock_file_wait_dispatch(). */
@@ -656,7 +656,7 @@ static int wait_for_writable_next_action(struct cras_client* client,
        * to move the state machine. */
       close(client->server_fd);
       client->server_fd = -1;
-    } else if (rc != -EINPROGRESS) {
+    } else if (rc != -EAGAIN) {
       syslog(LOG_WARNING, "cras_client: server connect failed: %s",
              cras_strerror(-rc));
       return rc;
