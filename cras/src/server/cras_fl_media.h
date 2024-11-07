@@ -181,6 +181,12 @@ unsigned int floss_media_get_active_hci();
 
 int fl_media_init(int hci);
 
+int floss_media_register_callback(DBusConnection* conn,
+                                  const struct fl_media* fm);
+
+int floss_media_register_telephony_callback(DBusConnection* conn,
+                                            const struct fl_media* fm);
+
 int floss_media_start(DBusConnection* conn, unsigned int hci);
 
 int floss_media_stop(DBusConnection* conn, unsigned int hci);

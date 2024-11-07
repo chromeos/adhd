@@ -969,8 +969,8 @@ static void floss_on_register_callback(DBusPendingCall* pending_call,
   dbus_message_unref(reply);
 }
 
-static int floss_media_register_callback(DBusConnection* conn,
-                                         const struct fl_media* fm) {
+int floss_media_register_callback(DBusConnection* conn,
+                                  const struct fl_media* fm) {
   const char* bt_media_object_path = CRAS_BT_MEDIA_OBJECT_PATH;
   DBusMessage* method_call;
   DBusPendingCall* pending_call;
@@ -1026,8 +1026,8 @@ static void floss_on_register_telephony_callback(DBusPendingCall* pending_call,
   dbus_message_unref(reply);
 }
 
-static int floss_media_register_telephony_callback(DBusConnection* conn,
-                                                   const struct fl_media* fm) {
+int floss_media_register_telephony_callback(DBusConnection* conn,
+                                            const struct fl_media* fm) {
   const char* bt_media_object_path = CRAS_BT_MEDIA_OBJECT_PATH;
   DBusMessage* method_call;
   DBusPendingCall* pending_call;
@@ -2358,7 +2358,10 @@ int floss_media_lea_set_group_volume(struct fl_media* fm,
   return rc;
 }
 
-// When we're notified about Floss media interface is ready.
+// When we're notified about Floss manager interface is up.
+// Note this does not imply that the DBus interfaces are ready.
+// We should take this as an opportunity to run initialization procedures,
+// and only mount callbacks on receiving the |InterfaceAdded| event.
 int floss_media_start(DBusConnection* conn, unsigned int hci) {
   static const DBusObjectPathVTable control_vtable = {
       .message_function = handle_bt_media_callback,

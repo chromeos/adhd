@@ -18,8 +18,10 @@
 #include "cras/src/server/cras_bt_manager.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_fl_media.h"
+#include "cras/src/server/cras_fl_media_adapter.h"
 #include "cras_types.h"
 
+#define BT_SERVICE_NAME "org.chromium.bluetooth"
 #define BT_MANAGER_SERVICE_NAME "org.chromium.bluetooth.Manager"
 #define BT_MANAGER_INTERFACE "org.chromium.bluetooth.Manager"
 #define BT_MANAGER_OBJECT "/org/chromium/bluetooth/Manager"
@@ -352,6 +354,23 @@ static DBusHandlerResult floss_handle_interfaces_added(DBusConnection* conn,
 
   if (strcmp(object_path, BT_MANAGER_OBJECT) == 0) {
     floss_on_bt_manager_added(conn);
+  } else {
+    struct fl_media* active_fm = floss_media_get_active_fm();
+
+    if (!active_fm) {
+      syslog(LOG_WARNING,
+             "%s is signaling InterfacesAdded but HCI interface is not up",
+             object_path);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (strcmp(object_path, active_fm->obj_path) == 0) {
+      floss_media_register_callback(conn, active_fm);
+    } else if (strcmp(object_path, active_fm->obj_telephony_path) == 0) {
+      floss_media_register_telephony_callback(conn, active_fm);
+    } else {
+      syslog(LOG_INFO, "Ignoring path %s on InterfacesAdded", object_path);
+    }
   }
 
   return DBUS_HANDLER_RESULT_HANDLED;
@@ -423,6 +442,18 @@ static void floss_start(struct bt_stack* s) {
   dbus_bus_add_match(s->conn,
                      "type='signal',"
                      "sender='" BT_MANAGER_SERVICE_NAME
+                     "',"
+                     "interface='" DBUS_INTERFACE_OBJECT_MANAGER
+                     "',"
+                     "member='InterfacesAdded'",
+                     &dbus_error);
+  if (dbus_error_is_set(&dbus_error)) {
+    goto add_match_error;
+  }
+
+  dbus_bus_add_match(s->conn,
+                     "type='signal',"
+                     "sender='" BT_SERVICE_NAME
                      "',"
                      "interface='" DBUS_INTERFACE_OBJECT_MANAGER
                      "',"
