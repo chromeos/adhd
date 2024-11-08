@@ -174,7 +174,7 @@ pub extern "C" fn cras_nc_providers_bitset_to_str(
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 pub struct CrasEffectUIAppearance {
     // Decides which title to show on the toggle, 0 for hidden.
     pub toggle_type: EFFECT_TYPE,

@@ -496,7 +496,9 @@ impl S2 {
         let next_output = resolve(&self.input);
 
         if let Some(callback) = self.callbacks.notify_audio_effect_ui_appearance_changed {
-            if next_output.audio_effects_ready != self.output.audio_effects_ready {
+            if next_output.audio_effects_ready != self.output.audio_effects_ready
+                || next_output.audio_effect_ui_appearance != self.output.audio_effect_ui_appearance
+            {
                 callback(next_output.audio_effect_ui_appearance)
             }
         }
