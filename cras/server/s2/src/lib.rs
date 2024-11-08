@@ -493,24 +493,22 @@ impl S2 {
     }
 
     fn update(&mut self) {
-        let prev_audio_effects_ready = self.output.audio_effects_ready;
-        let prev_system_valid_nc_providers = self.output.system_valid_nc_providers;
-        let prev_voice_isolation_ui_enabled = self.output.voice_isolation_ui_enabled;
-
-        self.output = resolve(&self.input);
+        let next_output = resolve(&self.input);
 
         if let Some(callback) = self.callbacks.notify_audio_effect_ui_appearance_changed {
-            if prev_audio_effects_ready != self.output.audio_effects_ready {
-                callback(self.output.audio_effect_ui_appearance)
+            if next_output.audio_effects_ready != self.output.audio_effects_ready {
+                callback(next_output.audio_effect_ui_appearance)
             }
         }
-        if self.output.system_valid_nc_providers != prev_system_valid_nc_providers
-            || self.output.voice_isolation_ui_enabled != prev_voice_isolation_ui_enabled
+        if next_output.system_valid_nc_providers != self.output.system_valid_nc_providers
+            || next_output.voice_isolation_ui_enabled != self.output.voice_isolation_ui_enabled
         {
             if let Some(callback) = self.callbacks.reset_iodev_list_for_voice_isolation {
                 callback()
             }
         }
+
+        self.output = next_output;
     }
 
     fn reset_for_testing(&mut self) {
