@@ -1738,13 +1738,17 @@ static void configure_ucm_volume_settings(struct alsa_usb_output_node* output,
 
   // You only need to configure the parameter if you're using a hardware volume.
   if (!software_volume_needed) {
-    if (number_of_volume_steps != -1) {
-      node->number_of_volume_steps = number_of_volume_steps;
-    } else {
-      node->number_of_volume_steps =
-          MIN(cras_alsa_mixer_get_playback_step(output->common.mixer),
-              NUMBER_OF_VOLUME_STEPS_DEFAULT);
+    if (number_of_volume_steps == -1) {
+      number_of_volume_steps =
+          cras_alsa_mixer_get_playback_step(output->common.mixer);
+      if (number_of_volume_steps <= 0) {
+        syslog(LOG_WARNING, "Invalid number_of_volume_steps=%d for %s",
+               number_of_volume_steps, node->name);
+        number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+      }
     }
+    node->number_of_volume_steps =
+        MIN(NUMBER_OF_VOLUME_STEPS_DEFAULT, number_of_volume_steps);
   }
 
   // number_of_volume_steps is used as a denominator to calculate percentage, so
