@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 load("@crate_index//:defs.bzl", "all_crate_deps")
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_rust//rust:defs.bzl", "rust_test")
 load("//:utils.bzl", "require_no_config")
 load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
@@ -39,5 +39,22 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":ini",
+    ],
+)
+
+cc_test(
+    name = "parity_check",
+    srcs = ["parity_check.cc"],
+    args = [
+        "$(location //cras-config:dsp.ini.sample)",
+    ],
+    data = [
+        "//cras-config:dsp.ini.sample",
+    ],
+    deps = [
+        ":cc",
+        "//cras/common:rust_common_cc",
+        "@iniparser",
+        "@pkg_config//gtest",
     ],
 )

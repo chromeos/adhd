@@ -30,3 +30,8 @@ pkg_files(
     prefix = "etc/cras",
     strip_prefix = strip_prefix.from_pkg("for_all_boards"),
 )
+
+exports_files(
+    ["dsp.ini.sample"],
+    visibility = ["//cras/server/ini:__pkg__"],
+)
