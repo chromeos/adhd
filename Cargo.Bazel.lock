@@ -1,5 +1,5 @@
 {
-  "checksum": "97af6a34e5b183090388043ecb16559caed8153a5d49318982f9051ec3dadc9c",
+  "checksum": "ebbade571a19bd8a249f549bcec79328578f1001529441856d301b861d5eb5ad",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -1892,6 +1892,60 @@
       ],
       "license_file": "LICENSE"
     },
+    "configparser 3.1.0": {
+      "name": "configparser",
+      "version": "3.1.0",
+      "package_url": "https://github.com/QEDK/configparser-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/configparser/3.1.0/download",
+          "sha256": "e57e3272f0190c3f1584272d613719ba5fc7df7f4942fe542e63d949cf3a649b"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "configparser",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "configparser",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "indexmap"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "indexmap 2.5.0",
+              "target": "indexmap"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "3.1.0"
+      },
+      "license": "MIT OR LGPL-3.0-or-later",
+      "license_ids": [
+        "LGPL-3.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-LGPL"
+    },
     "cras_cbindgen 0.1.0": {
       "name": "cras_cbindgen",
       "version": "0.1.0",
@@ -2236,6 +2290,62 @@
           ],
           "selects": {}
         }
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
+    "cras_ini 0.1.0": {
+      "name": "cras_ini",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras_ini",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "cras_ini",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
+            {
+              "id": "configparser 3.1.0",
+              "target": "configparser"
+            },
+            {
+              "id": "indexmap 2.5.0",
+              "target": "indexmap"
+            },
+            {
+              "id": "libc 0.2.155",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.20",
+              "target": "log"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
       },
       "license": null,
       "license_ids": [],
@@ -11930,6 +12040,7 @@
     "cras_dlc 0.1.0": "cras/server/platform/dlc",
     "cras_feature_tier 0.1.0": "cras/server/feature_tier",
     "cras_features_backend 0.1.0": "cras/server/platform/features",
+    "cras_ini 0.1.0": "cras/server/ini",
     "cras_processor 0.1.0": "cras/server/processor",
     "cras_rate_estimator 0.1.0": "cras/server/rate_estimator",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
@@ -12334,6 +12445,7 @@
     "cfg-if 1.0.0",
     "clap 4.5.4",
     "command-fds 0.3.0",
+    "configparser 3.1.0",
     "dasp_sample 0.11.0",
     "dbus 0.9.7",
     "dbus-tokio 0.7.6",
@@ -12343,6 +12455,7 @@
     "futures 0.3.28",
     "getrandom 0.2.10",
     "hound 3.5.0",
+    "indexmap 2.5.0",
     "itertools 0.11.0",
     "libc 0.2.155",
     "log 0.4.20",

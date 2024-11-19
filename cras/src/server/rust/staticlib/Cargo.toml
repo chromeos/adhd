@@ -12,6 +12,7 @@ cras_common = { workspace = true }
 cras_dlc = { workspace = true }
 cras_feature_tier = { workspace = true }
 cras_features_backend = { workspace = true }
+cras_ini = { workspace = true }
 cras_processor = { workspace = true }
 cras_rate_estimator = { workspace = true }
 cras_s2 = { workspace = true }

@@ -4,6 +4,7 @@ members = [
     "audio_processor",
     "cras/common",
     "cras/server/feature_tier",
+    "cras/server/ini",
     "cras/server/platform/dlc",
     "cras/server/platform/features",
     "cras/server/processor",
@@ -28,6 +29,7 @@ cras_common = { path = "cras/common" }
 cras_dlc = { path = "cras/server/platform/dlc" }
 cras_features_backend = { path = "cras/server/platform/features" }
 cras_feature_tier = { path = "cras/server/feature_tier" }
+cras_ini = { path = "cras/server/ini" }
 cras_processor = { path = "cras/server/processor" }
 cras_rate_estimator = { path = "cras/server/rate_estimator" }
 cras_s2 = { path = "cras/server/s2" }
@@ -45,6 +47,7 @@ cc = "1.0.73"
 cfg-if = "1.0.0"
 clap = { version = "4.5.4", features = ["derive"] }
 command-fds = "0.3.0"
+configparser = { version = "3.1.0", features = ["indexmap"] }
 dasp_sample = "0.11.0"
 dbus = { version = "0.9.0", features = ["futures"] }
 dbus-tokio = "0.7.6"
@@ -57,6 +60,7 @@ getopts = "0.2.0"
 getrandom = "0.2.7"
 glob = "0.3.0"
 hound = "3.5.0"
+indexmap = "2.1.0"
 itertools = "0.11.0"
 libc = "0.2.124"
 log = "0.4.17"

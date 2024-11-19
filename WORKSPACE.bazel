@@ -230,6 +230,7 @@ crates_repository(
         "//cras/common:Cargo.toml",
         "//cras/server/rate_estimator:Cargo.toml",
         "//cras/server/feature_tier:Cargo.toml",
+        "//cras/server/ini:Cargo.toml",
         "//cras/server/platform/dlc:Cargo.toml",
         "//cras/server/platform/features:Cargo.toml",
         "//cras/server/processor:Cargo.toml",

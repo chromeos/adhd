@@ -1,0 +1,11 @@
+[package]
+name = "cras_ini"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+configparser = { workspace = true }
+indexmap = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }

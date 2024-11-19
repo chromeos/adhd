@@ -7,6 +7,7 @@ pub use cras_common;
 pub use cras_dlc;
 pub use cras_feature_tier;
 pub use cras_features_backend;
+pub use cras_ini;
 pub use cras_processor;
 pub use cras_rate_estimator;
 pub use cras_s2;
