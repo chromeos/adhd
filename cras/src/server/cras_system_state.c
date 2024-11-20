@@ -245,6 +245,7 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->ns_on_dsp_supported = board_config->ns_on_dsp_supported;
   exp_state->agc_on_dsp_supported = board_config->agc_on_dsp_supported;
   exp_state->bt_wbs_enabled = board_config->bt_wbs_enabled;
+  // bt_hfp_offload_finch_applied is useless after the finch rolled to launched.
   exp_state->bt_hfp_offload_finch_applied =
       board_config->bt_hfp_offload_finch_applied;
   exp_state->deprioritize_bt_wbs_mic = board_config->deprioritize_bt_wbs_mic;

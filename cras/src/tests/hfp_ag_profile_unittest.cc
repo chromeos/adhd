@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_profile.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
@@ -40,13 +39,9 @@ class HfpAgProfile : public testing::Test {
   virtual void SetUp() {
     btlog = cras_bt_event_log_init();
     ResetStubData();
-    cras_features_set_override(CrOSLateBootAudioHFPOffload, true);
   }
 
-  virtual void TearDown() {
-    cras_bt_event_log_deinit(btlog);
-    cras_features_unset_override(CrOSLateBootAudioHFPOffload);
-  }
+  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 };
 
 TEST_F(HfpAgProfile, StartWithoutScoPCM) {

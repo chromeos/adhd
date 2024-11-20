@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_hfp_alsa_iodev.h"
@@ -73,15 +72,9 @@ namespace {
 
 class HfpManagerTestSuite : public testing::Test {
  protected:
-  virtual void SetUp() {
-    cras_features_set_override(CrOSLateBootAudioHFPOffload, true);
-    ResetStubData();
-  }
+  virtual void SetUp() { ResetStubData(); }
 
-  virtual void TearDown() {
-    cras_bt_event_log_deinit(btlog);
-    cras_features_unset_override(CrOSLateBootAudioHFPOffload);
-  }
+  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 };
 
 TEST_F(HfpManagerTestSuite, PCMCreateFailed) {

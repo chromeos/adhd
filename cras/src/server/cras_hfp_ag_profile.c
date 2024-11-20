@@ -70,15 +70,8 @@ static bool is_sco_pcm_supported() {
 }
 
 static bool is_sco_pcm_used() {
-  /* If board config "bluetooth:hfp_offload_finch_applied" is specified,
-   * check the feature state from Chrome Feature Service to determine
-   * whether to use HFP offload path; otherwise, always choose HFP offload
-   * path.
-   */
-  if (cras_system_get_bt_hfp_offload_finch_applied()) {
-    return cras_feature_enabled(CrOSLateBootAudioHFPOffload);
-  }
-
+  // The feature flag is rolled to launched by M132. HFP offload path will
+  // be chosen anyway when available.
   return true;
 }
 

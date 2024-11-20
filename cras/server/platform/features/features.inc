@@ -7,7 +7,6 @@
 DEFINE_FEATURE(CrOSLateBootUnknown, false)
 DEFINE_FEATURE(CrOSLateBootDisabledByDefault, false)
 DEFINE_FEATURE(CrOSLateBootEnabledByDefault, true)
-DEFINE_FEATURE(CrOSLateBootAudioHFPOffload, false)
 DEFINE_FEATURE(CrOSLateBootAudioAPNoiseCancellation, false)
 DEFINE_FEATURE(CrOSLateBootAudioStyleTransfer, true)
 DEFINE_FEATURE(CrOSLateBootAudioA2DPAdvancedCodecs, false)
