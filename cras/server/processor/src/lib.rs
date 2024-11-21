@@ -27,7 +27,7 @@ use audio_processor::ProcessorVec;
 use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_dlc::get_dlc_state_cached;
-use cras_s2::BEAMFORMING_CONFIG_PATH;
+use cras_s2::global::cras_s2_get_beamforming_config_path;
 
 mod processor_override;
 mod proto;
@@ -126,7 +126,10 @@ fn get_style_transfer_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Re
 }
 
 fn get_beamforming_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
-    cdcfg::parse(context, Path::new(BEAMFORMING_CONFIG_PATH))
+    cdcfg::parse(
+        context,
+        &cras_s2_get_beamforming_config_path().context("beamforming config path unknown")?,
+    )
 }
 
 impl CrasProcessor {

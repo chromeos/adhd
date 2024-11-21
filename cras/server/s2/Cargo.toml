@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 audio_processor = { workspace = true }
 cras_common = { workspace = true }
+cras_ini = { workspace = true }
 
 anyhow = { workspace = true }
 libc = { workspace = true }

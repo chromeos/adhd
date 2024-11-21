@@ -3,24 +3,20 @@
 // found in the LICENSE file.
 
 use std::collections::HashMap;
-use std::collections::HashSet;
-use std::path::Path;
 
-use anyhow::Context;
-use audio_processor::cdcfg;
 use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
 use global::ResetIodevListForVoiceIsolation;
+use processing::BeamformingConfig;
 use serde::Serialize;
 
 use crate::global::NotifyAudioEffectUIAppearanceChanged;
 
 pub mod global;
-
-pub const BEAMFORMING_CONFIG_PATH: &str = "/etc/cras/processor/beamforming.txtpb";
+pub mod processing;
 
 #[derive(Default, Serialize)]
 struct Input {
@@ -34,9 +30,7 @@ struct Input {
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
-    // List of DLCs to provide the beamforming feature.
-    // None means beamforming is not supported.
-    beamforming_required_dlcs: Option<HashSet<String>>,
+    beamforming_config: BeamformingConfig,
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
     voice_isolation_ui_enabled: bool,
     voice_isolation_ui_preferred_effect: EFFECT_TYPE,
@@ -94,10 +88,10 @@ struct Output {
 
 fn resolve(input: &Input) -> Output {
     // TODO(b/339785214): Decide this based on config file content.
-    let beamforming_supported = input.cras_config_dir.ends_with(".3mic");
-    let beamforming_allowed = match &input.beamforming_required_dlcs {
-        None => false,
-        Some(dlcs) => dlcs.iter().all(|dlc| {
+    let beamforming_supported = matches!(input.beamforming_config, BeamformingConfig::Supported(_));
+    let beamforming_allowed = match &input.beamforming_config {
+        BeamformingConfig::Unsupported { .. } => false,
+        BeamformingConfig::Supported(properties) => properties.required_dlcs.iter().all(|dlc| {
             input
                 .dlc_installed
                 .as_ref()
@@ -379,13 +373,15 @@ impl S2 {
         self.update();
     }
 
-    fn set_cras_config_dir(&mut self, cras_config_dir: &str) {
+    fn read_cras_config(&mut self, cras_config_dir: &str) {
         self.input.cras_config_dir = cras_config_dir.into();
+        self.input.beamforming_config = BeamformingConfig::probe(&self.input.cras_config_dir);
         self.update();
     }
 
-    fn set_beamforming_required_dlcs(&mut self, dlcs: HashSet<String>) {
-        self.input.beamforming_required_dlcs = Some(dlcs);
+    #[cfg(test)]
+    fn set_beamforming_config(&mut self, beamforming_config: BeamformingConfig) {
+        self.input.beamforming_config = beamforming_config;
         self.update();
     }
 
@@ -458,14 +454,6 @@ impl S2 {
         &CRAS_NC_PROVIDER::NONE
     }
 
-    fn read_beamforming_config(&mut self) -> anyhow::Result<()> {
-        self.set_beamforming_required_dlcs(
-            cdcfg::get_required_dlcs(Path::new(BEAMFORMING_CONFIG_PATH))
-                .context("get_required_dlcs")?,
-        );
-        Ok(())
-    }
-
     fn set_spatial_audio_enabled(&mut self, enabled: bool) {
         self.input.spatial_audio_enabled = enabled;
         self.update();
@@ -531,6 +519,8 @@ mod tests {
     use cras_common::types_internal::CRAS_NC_PROVIDER;
     use cras_common::types_internal::EFFECT_TYPE;
 
+    use crate::processing::BeamformingConfig;
+    use crate::processing::BeamformingProperties;
     use crate::resolve_effect_toggle_type;
     use crate::AudioEffectStatus;
     use crate::S2;
@@ -606,13 +596,17 @@ mod tests {
         let mut s = S2::new();
         s.set_ap_nc_segmentation_allowed(true);
         s.set_style_transfer_featured_allowed(true);
-        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-            .as_str()
-            .to_string()]));
-        assert!(!s.output.get_bf_status().supported);
+        s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
+            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+                .as_str()
+                .to_string()]),
+            ..Default::default()
+        }));
+        assert!(s.output.get_bf_status().supported);
         assert!(s.output.get_ast_status().supported);
 
-        s.set_cras_config_dir("omniknight.3mic");
+        s.input.cras_config_dir = "does not end with .3mic____".to_string(); // The config dir should not matter.
+        s.update();
         assert!(s.output.get_bf_status().supported);
 
         assert!(!s.output.get_bf_status().allowed);
@@ -620,15 +614,16 @@ mod tests {
         assert!(s.output.get_bf_status().allowed);
 
         let dlcs = HashSet::from(["does-not-exist".to_string()]);
-        s.set_beamforming_required_dlcs(dlcs);
+        s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
+            required_dlcs: dlcs,
+            ..Default::default()
+        }));
         assert!(!s.output.get_bf_status().allowed);
-        s.input.beamforming_required_dlcs = None;
+        s.set_beamforming_config(BeamformingConfig::Unsupported {
+            reason: "testing".to_string(),
+        });
         s.update();
         assert!(!s.output.get_bf_status().allowed);
-
-        s.set_cras_config_dir("omniknight");
-        assert!(!s.output.get_bf_status().supported);
-        assert!(s.output.get_ast_status().supported);
     }
 
     #[test]
@@ -920,11 +915,13 @@ mod tests {
         expected |= CRAS_NC_PROVIDER::AST;
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
-        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-            .as_str()
-            .to_string()]));
+        s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
+            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+                .as_str()
+                .to_string()]),
+            ..Default::default()
+        }));
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
-        s.set_cras_config_dir("omniknight.3mic");
 
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
         assert_eq!(s.output.system_valid_nc_providers, expected);
@@ -994,11 +991,13 @@ mod tests {
         );
 
         // Test for UI preferred effect
-        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-            .as_str()
-            .to_string()]));
+        s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
+            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+                .as_str()
+                .to_string()]),
+            ..Default::default()
+        }));
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
-        s.set_cras_config_dir("omniknight.3mic");
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
         assert_eq!(
             s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
@@ -1034,11 +1033,13 @@ mod tests {
         CALLED.store(false, Ordering::SeqCst);
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
         // Set BF as supported and allowed.
-        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-            .as_str()
-            .to_string()]));
+        s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
+            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+                .as_str()
+                .to_string()]),
+            ..Default::default()
+        }));
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
-        s.set_cras_config_dir("omniknight.3mic");
         // No need to reset iodev list because the preferred effect is AST.
         assert!(!CALLED.load(Ordering::SeqCst));
 

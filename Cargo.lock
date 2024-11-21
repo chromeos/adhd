@@ -439,6 +439,7 @@ dependencies = [
  "anyhow",
  "audio_processor",
  "cras_common",
+ "cras_ini",
  "libc",
  "log",
  "once_cell",

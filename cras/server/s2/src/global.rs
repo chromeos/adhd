@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::ffi::c_char;
 use std::ffi::CString;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
@@ -15,6 +16,8 @@ use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::EFFECT_TYPE;
+
+use crate::processing::BeamformingConfig;
 
 fn state() -> MutexGuard<'static, crate::S2> {
     static CELL: OnceLock<Mutex<crate::S2>> = OnceLock::new();
@@ -133,15 +136,12 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
 pub extern "C" fn cras_s2_init() {
     match std::fs::read_to_string("/run/chromeos-config/v1/audio/main/cras-config-dir") {
         Ok(str) => {
-            state().set_cras_config_dir(&str);
+            state().read_cras_config(&str);
         }
         Err(err) => {
-            state().set_cras_config_dir("");
-            log::info!("Failed to read cras-config-dir: {err}");
+            state().read_cras_config("");
+            log::error!("Failed to read cras-config-dir: {err:#}");
         }
-    }
-    if let Err(err) = state().read_beamforming_config() {
-        log::error!("{err}");
     }
 }
 
@@ -284,4 +284,13 @@ pub extern "C" fn cras_s2_set_spatial_audio_supported(supported: bool) {
 #[no_mangle]
 pub extern "C" fn cras_s2_get_spatial_audio_supported() -> bool {
     state().input.spatial_audio_supported
+}
+
+pub fn cras_s2_get_beamforming_config_path() -> Option<PathBuf> {
+    match &state().input.beamforming_config {
+        BeamformingConfig::Supported(beamforming_properties) => {
+            Some(beamforming_properties.pipeline_path.clone())
+        }
+        BeamformingConfig::Unsupported { .. } => None,
+    }
 }
