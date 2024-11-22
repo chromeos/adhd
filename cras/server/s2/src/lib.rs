@@ -3,12 +3,14 @@
 // found in the LICENSE file.
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 
-use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
+use cras_common::types_internal::NC_AP_DLC;
+use cras_common::types_internal::SR_BT_DLC;
 use cras_feature_tier::CrasFeatureTier;
 use global::ResetIodevListForVoiceIsolation;
 use processing::BeamformingConfig;
@@ -27,7 +29,9 @@ struct Input {
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
-    dlc_installed: Option<HashMap<String, bool>>,
+    /// Cached result of compute_dlcs_to_install.
+    dlcs_to_install_cached: Vec<String>,
+    dlcs_installed: HashSet<String>,
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
@@ -92,18 +96,11 @@ fn resolve(input: &Input) -> Output {
     let beamforming_supported = matches!(input.beamforming_config, BeamformingConfig::Supported(_));
     let beamforming_allowed = match &input.beamforming_config {
         BeamformingConfig::Unsupported { .. } => false,
-        BeamformingConfig::Supported(properties) => properties.required_dlcs.iter().all(|dlc| {
-            input
-                .dlc_installed
-                .as_ref()
-                .is_some_and(|d| d.get(dlc).cloned().unwrap_or(false))
-        }),
+        BeamformingConfig::Supported(properties) => {
+            properties.required_dlcs.is_subset(&input.dlcs_installed)
+        }
     };
-    let dlc_nc_ap_installed = input.dlc_installed.as_ref().is_some_and(|d| {
-        d.get(CrasDlcId::CrasDlcNcAp.as_str())
-            .cloned()
-            .unwrap_or(false)
-    });
+    let dlc_nc_ap_installed = input.dlcs_installed.contains(NC_AP_DLC);
     let dsp_input_effects_blocked = if input.bypass_block_dsp_nc {
         false
     } else if input.nc_standalone_mode {
@@ -205,9 +202,9 @@ fn resolve(input: &Input) -> Output {
 
     Output {
         audio_effects_ready: input
-            .dlc_installed
-            .as_ref()
-            .is_some_and(|d| d.values().all(|&installed| installed)),
+            .dlcs_to_install_cached
+            .iter()
+            .all(|dlc| input.dlcs_installed.contains(dlc)),
         dsp_input_effects_blocked,
         audio_effects_status,
         audio_effect_ui_appearance,
@@ -321,6 +318,20 @@ impl S2 {
         }
     }
 
+    fn compute_dlcs_to_install(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        if self.input.feature_tier.sr_bt_supported {
+            out.push(SR_BT_DLC.to_string());
+        }
+        if self.output.get_ap_nc_status().supported {
+            out.push(NC_AP_DLC.to_string());
+        }
+        if let BeamformingConfig::Supported(properties) = &self.input.beamforming_config {
+            out.extend(properties.required_dlcs.iter().cloned());
+        }
+        out
+    }
+
     fn set_feature_tier(&mut self, feature_tier: CrasFeatureTier) {
         self.input.feature_tier = feature_tier;
         self.update();
@@ -341,20 +352,11 @@ impl S2 {
         self.update();
     }
 
-    fn init_dlc_installed(&mut self, dlc_installed: HashMap<CrasDlcId, bool>) {
-        self.input.dlc_installed =
-            Some(HashMap::from_iter(dlc_installed.into_iter().map(
-                |(dlc, installed)| (dlc.as_str().to_string(), installed),
-            )));
-        self.update();
-    }
-
-    fn set_dlc_installed(&mut self, dlc: CrasDlcId, installed: bool) {
-        if self.input.dlc_installed.is_none() {
-            self.init_dlc_installed(Default::default());
-        }
-        if let Some(ref mut dlc_installed) = self.input.dlc_installed {
-            dlc_installed.insert(dlc.as_str().to_string(), installed);
+    fn set_dlc_installed(&mut self, dlc: &str, installed: bool) {
+        if installed {
+            self.input.dlcs_installed.insert(dlc.to_string());
+        } else {
+            self.input.dlcs_installed.remove(dlc);
         }
         self.update();
     }
@@ -515,16 +517,18 @@ mod tests {
     use std::sync::atomic::AtomicU32;
     use std::sync::atomic::Ordering;
 
-    use cras_common::types_internal::CrasDlcId;
     use cras_common::types_internal::CrasEffectUIAppearance;
     use cras_common::types_internal::CRAS_NC_PROVIDER;
     use cras_common::types_internal::EFFECT_TYPE;
+    use cras_common::types_internal::NC_AP_DLC;
 
     use crate::processing::BeamformingConfig;
     use crate::processing::BeamformingProperties;
     use crate::resolve_effect_toggle_type;
     use crate::AudioEffectStatus;
     use crate::S2;
+
+    const BF_DLC: &str = "bf-dlc-for-test";
 
     #[test]
     fn test_ap_nc() {
@@ -542,7 +546,7 @@ mod tests {
         s.input.feature_tier.ap_nc_supported = true;
         assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
 
         s.set_ap_nc_featured_allowed(true);
         assert_eq!(s.output.get_ap_nc_status().allowed, true);
@@ -573,7 +577,7 @@ mod tests {
         s.set_style_transfer_featured_allowed(true);
         assert_eq!(s.output.get_ast_status().allowed, false);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
         assert_eq!(s.output.get_ast_status().allowed, true);
 
         s.set_style_transfer_featured_allowed(false);
@@ -598,9 +602,7 @@ mod tests {
         s.set_ap_nc_segmentation_allowed(true);
         s.set_style_transfer_featured_allowed(true);
         s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
-            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-                .as_str()
-                .to_string()]),
+            required_dlcs: HashSet::from([BF_DLC.to_string()]),
             ..Default::default()
         }));
         assert!(s.output.get_bf_status().supported);
@@ -611,7 +613,7 @@ mod tests {
         assert!(s.output.get_bf_status().supported);
 
         assert!(!s.output.get_bf_status().allowed);
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_dlc_installed(BF_DLC, true);
         assert!(s.output.get_bf_status().allowed);
 
         let dlcs = HashSet::from(["does-not-exist".to_string()]);
@@ -630,55 +632,31 @@ mod tests {
     #[test]
     fn test_dlc() {
         let mut s = S2::new();
-        assert!(s.input.dlc_installed.is_none());
+        assert!(s.input.dlcs_installed.is_empty());
         assert!(!s.input.dlc_manager_ready);
         s.set_dlc_manager_ready();
         assert!(s.input.dlc_manager_ready);
 
-        s.init_dlc_installed(HashMap::from([
-            (CrasDlcId::CrasDlcNcAp, false),
-            (CrasDlcId::CrasDlcIntelligoBeamforming, false),
-        ]));
+        s.set_dlc_installed(NC_AP_DLC, true);
         assert_eq!(
-            s.input.dlc_installed.as_ref().unwrap_or(&HashMap::new()),
-            &HashMap::from([
-                (CrasDlcId::CrasDlcNcAp.as_str().to_string(), false),
-                (
-                    CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
-                    false
-                )
-            ])
+            s.input.dlcs_installed,
+            HashSet::from([NC_AP_DLC.to_string()])
         );
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
-        assert_eq!(
-            s.input.dlc_installed.as_ref().unwrap_or(&HashMap::new()),
-            &HashMap::from([
-                (CrasDlcId::CrasDlcNcAp.as_str().to_string(), true),
-                (
-                    CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
-                    false
-                )
-            ])
-        );
-
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
-        assert_eq!(
-            s.input.dlc_installed.as_ref().unwrap_or(&HashMap::new()),
-            &HashMap::from([
-                (CrasDlcId::CrasDlcNcAp.as_str().to_string(), true),
-                (
-                    CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string(),
-                    true
-                )
-            ])
-        );
+        s.set_dlc_installed(NC_AP_DLC, false);
+        assert_eq!(s.input.dlcs_installed, HashSet::new());
     }
 
     #[test]
     fn test_audio_effects_ready() {
         let mut s = S2::new();
-        assert!(!s.output.audio_effects_ready);
+        s.input.dlcs_to_install_cached = vec![NC_AP_DLC.to_string(), BF_DLC.to_string()];
+        s.update();
+        assert!(
+            !s.output.audio_effects_ready,
+            "{}",
+            serde_json::to_string_pretty(&s).unwrap()
+        );
 
         // Simply verifies the callback is called.
         static CALLED: AtomicBool = AtomicBool::new(false);
@@ -702,18 +680,14 @@ mod tests {
         assert!(!CALLED.load(Ordering::SeqCst));
         assert!(!s.output.audio_effects_ready);
 
-        s.init_dlc_installed(HashMap::from([
-            (CrasDlcId::CrasDlcNcAp, false),
-            (CrasDlcId::CrasDlcIntelligoBeamforming, false),
-        ]));
         assert!(!s.output.audio_effects_ready);
         assert!(!CALLED.load(Ordering::SeqCst));
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
         assert!(!s.output.audio_effects_ready);
         assert!(!CALLED.load(Ordering::SeqCst));
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_dlc_installed(BF_DLC, true);
         assert!(s.output.audio_effects_ready);
         assert!(CALLED.load(Ordering::SeqCst));
         assert_eq!(
@@ -735,7 +709,7 @@ mod tests {
         );
         CALLED.store(false, Ordering::SeqCst);
 
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, false);
+        s.set_dlc_installed(NC_AP_DLC, false);
         assert!(!s.output.audio_effects_ready);
         assert!(CALLED.load(Ordering::SeqCst));
         assert_eq!(
@@ -864,7 +838,6 @@ mod tests {
     #[test]
     fn test_show_effect_fallback_message() {
         let mut s = S2::new();
-        s.init_dlc_installed(Default::default());
         assert_eq!(
             s.output
                 .audio_effect_ui_appearance
@@ -873,7 +846,7 @@ mod tests {
         );
 
         s.set_ap_nc_featured_allowed(true);
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
         s.set_ap_nc_segmentation_allowed(true);
         s.set_style_transfer_featured_allowed(true);
         s.set_active_input_node_compatible_nc_providers(CRAS_NC_PROVIDER::all());
@@ -907,7 +880,7 @@ mod tests {
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
         s.set_ap_nc_featured_allowed(true);
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
         expected |= CRAS_NC_PROVIDER::AP;
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
@@ -917,12 +890,10 @@ mod tests {
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
         s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
-            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-                .as_str()
-                .to_string()]),
+            required_dlcs: HashSet::from([BF_DLC.to_string()]),
             ..Default::default()
         }));
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_dlc_installed(BF_DLC, true);
 
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
         assert_eq!(s.output.system_valid_nc_providers, expected);
@@ -939,7 +910,7 @@ mod tests {
         // Set DSP and AP NC supported and allowed.
         s.set_dsp_nc_supported(true);
         s.set_ap_nc_featured_allowed(true);
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
         // DSP NC priority is higher than AP NC.
         assert_eq!(
             s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
@@ -993,12 +964,10 @@ mod tests {
 
         // Test for UI preferred effect
         s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
-            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-                .as_str()
-                .to_string()]),
+            required_dlcs: HashSet::from([BF_DLC.to_string()]),
             ..Default::default()
         }));
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_dlc_installed(BF_DLC, true);
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
         assert_eq!(
             s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
@@ -1028,19 +997,17 @@ mod tests {
         assert!(!CALLED.load(Ordering::SeqCst));
 
         // Install the DLC should set AST and AP NC allowed.
-        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+        s.set_dlc_installed(NC_AP_DLC, true);
         assert!(CALLED.load(Ordering::SeqCst));
 
         CALLED.store(false, Ordering::SeqCst);
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
         // Set BF as supported and allowed.
         s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
-            required_dlcs: HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
-                .as_str()
-                .to_string()]),
+            required_dlcs: HashSet::from([BF_DLC.to_string()]),
             ..Default::default()
         }));
-        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming, true);
+        s.set_dlc_installed(BF_DLC, true);
         // No need to reset iodev list because the preferred effect is AST.
         assert!(!CALLED.load(Ordering::SeqCst));
 

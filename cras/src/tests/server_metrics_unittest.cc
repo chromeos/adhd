@@ -502,7 +502,7 @@ INSTANTIATE_TEST_SUITE_P(
                          .status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED})));
 
 struct CrasDlcManagerTestParam {
-  enum CrasDlcId dlc_id;
+  struct CrasDlcId128 dlc_id;
   std::string dlc_id_str;
   int success_time;
   std::vector<int> elapsed_seconds;
@@ -545,11 +545,11 @@ TEST_P(ServerMetricsCrasDlcManagerTest, TestCrasServerMetricsDlcManagerStatus) {
 INSTANTIATE_TEST_SUITE_P(
     ,
     ServerMetricsCrasDlcManagerTest,
-    testing::Values(CrasDlcManagerTestParam({.dlc_id = CrasDlcNcAp,
-                                             .dlc_id_str = "NcAp",
+    testing::Values(CrasDlcManagerTestParam({.dlc_id = {.id = "nc-ap-dlc"},
+                                             .dlc_id_str = "nc-ap-dlc",
                                              .success_time = 0}),
-                    CrasDlcManagerTestParam({.dlc_id = CrasDlcSrBt,
-                                             .dlc_id_str = "SrBt",
+                    CrasDlcManagerTestParam({.dlc_id = {.id = "sr-bt-dlc"},
+                                             .dlc_id_str = "sr-bt-dlc",
                                              .success_time = 487,
                                              .elapsed_seconds = {0, 1, 3, 7, 15,
                                                                  31, 63, 127,

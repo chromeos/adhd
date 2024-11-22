@@ -3578,7 +3578,7 @@ TEST_F(IoDevTestSuite, StyleTransferSupported) {
   EXPECT_EQ(server_state_stub.output_nodes[0].audio_effect, 0);
 
   cras_iodev_list_rm(&d1_);
-  cras_s2_set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+  cras_s2_set_dlc_installed_for_test("nc-ap-dlc", true);
   cras_iodev_list_add(&d1_);
   EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
             EFFECT_TYPE_STYLE_TRANSFER);
@@ -3590,7 +3590,7 @@ TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
   cras_s2_reset_for_testing();
   cras_s2_set_ap_nc_segmentation_allowed(true);
   cras_s2_set_style_transfer_featured_allowed(true);
-  cras_s2_set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
+  cras_s2_set_dlc_installed_for_test("nc-ap-dlc", true);
 
   struct cras_rstream rstream;
   int rc;

@@ -234,12 +234,12 @@ int cras_server_metrics_hfp_mic_sr_status(
 
 // Logs the elapsed time when cras_dlc_manager successfully download the dlc.
 int cras_server_metrics_dlc_install_elapsed_time_on_success(
-    enum CrasDlcId dlc_id,
+    struct CrasDlcId128 dlc_id,
     int elapsed_seconds);
 
 // Logs the elapsed time when cras_dlc_manager fails to download the dlc.
 int cras_server_metrics_dlc_install_elapsed_time_on_failure(
-    enum CrasDlcId dlc_id,
+    struct CrasDlcId128 dlc_id,
     int elapsed_seconds);
 
 // Logs whether AP NC has successfully started or not.

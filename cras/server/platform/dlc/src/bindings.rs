@@ -8,31 +8,30 @@ use std::ffi::CString;
 use std::ptr;
 use std::thread;
 
+use cras_common::types_internal::SR_BT_DLC;
+
 use super::get_dlc_state_cached;
-use super::CrasDlcId;
 use super::Result;
-use crate::download_dlcs_init;
 use crate::download_dlcs_until_installed;
 use crate::DlcInstallOnFailureCallback;
 use crate::DlcInstallOnSuccessCallback;
 
-fn get_dlc_root_path(id: CrasDlcId) -> Result<CString> {
+fn get_dlc_root_path(id: &str) -> Result<CString> {
     let dlc_state = get_dlc_state_cached(id);
     CString::new(dlc_state.root_path).map_err(|e| e.into())
 }
 
-/// Returns `true` if the DLC package is ready for use, otherwise
-/// returns `false`.
+/// Returns `true` if sr-bt-dlc is available.
 #[no_mangle]
-pub extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
-    get_dlc_state_cached(id).installed
+pub extern "C" fn cras_dlc_is_sr_bt_available() -> bool {
+    get_dlc_state_cached(SR_BT_DLC).installed
 }
 
-/// Returns the root path of the DLC package.
+/// Returns the root path of sr-bt-dlc.
 /// The returned string should be freed with cras_rust_free_string.
 #[no_mangle]
-pub extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *mut c_char {
-    match get_dlc_root_path(id) {
+pub extern "C" fn cras_dlc_get_sr_bt_root_path() -> *mut c_char {
+    match get_dlc_root_path(SR_BT_DLC) {
         Ok(root_path) => root_path.into_raw(),
         Err(_) => ptr::null_mut(),
     }
@@ -43,8 +42,7 @@ pub extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *mut c_char {
 /// # Safety
 /// root_path must be a valid NULL terminated UTF-8 string.
 #[no_mangle]
-pub unsafe extern "C" fn cras_dlc_override_state_for_testing(
-    id: CrasDlcId,
+pub unsafe extern "C" fn cras_dlc_override_sr_bt_for_testing(
     installed: bool,
     root_path: *const c_char,
 ) {
@@ -57,7 +55,7 @@ pub unsafe extern "C" fn cras_dlc_override_state_for_testing(
             .into()
     };
     crate::override_state_for_testing(
-        id,
+        SR_BT_DLC,
         crate::State {
             installed,
             root_path,
@@ -74,17 +72,13 @@ pub extern "C" fn cras_dlc_reset_overrides_for_testing() {
 /// Start a thread to download all DLCs.
 #[no_mangle]
 pub extern "C" fn download_dlcs_until_installed_with_thread(
-    download_config: super::CrasDlcDownloadConfig,
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
     dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {
-    download_dlcs_init(&download_config);
-
     thread::Builder::new()
         .name("cras-dlc".into())
         .spawn(move || {
             download_dlcs_until_installed(
-                download_config,
                 dlc_install_on_success_callback,
                 dlc_install_on_failure_callback,
             )

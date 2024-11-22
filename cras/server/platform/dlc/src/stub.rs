@@ -12,11 +12,11 @@ impl super::ServiceTrait for Service {
         Ok(Self)
     }
 
-    fn install(&mut self, _id: super::CrasDlcId) -> Result<()> {
+    fn install(&mut self, _id: &str) -> Result<()> {
         Err(super::Error::Unsupported)
     }
 
-    fn get_dlc_state(&mut self, _id: super::CrasDlcId) -> Result<super::State> {
+    fn get_dlc_state(&mut self, _id: &str) -> Result<super::State> {
         Ok(super::State {
             installed: false,
             root_path: String::new(),

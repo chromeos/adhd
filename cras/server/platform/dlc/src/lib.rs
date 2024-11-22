@@ -12,9 +12,10 @@ use std::sync::Mutex;
 use std::thread::sleep;
 use std::time;
 
-use cras_common::types_internal::CrasDlcId;
+use cras_s2::global::cras_s2_get_dlcs_to_install;
 use once_cell::sync::Lazy;
 use thiserror::Error;
+use zerocopy::AsBytes;
 
 #[derive(Clone)]
 pub struct State {
@@ -42,8 +43,8 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 trait ServiceTrait: Sized {
     fn new() -> Result<Self>;
-    fn install(&mut self, id: CrasDlcId) -> Result<()>;
-    fn get_dlc_state(&mut self, id: CrasDlcId) -> Result<State>;
+    fn install(&mut self, id: &str) -> Result<()>;
+    fn get_dlc_state(&mut self, id: &str) -> Result<State>;
 }
 
 #[cfg(feature = "dlc")]
@@ -51,13 +52,13 @@ type Service = chromiumos::Service;
 #[cfg(not(feature = "dlc"))]
 type Service = stub::Service;
 
-static STATE_OVERRIDES: Lazy<Mutex<HashMap<CrasDlcId, State>>> =
+static STATE_OVERRIDES: Lazy<Mutex<HashMap<String, State>>> =
     Lazy::new(|| Mutex::new(Default::default()));
 
-static STATE_CACHE: Lazy<Mutex<HashMap<CrasDlcId, State>>> =
+static STATE_CACHE: Lazy<Mutex<HashMap<String, State>>> =
     Lazy::new(|| Mutex::new(Default::default()));
 
-pub fn install_dlc(id: CrasDlcId) -> Result<State> {
+pub fn install_dlc(id: &str) -> Result<State> {
     let mut service = Service::new()?;
     service.install(id)?;
     let state = service.get_dlc_state(id)?;
@@ -67,16 +68,16 @@ pub fn install_dlc(id: CrasDlcId) -> Result<State> {
     Ok(state)
 }
 
-pub fn get_dlc_state_cached(id: CrasDlcId) -> State {
+pub fn get_dlc_state_cached(id: &str) -> State {
     // Return override if exist.
-    if let Some(state) = STATE_OVERRIDES.lock().unwrap().get(&id) {
+    if let Some(state) = STATE_OVERRIDES.lock().unwrap().get(id) {
         return state.clone();
     }
 
     STATE_CACHE
         .lock()
         .unwrap()
-        .get(&id)
+        .get(id)
         .cloned()
         .unwrap_or_else(|| State {
             installed: false,
@@ -84,48 +85,49 @@ pub fn get_dlc_state_cached(id: CrasDlcId) -> State {
         })
 }
 
-fn override_state_for_testing(id: CrasDlcId, state: State) {
-    STATE_OVERRIDES.lock().unwrap().insert(id, state);
+fn override_state_for_testing(id: &str, state: State) {
+    STATE_OVERRIDES
+        .lock()
+        .unwrap()
+        .insert(id.to_string(), state);
 }
 
 fn reset_overrides() {
     STATE_OVERRIDES.lock().unwrap().clear();
 }
 
+/// This type exists as an alternative to heap-allocated C-strings.
+///
+/// This type, as a simple value, is free of ownership or memory leak issues,
+/// when we pass this in a callback we don't have to worry about who should free the string.
+#[repr(C)]
+pub struct CrasDlcId128 {
+    id: [libc::c_char; 128],
+}
+
+impl From<&str> for CrasDlcId128 {
+    fn from(value: &str) -> Self {
+        let b = value.as_bytes();
+        let to_copy = b.len().min(127);
+        let mut id = [0; 128];
+        id.as_bytes_mut()[..to_copy].clone_from_slice(&b[..to_copy]);
+        Self { id }
+    }
+}
+
 // Called when a dlc is installed successfully, with the following arguments:
-// - CrasDlcId: the id of the installed dlc.
-// - i32: the number of retried times.
-type DlcInstallOnSuccessCallback = extern "C" fn(CrasDlcId, i32) -> libc::c_int;
+// - id: the id of the installed dlc.
+// - elapsed_seconds: the elapsed time when the installation succeeded.
+type DlcInstallOnSuccessCallback =
+    extern "C" fn(id: CrasDlcId128, elapsed_seconds: i32) -> libc::c_int;
 
 // Called when a dlc failed to install, with the following arguments:
-// - CrasDlcId: the id of the installed dlc.
-// - i32: the elapsed time when the installation failure occurs.
-type DlcInstallOnFailureCallback = extern "C" fn(CrasDlcId, i32) -> libc::c_int;
-
-#[repr(C)]
-pub struct CrasDlcDownloadConfig {
-    pub dlcs_to_download: [bool; cras_common::types_internal::NUM_CRAS_DLCS],
-}
-
-fn get_dlc_ids_to_download(download_config: &CrasDlcDownloadConfig) -> Vec<&CrasDlcId> {
-    download_config
-        .dlcs_to_download
-        .iter()
-        .zip(cras_common::types_internal::MANAGED_DLCS.iter())
-        .filter_map(|(download, id)| if *download { Some(id) } else { None })
-        .collect()
-}
-
-fn download_dlcs_init(download_config: &CrasDlcDownloadConfig) {
-    cras_s2::global::cras_s2_init_dlc_installed(HashMap::from_iter(
-        get_dlc_ids_to_download(download_config)
-            .into_iter()
-            .map(|&dlc| (dlc, false)),
-    ))
-}
+// - id: the id of the installed dlc.
+// - elapsed_seconds: the elapsed time when the installation failed.
+type DlcInstallOnFailureCallback =
+    extern "C" fn(id: CrasDlcId128, elapsed_seconds: i32) -> libc::c_int;
 
 fn download_dlcs_until_installed(
-    download_config: CrasDlcDownloadConfig,
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
     dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {
@@ -133,21 +135,27 @@ fn download_dlcs_until_installed(
 
     let mut retry_sleep = time::Duration::from_secs(1);
     let max_retry_sleep = time::Duration::from_secs(120);
-    let mut todo = get_dlc_ids_to_download(&download_config);
+    let mut todo = cras_s2_get_dlcs_to_install();
     for _retry_count in 0..i32::MAX {
         let mut todo_next = vec![];
-        for &dlc in todo.iter() {
-            match install_dlc(*dlc) {
+        for dlc in todo.iter() {
+            match install_dlc(dlc) {
                 Ok(state) => {
                     log::info!("successfully installed {dlc}");
-                    STATE_CACHE.lock().unwrap().insert(*dlc, state);
-                    cras_s2::global::cras_s2_set_dlc_installed(*dlc, true);
-                    dlc_install_on_success_callback(*dlc, start_time.elapsed().as_secs() as i32);
+                    STATE_CACHE.lock().unwrap().insert(dlc.to_string(), state);
+                    cras_s2::global::cras_s2_set_dlc_installed(dlc, true);
+                    dlc_install_on_success_callback(
+                        CrasDlcId128::from(dlc.as_str()),
+                        start_time.elapsed().as_secs() as i32,
+                    );
                 }
                 Err(e) => {
                     log::info!("failed to install {dlc}: {e}");
-                    todo_next.push(dlc);
-                    dlc_install_on_failure_callback(*dlc, start_time.elapsed().as_secs() as i32);
+                    todo_next.push(dlc.to_string());
+                    dlc_install_on_failure_callback(
+                        CrasDlcId128::from(dlc.as_str()),
+                        start_time.elapsed().as_secs() as i32,
+                    );
                 }
             }
         }

@@ -12,7 +12,6 @@ use system_api::dlcservice::dlc_state::State;
 use system_api::dlcservice::DlcState;
 use system_api::dlcservice::InstallRequest;
 
-use super::CrasDlcId;
 use super::Result;
 
 const DBUS_TIMEOUT: Duration = Duration::from_millis(500);
@@ -34,7 +33,7 @@ impl super::ServiceTrait for Service {
         Ok(Self)
     }
 
-    fn install(&mut self, id: CrasDlcId) -> Result<()> {
+    fn install(&mut self, id: &str) -> Result<()> {
         let connection = Connection::new_system()?;
         let conn_path = get_dlcservice_connection_path(&connection);
 
@@ -44,11 +43,11 @@ impl super::ServiceTrait for Service {
         Ok(conn_path.install(request.write_to_bytes()?)?)
     }
 
-    fn get_dlc_state(&mut self, id: CrasDlcId) -> Result<crate::State> {
+    fn get_dlc_state(&mut self, id: &str) -> Result<crate::State> {
         let connection = Connection::new_system()?;
         let conn_path = get_dlcservice_connection_path(&connection);
 
-        let res = conn_path.get_dlc_state(id.as_str())?;
+        let res = conn_path.get_dlc_state(id)?;
         let mut dlc_state = DlcState::new();
         dlc_state.merge_from_bytes(&res)?;
         Ok(crate::State {

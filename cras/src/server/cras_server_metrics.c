@@ -279,7 +279,7 @@ struct cras_server_metrics_rtc_data {
 };
 
 struct cras_server_metrics_dlc_manager_data {
-  enum CrasDlcId dlc_id;
+  struct CrasDlcId128 dlc_id;
   int elapsed_seconds;
 };
 
@@ -424,19 +424,6 @@ static inline const char* metrics_client_type_str(
       return "SOUND_CARD_INIT";
     default:
       return "InvalidType";
-  }
-}
-
-static inline const char* metrics_dlc_id_str(enum CrasDlcId dlc_id) {
-  switch (dlc_id) {
-    case CrasDlcSrBt:
-      return "SrBt";
-    case CrasDlcNcAp:
-      return "NcAp";
-    case CrasDlcIntelligoBeamforming:
-      return "IntelligoBeamforming";
-    default:
-      return "InvalidDlcId";
   }
 }
 
@@ -773,7 +760,7 @@ int cras_server_metrics_hfp_mic_sr_status(
 }
 
 int cras_server_metrics_dlc_install_elapsed_time_on_success(
-    enum CrasDlcId dlc_id,
+    struct CrasDlcId128 dlc_id,
     int elapsed_seconds) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
@@ -796,7 +783,7 @@ int cras_server_metrics_dlc_install_elapsed_time_on_success(
 }
 
 int cras_server_metrics_dlc_install_elapsed_time_on_failure(
-    enum CrasDlcId dlc_id,
+    struct CrasDlcId128 dlc_id,
     int32_t elapsed_seconds) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
@@ -1919,7 +1906,7 @@ static void metrics_dlc_install_elapsed_time_on_success(
 
   snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
            "%s.ElapsedTimeHistogramOnSuccess.%s", kCrasDlcManagerStatus,
-           metrics_dlc_id_str(data.dlc_id));
+           data.dlc_id.id);
   cras_metrics_log_histogram(metrics_name, data.elapsed_seconds,
                              DLC_INSTALL_ELAPSED_TIME_MIN_SECONDS,
                              DLC_INSTALL_ELAPSED_TIME_MAX_SECONDS,
@@ -1932,7 +1919,7 @@ static void metrics_dlc_install_elapsed_time_on_failure(
 
   snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
            "%s.ElapsedTimeHistogramOnFailure.%s", kCrasDlcManagerStatus,
-           metrics_dlc_id_str(data.dlc_id));
+           data.dlc_id.id);
   cras_metrics_log_histogram(metrics_name, data.elapsed_seconds,
                              DLC_INSTALL_ELAPSED_TIME_MIN_SECONDS,
                              DLC_INSTALL_ELAPSED_TIME_MAX_SECONDS,

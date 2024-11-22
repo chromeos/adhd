@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-void cras_dlc_manager_init(struct CrasDlcDownloadConfig dl_cfg);
+void cras_dlc_manager_init();
 
 #ifdef __cplusplus
 }  // extern "C"

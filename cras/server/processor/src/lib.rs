@@ -24,7 +24,6 @@ use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
 use audio_processor::Format;
 use audio_processor::ProcessorVec;
-use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_dlc::get_dlc_state_cached;
 use cras_s2::global::cras_s2_get_beamforming_config_path;
@@ -95,9 +94,8 @@ impl audio_processor::cdcfg::ResolverContext for CrasProcessorResolverContext {
     }
 
     fn get_dlc_root_path(&self, dlc_id: &str) -> anyhow::Result<PathBuf> {
-        let cras_dlc_id = CrasDlcId::try_from(dlc_id)?;
-        let dlc_state = get_dlc_state_cached(cras_dlc_id);
-        ensure!(dlc_state.installed, "{cras_dlc_id} not installed");
+        let dlc_state = get_dlc_state_cached(dlc_id);
+        ensure!(dlc_state.installed, "{dlc_id} not installed");
         Ok(dlc_state.root_path.into())
     }
 

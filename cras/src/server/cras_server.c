@@ -577,15 +577,7 @@ int cras_server_run(unsigned int profile_disable_mask) {
 
   // `cras_dlc_manager` writes information that can be queried by dbus call, so
   // we initialize it before initializing dbus threads.
-  cras_dlc_manager_init((struct CrasDlcDownloadConfig){
-      .dlcs_to_download =
-          {
-              [CrasDlcSrBt] = cras_system_get_sr_bt_supported(),
-              [CrasDlcNcAp] = true,
-              [CrasDlcIntelligoBeamforming] =
-                  cras_s2_get_beamforming_supported(),
-          },
-  });
+  cras_dlc_manager_init();
 
   rc = dbus_threads_init_default();
   if (!rc) {

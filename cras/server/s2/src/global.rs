@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::collections::HashMap;
 use std::ffi::c_char;
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -11,7 +11,6 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
-use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
@@ -69,28 +68,36 @@ pub extern "C" fn cras_s2_set_reset_iodev_list_for_voice_isolation(
     state().set_reset_iodev_list_for_voice_isolation(reset_iodev_list_for_voice_isolation);
 }
 
-pub fn cras_s2_init_dlc_installed(dlc_installed: HashMap<CrasDlcId, bool>) {
-    state().init_dlc_installed(dlc_installed);
-}
-
 #[no_mangle]
 pub extern "C" fn cras_s2_get_audio_effect_dlcs() -> *mut c_char {
     // TODO(b/372393426): Consider returning protobuf instead of string.
     let s = state()
         .input
-        .dlc_installed
-        .as_ref()
-        .unwrap_or(&HashMap::new())
-        .keys()
+        .dlcs_to_install_cached
+        .iter()
         .cloned()
         .collect::<Vec<String>>()
         .join(",");
     CString::new(s).expect("CString::new").into_raw()
 }
 
-#[no_mangle]
-pub extern "C" fn cras_s2_set_dlc_installed(dlc: CrasDlcId, installed: bool) {
+pub fn cras_s2_get_dlcs_to_install() -> Vec<String> {
+    state().input.dlcs_to_install_cached.clone()
+}
+
+pub fn cras_s2_set_dlc_installed(dlc: &str, installed: bool) {
     state().set_dlc_installed(dlc, installed);
+}
+
+/// # Safety
+///
+/// dlc must be a NULL terminated string.
+#[no_mangle]
+pub unsafe extern "C" fn cras_s2_set_dlc_installed_for_test(
+    dlc: *const libc::c_char,
+    installed: bool,
+) {
+    cras_s2_set_dlc_installed(CStr::from_ptr(dlc).to_str().unwrap(), installed);
 }
 
 #[no_mangle]
@@ -147,6 +154,8 @@ pub unsafe extern "C" fn cras_s2_init(
         }
     }
     s.set_feature_tier(CrasFeatureTier::new_c(board_name, cpu_name));
+    s.input.dlcs_to_install_cached = s.compute_dlcs_to_install();
+    s.update();
 }
 
 #[no_mangle]

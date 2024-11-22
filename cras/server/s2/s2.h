@@ -35,7 +35,12 @@ void cras_s2_set_reset_iodev_list_for_voice_isolation(ResetIodevListForVoiceIsol
 
 char *cras_s2_get_audio_effect_dlcs(void);
 
-void cras_s2_set_dlc_installed(enum CrasDlcId dlc, bool installed);
+/**
+ * # Safety
+ *
+ * dlc must be a NULL terminated string.
+ */
+void cras_s2_set_dlc_installed_for_test(const char *dlc, bool installed);
 
 bool cras_s2_get_ap_nc_allowed(void);
 

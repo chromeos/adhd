@@ -355,6 +355,7 @@ dependencies = [
  "static_assertions",
  "system_api",
  "thiserror",
+ "zerocopy",
 ]
 
 [[package]]

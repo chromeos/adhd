@@ -67,8 +67,7 @@ TEST_P(SrBtUtilTest, TestExpectedStatus) {
       GetParam().cras_system_get_force_sr_bt_enabled_return_value;
   cras_system_get_sr_bt_supported_return_value =
       GetParam().cras_system_get_sr_bt_supported_return_value;
-  cras_dlc_override_state_for_testing(CrasDlcSrBt, GetParam().dlc_is_installed,
-                                      nullptr);
+  cras_dlc_override_sr_bt_for_testing(GetParam().dlc_is_installed, nullptr);
   cras_system_get_sr_bt_enabled_return_value =
       GetParam().cras_system_get_sr_bt_enabled_return_value;
 

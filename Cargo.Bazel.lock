@@ -1,5 +1,5 @@
 {
-  "checksum": "9a241194a05459dda7f4c65786ed4ee920464ebcd778b6388ef33fdb661c390a",
+  "checksum": "3617ba629cc3c6bf6b4df0b7596a6285147b1f712bf925e4ffd13e4f59dc3d4b",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2130,6 +2130,10 @@
             {
               "id": "thiserror 1.0.50",
               "target": "thiserror"
+            },
+            {
+              "id": "zerocopy 0.7.34",
+              "target": "zerocopy"
             }
           ],
           "selects": {}

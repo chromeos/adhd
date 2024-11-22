@@ -26,7 +26,7 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
   }
   // else: feature is force enabled.
 
-  if (!cras_dlc_is_available(CrasDlcSrBt)) {
+  if (!cras_dlc_is_sr_bt_available()) {
     return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE;
   }
   return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK;
@@ -34,7 +34,7 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
 
 struct cras_sr_model_spec cras_sr_bt_get_model_spec(
     enum cras_sr_bt_model model) {
-  char* dlc_root = cras_dlc_get_root_path(CrasDlcSrBt);
+  char* dlc_root = cras_dlc_get_sr_bt_root_path();
   struct cras_sr_model_spec spec = {};
   switch (model) {
     case SR_BT_NBS: {
