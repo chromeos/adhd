@@ -27,8 +27,6 @@ void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
 void cras_s2_set_ap_nc_segmentation_allowed(bool allowed);
 
-void cras_s2_set_ap_nc_feature_tier_allowed(bool allowed);
-
 bool cras_s2_are_audio_effects_ready(void);
 
 void cras_s2_set_notify_audio_effect_ui_appearance_changed(NotifyAudioEffectUIAppearanceChanged notify_audio_effect_ui_appearance_changed);
@@ -53,7 +51,12 @@ void cras_s2_set_voice_isolation_ui_enabled(bool enabled);
 
 bool cras_s2_get_voice_isolation_ui_enabled(void);
 
-void cras_s2_init(void);
+/**
+ * # Safety
+ *
+ * board_name and cpu_name must be NULL-terminated strings or NULLs.
+ */
+void cras_s2_init(const char *board_name, const char *cpu_name);
 
 bool cras_s2_get_beamforming_supported(void);
 
@@ -102,6 +105,8 @@ bool cras_s2_get_spatial_audio_enabled(void);
 void cras_s2_set_spatial_audio_supported(bool supported);
 
 bool cras_s2_get_spatial_audio_supported(void);
+
+bool cras_s2_get_sr_bt_supported(void);
 
 #endif  /* CRAS_SERVER_S2_S2_H_ */
 

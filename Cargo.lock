@@ -363,6 +363,7 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "log",
+ "serde",
 ]
 
 [[package]]
@@ -439,6 +440,7 @@ dependencies = [
  "anyhow",
  "audio_processor",
  "cras_common",
+ "cras_feature_tier",
  "cras_ini",
  "libc",
  "log",

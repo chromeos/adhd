@@ -2,8 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::ffi::CStr;
+
+use serde::Serialize;
+
 /// Support status for CRAS features.
-#[repr(C)]
+#[derive(Default, Serialize)]
 pub struct CrasFeatureTier {
     pub initialized: bool,
     pub is_x86_64_v2: bool,
@@ -27,6 +31,42 @@ impl CrasFeatureTier {
             ap_nc_supported: false,
             is_x86_64_v2: x86_64_v2,
         }
+    }
+
+    /// Construct a CrasFeatureTier from NULL terminated strings.
+    ///
+    /// # Safety
+    ///
+    /// board_name and cpu_name must be a NULL terminated strings or NULLs.
+    pub unsafe fn new_c(board_name: *const libc::c_char, cpu_name: *const libc::c_char) -> Self {
+        let board_name = if board_name.is_null() {
+            ""
+        } else {
+            match CStr::from_ptr(board_name).to_str() {
+                Ok(name) => name,
+                Err(_) => "",
+            }
+        };
+
+        let cpu_name = if cpu_name.is_null() {
+            ""
+        } else {
+            match CStr::from_ptr(cpu_name).to_str() {
+                Ok(name) => name,
+                Err(_) => "",
+            }
+        };
+
+        let tier = CrasFeatureTier::new(board_name, cpu_name);
+
+        log::info!(
+            "cras_feature_tier initialized with board={:?} cpu={:?} x86_64_v2={:?}",
+            board_name,
+            cpu_name,
+            tier.is_x86_64_v2
+        );
+
+        tier
     }
 }
 
@@ -93,68 +133,9 @@ mod tests {
         assert!(has_substr("DisalLoWed", &["abc", "Dis"]));
         assert!(!has_substr("DisalLoWed", &["abc"]));
     }
-}
 
-pub mod bindings {
-    use std::ffi::CStr;
-
-    pub use super::CrasFeatureTier;
-
-    #[no_mangle]
-    /// Initialize the cras feature tier struct.
-    /// On error, a negative error code is returned.
-    ///
-    /// # Safety
-    ///
-    /// out must be non-NULL.
-    pub unsafe extern "C" fn cras_feature_tier_init(
-        out: *mut CrasFeatureTier,
-        board_name: *const libc::c_char,
-        cpu_name: *const libc::c_char,
-    ) -> libc::c_int {
-        let board_name = if board_name.is_null() {
-            ""
-        } else {
-            match CStr::from_ptr(board_name).to_str() {
-                Ok(name) => name,
-                Err(_) => return -libc::EINVAL,
-            }
-        };
-
-        let cpu_name = if cpu_name.is_null() {
-            ""
-        } else {
-            match CStr::from_ptr(cpu_name).to_str() {
-                Ok(name) => name,
-                Err(_) => return -libc::EINVAL,
-            }
-        };
-
-        let tier = CrasFeatureTier::new(board_name, cpu_name);
-
-        log::info!(
-            "cras_feature_tier initialized with board={:?} cpu={:?} x86_64_v2={:?}",
-            board_name,
-            cpu_name,
-            tier.is_x86_64_v2
-        );
-
-        *out = tier;
-
-        0
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn null_safety() {
-            let mut tier = std::mem::MaybeUninit::<CrasFeatureTier>::zeroed();
-            let rc = unsafe {
-                cras_feature_tier_init(tier.as_mut_ptr(), std::ptr::null(), std::ptr::null())
-            };
-            assert_eq!(0, rc);
-        }
+    #[test]
+    fn null_safety() {
+        unsafe { CrasFeatureTier::new_c(std::ptr::null(), std::ptr::null()) };
     }
 }

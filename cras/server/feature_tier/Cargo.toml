@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 libc = { workspace = true }
 log = { workspace = true }
+serde = { workspace = true }

@@ -8,7 +8,6 @@
 #include <unordered_map>
 
 #include "cras/common/rust_common.h"
-#include "cras/server/feature_tier/feature_tier.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
@@ -83,7 +82,6 @@ static void ResetStubData() {
   cras_alsa_card_get_type_called = 0;
   card_type_map.clear();
   card_index_map.clear();
-  *get_feature_tier_for_test() = {};
   memset(&fake_board_config, 0, sizeof(fake_board_config));
 }
 
@@ -640,16 +638,6 @@ TEST(SystemStateSuite, InternalCardDetectedMultipleCards) {
   cras_system_state_deinit();
 }
 
-TEST(SystemFeatureTier, CrasFeatureTierInitCalled) {
-  ResetStubData();
-
-  EXPECT_FALSE(get_feature_tier_for_test()->initialized);
-  do_sys_init();
-  EXPECT_TRUE(get_feature_tier_for_test()->initialized);
-
-  cras_system_state_deinit();
-}
-
 TEST(SystemFeatureTier, GetSrBtEnabled) {
   ResetStubData();
   do_sys_init();
@@ -673,7 +661,7 @@ TEST(SystemFeatureTier, SetSrBtEnabledWhenNotSupported) {
 TEST(SystemFeatureTier, SetSrBtEnabledWhenSupported) {
   ResetStubData();
   do_sys_init();
-  get_feature_tier_for_test()->sr_bt_supported = true;
+  cras_s2_init("nami", "intel Core i7-1260P");
 
   cras_system_set_sr_bt_enabled(true);
   EXPECT_TRUE(cras_system_get_sr_bt_enabled());
@@ -685,7 +673,7 @@ TEST(SystemFeatureTier, GetSrBtUnsupported) {
   ResetStubData();
   do_sys_init();
 
-  EXPECT_FALSE(cras_system_get_sr_bt_supported());
+  EXPECT_FALSE(cras_s2_get_sr_bt_supported());
 
   cras_system_state_deinit();
 }
@@ -693,7 +681,7 @@ TEST(SystemFeatureTier, GetSrBtUnsupported) {
 TEST(SystemFeatureTier, GetSrBtSupported) {
   ResetStubData();
   do_sys_init();
-  get_feature_tier_for_test()->sr_bt_supported = true;
+  cras_s2_init("nami", "intel Core i7-1260P");
 
   EXPECT_EQ(cras_system_get_sr_bt_supported(), true);
 

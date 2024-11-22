@@ -16,6 +16,7 @@ use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::EFFECT_TYPE;
+use cras_feature_tier::CrasFeatureTier;
 
 use crate::processing::BeamformingConfig;
 
@@ -34,11 +35,6 @@ pub extern "C" fn cras_s2_set_ap_nc_featured_allowed(allowed: bool) {
 #[no_mangle]
 pub extern "C" fn cras_s2_set_ap_nc_segmentation_allowed(allowed: bool) {
     state().set_ap_nc_segmentation_allowed(allowed);
-}
-
-#[no_mangle]
-pub extern "C" fn cras_s2_set_ap_nc_feature_tier_allowed(allowed: bool) {
-    state().set_ap_nc_feature_tier_allowed(allowed);
 }
 
 pub fn set_dlc_manager_ready() {
@@ -132,17 +128,25 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
     state().input.voice_isolation_ui_enabled
 }
 
+/// # Safety
+///
+/// board_name and cpu_name must be NULL-terminated strings or NULLs.
 #[no_mangle]
-pub extern "C" fn cras_s2_init() {
+pub unsafe extern "C" fn cras_s2_init(
+    board_name: *const libc::c_char,
+    cpu_name: *const libc::c_char,
+) {
+    let mut s = state();
     match std::fs::read_to_string("/run/chromeos-config/v1/audio/main/cras-config-dir") {
         Ok(str) => {
-            state().read_cras_config(&str);
+            s.read_cras_config(&str);
         }
         Err(err) => {
-            state().read_cras_config("");
+            s.read_cras_config("");
             log::error!("Failed to read cras-config-dir: {err:#}");
         }
     }
+    s.set_feature_tier(CrasFeatureTier::new_c(board_name, cpu_name));
 }
 
 #[no_mangle]
@@ -293,4 +297,9 @@ pub fn cras_s2_get_beamforming_config_path() -> Option<PathBuf> {
         }
         BeamformingConfig::Unsupported { .. } => None,
     }
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_sr_bt_supported() -> bool {
+    state().input.feature_tier.sr_bt_supported
 }

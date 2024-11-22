@@ -9,6 +9,7 @@ edition = "2021"
 audio_processor = { workspace = true }
 cras_common = { workspace = true }
 cras_ini = { workspace = true }
+cras_feature_tier = { workspace = true }
 
 anyhow = { workspace = true }
 libc = { workspace = true }

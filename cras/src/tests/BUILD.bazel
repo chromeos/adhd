@@ -790,6 +790,7 @@ cc_test(
         "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
@@ -1108,22 +1109,6 @@ cc_test(
     ],
     deps = [
         ":test_support",
-        "//cras/src/common:all_headers",
-        "//cras/src/server:all_headers",
-        "@pkg_config//alsa",
-        "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
-    ],
-)
-
-cc_test(
-    name = "feature_tier_unittest",
-    srcs = [
-        ":feature_tier_unittest.cc",
-    ],
-    deps = [
-        ":test_support",
-        "//cras/server/feature_tier:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@pkg_config//alsa",
@@ -1777,7 +1762,6 @@ cc_test(
         ":test_support",
         "//cras/common:check",
         "//cras/common:rust_common_cc",
-        "//cras/server/feature_tier:cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",

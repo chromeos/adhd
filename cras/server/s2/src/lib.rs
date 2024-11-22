@@ -9,6 +9,7 @@ use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
+use cras_feature_tier::CrasFeatureTier;
 use global::ResetIodevListForVoiceIsolation;
 use processing::BeamformingConfig;
 use serde::Serialize;
@@ -20,9 +21,9 @@ pub mod processing;
 
 #[derive(Default, Serialize)]
 struct Input {
+    feature_tier: CrasFeatureTier,
     ap_nc_featured_allowed: bool,
     ap_nc_segmentation_allowed: bool,
-    ap_nc_feature_tier_allowed: bool,
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
@@ -117,7 +118,7 @@ fn resolve(input: &Input) -> Output {
                 supported: true,
                 allowed: (input.ap_nc_featured_allowed
                     || input.ap_nc_segmentation_allowed
-                    || input.ap_nc_feature_tier_allowed)
+                    || input.feature_tier.ap_nc_supported)
                     && dlc_nc_ap_installed,
                 compatible_with_active_input_node: input
                     .active_input_node_compatible_nc_providers
@@ -320,6 +321,11 @@ impl S2 {
         }
     }
 
+    fn set_feature_tier(&mut self, feature_tier: CrasFeatureTier) {
+        self.input.feature_tier = feature_tier;
+        self.update();
+    }
+
     fn set_ap_nc_featured_allowed(&mut self, allowed: bool) {
         self.input.ap_nc_featured_allowed = allowed;
         self.update();
@@ -327,11 +333,6 @@ impl S2 {
 
     fn set_ap_nc_segmentation_allowed(&mut self, allowed: bool) {
         self.input.ap_nc_segmentation_allowed = allowed;
-        self.update();
-    }
-
-    fn set_ap_nc_feature_tier_allowed(&mut self, allowed: bool) {
-        self.input.ap_nc_feature_tier_allowed = allowed;
         self.update();
     }
 
@@ -538,7 +539,7 @@ mod tests {
         assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
         s.set_ap_nc_segmentation_allowed(false);
-        s.set_ap_nc_feature_tier_allowed(true);
+        s.input.feature_tier.ap_nc_supported = true;
         assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp, true);
@@ -551,7 +552,7 @@ mod tests {
         assert_eq!(s.output.get_ap_nc_status().allowed, true);
 
         s.set_ap_nc_segmentation_allowed(false);
-        s.set_ap_nc_feature_tier_allowed(true);
+        s.input.feature_tier.ap_nc_supported = true;
         assert_eq!(s.output.get_ap_nc_status().allowed, true);
     }
 

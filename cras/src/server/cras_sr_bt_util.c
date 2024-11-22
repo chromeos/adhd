@@ -11,7 +11,6 @@
 #include "cras/common/check.h"
 #include "cras/common/rust_common.h"
 #include "cras/server/platform/dlc/dlc.h"
-#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"

@@ -20,7 +20,6 @@
 #include <unistd.h>
 
 #include "cras/common/check.h"
-#include "cras/server/feature_tier/feature_tier.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
@@ -116,8 +115,6 @@ struct private_state {
   // Use default volume curve for a USB device instead
   // of the range reported by the device.
   int32_t using_default_volume_curve_for_usb_audio_device;
-  // The feature tier. See cras_feature_tier.
-  struct cras_feature_tier feature_tier;
   // The feature state. See struct feature_state.
   struct feature_state feature_state;
   // Whether speak on mute detection is
@@ -219,7 +216,7 @@ void cras_system_state_init(const char* device_config_dir,
     syslog(LOG_ERR, "Fatal: no memory to create board config");
     exit(-ENOMEM);
   }
-  cras_s2_init();
+  cras_s2_init(board_name, cpu_model_name);
   cras_s2_set_notify_audio_effect_ui_appearance_changed(
       cras_observer_notify_audio_effect_ui_appearance_changed);
   cras_s2_set_reset_iodev_list_for_voice_isolation(cras_observer_notify_nodes);
@@ -293,9 +290,6 @@ void cras_system_state_init(const char* device_config_dir,
   state.bt_fix_a2dp_packet_size = false;
   state.using_default_volume_curve_for_usb_audio_device =
       board_config->using_default_volume_curve_for_usb_audio_device;
-
-  cras_feature_tier_init(&state.feature_tier, board_name, cpu_model_name);
-  cras_s2_set_ap_nc_feature_tier_allowed(state.feature_tier.ap_nc_supported);
 
   // Obtain latency offsets and clamp the values.
   state.speaker_output_latency_offset_ms =
@@ -607,7 +601,7 @@ bool cras_system_get_sr_bt_enabled() {
 }
 
 bool cras_system_get_sr_bt_supported() {
-  return state.feature_tier.sr_bt_supported;
+  return cras_s2_get_sr_bt_supported();
 }
 
 void cras_system_set_force_sr_bt_enabled(bool enabled) {
@@ -1079,7 +1073,7 @@ int cras_system_get_speaker_output_latency_offset_ms() {
 }
 
 bool cras_system_get_ap_nc_supported_on_bluetooth() {
-  return !cras_system_get_sr_bt_supported();
+  return !cras_s2_get_sr_bt_supported();
 }
 
 const char* cras_system_get_dsp_offload_map_str() {
@@ -1088,10 +1082,6 @@ const char* cras_system_get_dsp_offload_map_str() {
 
 int cras_system_state_num_arc_streams() {
   return state.num_arc_streams;
-}
-
-struct cras_feature_tier* get_feature_tier_for_test() {
-  return &state.feature_tier;
 }
 
 const char* cras_system_get_board_name() {
