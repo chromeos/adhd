@@ -38,12 +38,21 @@ message Plugin {
 message DlcPlugin {
   // The ID of the DLC.
   // Also known as the `--id` option of `dlcservice_util`.
-  string dlc_id = 1;
+  oneof dlc_id_oneof {
+    string dlc_id = 1;
+    string dlc_id_var = 4;
+  }
   // The path within the DLC root.
-  string path = 2;
+  oneof path_oneof {
+    string path = 2;
+    string path_var = 5;
+  }
   // The name of the processor_create function.
   // See also plugin_processor.h.
-  string constructor = 3;
+  oneof constructor_oneof {
+    string constructor = 3;
+    string constructor_var = 6;
+  }
 }
 
 // Wrap the inner audio processor so that it always receives

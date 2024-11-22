@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::collections::HashMap;
 use std::ffi::c_char;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -311,4 +312,8 @@ pub fn cras_s2_get_beamforming_config_path() -> Option<PathBuf> {
 #[no_mangle]
 pub extern "C" fn cras_s2_get_sr_bt_supported() -> bool {
     state().input.feature_tier.sr_bt_supported
+}
+
+pub fn cras_s2_get_cras_processor_vars() -> HashMap<String, String> {
+    state().input.cras_processor_vars.clone()
 }

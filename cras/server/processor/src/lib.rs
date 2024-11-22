@@ -27,6 +27,7 @@ use audio_processor::ProcessorVec;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_dlc::get_dlc_state_cached;
 use cras_s2::global::cras_s2_get_beamforming_config_path;
+use cras_s2::global::cras_s2_get_cras_processor_vars;
 
 mod processor_override;
 mod proto;
@@ -112,6 +113,7 @@ fn get_noise_cancellation_pipeline_decl(
 ) -> anyhow::Result<Processor> {
     cdcfg::parse(
         context,
+        &cras_s2_get_cras_processor_vars(),
         Path::new("/etc/cras/processor/noise_cancellation.txtpb"),
     )
 }
@@ -119,6 +121,7 @@ fn get_noise_cancellation_pipeline_decl(
 fn get_style_transfer_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
     cdcfg::parse(
         context,
+        &cras_s2_get_cras_processor_vars(),
         Path::new("/etc/cras/processor/style_transfer.txtpb"),
     )
 }
@@ -126,6 +129,7 @@ fn get_style_transfer_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Re
 fn get_beamforming_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
     cdcfg::parse(
         context,
+        &cras_s2_get_cras_processor_vars(),
         &cras_s2_get_beamforming_config_path().context("beamforming config path unknown")?,
     )
 }

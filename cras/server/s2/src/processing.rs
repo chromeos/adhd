@@ -2,12 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::Context;
 use audio_processor::cdcfg;
+use cras_ini::CrasIniMap;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -25,8 +27,8 @@ impl Default for BeamformingConfig {
 }
 
 impl BeamformingConfig {
-    pub fn probe(cras_config_dir: &str) -> Self {
-        match BeamformingProperties::probe(cras_config_dir) {
+    pub fn probe(board_ini: &CrasIniMap, cras_processor_vars: &HashMap<String, String>) -> Self {
+        match BeamformingProperties::probe(board_ini, cras_processor_vars) {
             Ok(properties) => Self::Supported(properties),
             Err(err) => Self::Unsupported {
                 reason: format!("{err:#}"),
@@ -44,13 +46,10 @@ pub struct BeamformingProperties {
 }
 
 impl BeamformingProperties {
-    fn probe(cras_config_dir: &str) -> anyhow::Result<Self> {
-        let board_ini = cras_ini::parse_file(
-            &Path::new("/etc/cras")
-                .join(cras_config_dir)
-                .join("board.ini"),
-        )
-        .context("cannot parse board.ini")?;
+    fn probe(
+        board_ini: &CrasIniMap,
+        cras_processor_vars: &HashMap<String, String>,
+    ) -> anyhow::Result<Self> {
         let pipeline_file = board_ini
             .get("processing")
             .context("processing section not found in board.ini")?
@@ -59,7 +58,7 @@ impl BeamformingProperties {
             .as_str()
             .to_string();
         let pipeline_path = Path::new("/etc/cras/processor").join(&pipeline_file);
-        let required_dlcs = cdcfg::get_required_dlcs(&pipeline_path)
+        let required_dlcs = cdcfg::get_required_dlcs(cras_processor_vars, &pipeline_path)
             .context("cannot get required DLCs from pipeline file")?;
         Ok(BeamformingProperties {
             pipeline_path,

@@ -209,7 +209,7 @@ mod tests {
     #[test]
     fn measurement_display_empty() {
         let m = Measurement::default();
-        format!("{}", m); // should not panic, e.g. division by zero
+        drop(format!("{}", m)); // should not panic, e.g. division by zero
     }
 
     #[test]

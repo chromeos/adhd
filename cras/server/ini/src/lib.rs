@@ -12,7 +12,7 @@ use anyhow::Context;
 use indexmap::IndexMap;
 use utf8cstring::Utf8CString;
 
-type CrasIniMap = IndexMap<Utf8CString, IndexMap<Utf8CString, Utf8CString>>;
+pub type CrasIniMap = IndexMap<Utf8CString, IndexMap<Utf8CString, Utf8CString>>;
 
 fn parse_string(s: impl Into<String>) -> anyhow::Result<CrasIniMap> {
     let mut dict = IndexMap::<Utf8CString, IndexMap<Utf8CString, Utf8CString>>::new();

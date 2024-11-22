@@ -155,7 +155,8 @@ fn run(command: Command) {
             constructor: command.plugin_name,
         },
         PluginOrPipeline::Pipeline(path) => {
-            parse(&NaiveResolverContext::default(), &path).unwrap_or_else(|err| panic!("{err:#}"))
+            parse(&NaiveResolverContext::default(), &Default::default(), &path)
+                .unwrap_or_else(|err| panic!("{err:#}"))
         }
     };
     let pipeline_decl = vec![

@@ -23,8 +23,8 @@ pipeline {
             peer {
               processor {
                 dlc_plugin {
-                  dlc_id: "intelligo-beamforming-dlc"
-                  path: "libigo_processor.so"
+                  dlc_id_var: "beamforming_dlc_id"
+                  path_var: "beamforming_dlc_path"
                   constructor: "plugin_processor_create"
                 }
               }

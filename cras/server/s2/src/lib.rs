@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::Path;
 
 use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
@@ -12,6 +13,7 @@ use cras_common::types_internal::EFFECT_TYPE;
 use cras_common::types_internal::NC_AP_DLC;
 use cras_common::types_internal::SR_BT_DLC;
 use cras_feature_tier::CrasFeatureTier;
+use cras_ini::CrasIniMap;
 use global::ResetIodevListForVoiceIsolation;
 use processing::BeamformingConfig;
 use serde::Serialize;
@@ -35,6 +37,7 @@ struct Input {
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
+    cras_processor_vars: HashMap<String, String>,
     beamforming_config: BeamformingConfig,
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
     voice_isolation_ui_enabled: bool,
@@ -378,7 +381,29 @@ impl S2 {
 
     fn read_cras_config(&mut self, cras_config_dir: &str) {
         self.input.cras_config_dir = cras_config_dir.into();
-        self.input.beamforming_config = BeamformingConfig::probe(&self.input.cras_config_dir);
+        let board_ini = match cras_ini::parse_file(
+            &Path::new("/etc/cras")
+                .join(cras_config_dir)
+                .join("board.ini"),
+        ) {
+            Ok(map) => map,
+            Err(err) => {
+                log::error!("cannot parse board.ini {err:#}");
+                CrasIniMap::default()
+            }
+        };
+        self.input.cras_processor_vars = match board_ini.get("cras_processor_vars") {
+            Some(vars) => {
+                let x = HashMap::from_iter(
+                    vars.iter()
+                        .map(|(k, v)| (k.as_str().to_string(), v.as_str().to_string())),
+                );
+                x
+            }
+            None => HashMap::new(),
+        };
+        self.input.beamforming_config =
+            BeamformingConfig::probe(&board_ini, &self.input.cras_processor_vars);
         self.update();
     }
 
