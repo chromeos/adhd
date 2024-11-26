@@ -17,6 +17,7 @@ use audio_processor::processors::profile;
 use audio_processor::processors::profile::Measurements;
 use audio_processor::processors::CheckShape;
 use audio_processor::processors::WavSource;
+use audio_processor::util::set_thread_priority;
 use audio_processor::AudioProcessor;
 use audio_processor::Error;
 use audio_processor::MultiBuffer;
@@ -52,6 +53,10 @@ struct Command {
     /// Takes precedence over --block-size-ms.
     #[arg(long)]
     block_size_frames: Option<usize>,
+
+    /// Sets the thread priority similarly to CRAS.
+    #[arg(long)]
+    set_thread_priority: bool,
 
     /// Also print JSON profile results in stdout.
     #[arg(long)]
@@ -140,6 +145,14 @@ pub fn main() {
 
 fn run(command: Command) {
     eprintln!("{:?}", command);
+
+    let mut worker_factory = AudioWorkerSubprocessFactory::default();
+    if command.set_thread_priority {
+        set_thread_priority().unwrap();
+        worker_factory = worker_factory.with_set_thread_priority();
+    }
+    let worker_factory = worker_factory; // Remove mut.
+
     let reader = hound::WavReader::open(command.input.clone()).expect("cannot open input file");
     let spec = reader.spec();
 
@@ -170,7 +183,7 @@ fn run(command: Command) {
     let (profile_sender, profile_receiver) = channel();
     let mut pipeline = PipelineBuilder::new(check_shape.get_output_format())
         .with_profile_sender(profile_sender)
-        .with_worker_factory(AudioWorkerSubprocessFactory::default())
+        .with_worker_factory(worker_factory)
         .build(Processor::Pipeline {
             processors: pipeline_decl,
         })
