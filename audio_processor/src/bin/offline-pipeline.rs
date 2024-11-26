@@ -300,6 +300,7 @@ mod tests {
             plugin_name: "negate_processor_create".to_string(),
             block_size_ms: 10,
             block_size_frames: None,
+            set_thread_priority: false,
             json: false,
         });
 
