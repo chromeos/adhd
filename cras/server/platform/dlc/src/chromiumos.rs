@@ -14,7 +14,7 @@ use system_api::dlcservice::InstallRequest;
 
 use super::Result;
 
-const DBUS_TIMEOUT: Duration = Duration::from_millis(500);
+const DBUS_TIMEOUT: Duration = Duration::from_secs(3);
 
 fn get_dlcservice_connection_path(connection: &Connection) -> Proxy<&Connection> {
     connection.with_proxy(
