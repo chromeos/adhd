@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+use anyhow::Context;
 use audio_processor::cdcfg::parse;
 use audio_processor::cdcfg::NaiveResolverContext;
 use audio_processor::config::PipelineBuilder;
@@ -23,6 +24,8 @@ use audio_processor::Error;
 use audio_processor::MultiBuffer;
 use audio_processor::Shape;
 use clap::Parser;
+use nix::sys::resource::getrusage;
+use nix::sys::resource::UsageWho;
 use serde::Serialize;
 
 #[derive(Parser, Debug)]
@@ -115,17 +118,28 @@ fn duration_as_ms<S: serde::Serializer>(v: &Duration, serializer: S) -> Result<S
     (v.as_secs_f64() * 1000.).serialize(serializer)
 }
 
+fn get_max_rss_kb() -> anyhow::Result<u64> {
+    u64::try_from(
+        getrusage(UsageWho::RUSAGE_SELF)
+            .context("getrusage()")?
+            .max_rss(),
+    )
+    .context("max_rss not u64")
+}
+
 #[derive(Debug, Serialize)]
 struct ProfileResult {
     cpu: PerfStats,
     wall: PerfStats,
+    max_rss_kb: u64,
 }
 
 impl ProfileResult {
-    fn new(m: &Measurements, clip_duration: f64) -> Self {
+    fn new(m: &Measurements, clip_duration: f64, max_rss_kb: u64) -> Self {
         Self {
             cpu: PerfStats::new(&m.cpu_time, clip_duration),
             wall: PerfStats::new(&m.wall_time, clip_duration),
+            max_rss_kb,
         }
     }
 }
@@ -243,9 +257,14 @@ fn run(command: Command) {
         let stats = profile_receiver.recv().unwrap();
 
         let clip_duration = stats.frames_generated as f64 / stats.output_format.frame_rate as f64;
-        let result = ProfileResult::new(&stats.measurements, clip_duration);
+        let result = ProfileResult::new(
+            &stats.measurements,
+            clip_duration,
+            get_max_rss_kb().unwrap(),
+        );
         eprintln!("cpu: {:?}", result.cpu);
         eprintln!("wall: {:?}", result.wall);
+        eprintln!("max rss: {:.3} MB", result.max_rss_kb as f64 / 1e3);
 
         if command.json {
             println!(
