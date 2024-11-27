@@ -22,4 +22,11 @@ impl super::ServiceTrait for Service {
             root_path: String::new(),
         })
     }
+
+    fn handle_one_signal(
+        &mut self,
+        _timeout: std::time::Duration,
+    ) -> Option<(String, crate::State)> {
+        None
+    }
 }

@@ -10,7 +10,9 @@ mod stub;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::thread::sleep;
-use std::time;
+use std::time::Duration;
+use std::time::Instant;
+use std::time::{self};
 
 use cras_s2::global::cras_s2_get_dlcs_to_install;
 use once_cell::sync::Lazy;
@@ -45,6 +47,9 @@ trait ServiceTrait: Sized {
     fn new() -> Result<Self>;
     fn install(&mut self, id: &str) -> Result<()>;
     fn get_dlc_state(&mut self, id: &str) -> Result<State>;
+    /// Handle a single signal from the service up to timeout.
+    /// Optionally return the new state of a DLC.
+    fn handle_one_signal(&mut self, timeout: Duration) -> Option<(String, State)>;
 }
 
 #[cfg(feature = "dlc")]
@@ -58,8 +63,7 @@ static STATE_OVERRIDES: Lazy<Mutex<HashMap<String, State>>> =
 static STATE_CACHE: Lazy<Mutex<HashMap<String, State>>> =
     Lazy::new(|| Mutex::new(Default::default()));
 
-pub fn install_dlc(id: &str) -> Result<State> {
-    let mut service = Service::new()?;
+fn install_dlc(service: &mut Service, id: &str) -> Result<State> {
     service.install(id)?;
     let state = service.get_dlc_state(id)?;
     if !state.installed {
@@ -96,6 +100,41 @@ fn reset_overrides() {
     STATE_OVERRIDES.lock().unwrap().clear();
 }
 
+fn handle_signals(
+    metric_context: &DlcMetricContext,
+    service: &mut Service,
+    dlcs: &[String],
+    timeout: Duration,
+) {
+    let deadline = Instant::now() + timeout;
+    while let Some(remaining_duration) = deadline.checked_duration_since(Instant::now()) {
+        match service.handle_one_signal(remaining_duration) {
+            Some((id, state)) => {
+                if dlcs.contains(&id) {
+                    set_dlc_state(metric_context, id, state, "handle_one_signal()");
+                }
+            }
+            None => {
+                // handle_one_signal returned without giving us an update.
+                // Sleep for the remaining duration.
+                if let Some(remaining_duration) = deadline.checked_duration_since(Instant::now()) {
+                    sleep(remaining_duration);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+fn set_dlc_state(metric_context: &DlcMetricContext, id: String, state: State, source: &str) {
+    if state.installed {
+        log::info!("successfully installed {id}; source: {source}");
+        metric_context.record_success(&id);
+    }
+    cras_s2::global::cras_s2_set_dlc_installed(&id, state.installed);
+    STATE_CACHE.lock().unwrap().insert(id, state);
+}
+
 /// This type exists as an alternative to heap-allocated C-strings.
 ///
 /// This type, as a simple value, is free of ownership or memory leak issues,
@@ -127,11 +166,39 @@ type DlcInstallOnSuccessCallback =
 type DlcInstallOnFailureCallback =
     extern "C" fn(id: CrasDlcId128, elapsed_seconds: i32) -> libc::c_int;
 
+struct DlcMetricContext {
+    start_time: Instant,
+    success_callback: DlcInstallOnSuccessCallback,
+    failure_callback: DlcInstallOnFailureCallback,
+}
+
+impl DlcMetricContext {
+    fn record_success(&self, id: &str) {
+        (self.success_callback)(
+            CrasDlcId128::from(id),
+            self.start_time.elapsed().as_secs() as i32,
+        );
+    }
+
+    fn record_failure(&self, id: &str) {
+        (self.failure_callback)(
+            CrasDlcId128::from(id),
+            self.start_time.elapsed().as_secs() as i32,
+        );
+    }
+}
+
 fn download_dlcs_until_installed(
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
     dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {
-    let start_time = time::Instant::now();
+    let mut service = Service::new().unwrap();
+
+    let metric_context = DlcMetricContext {
+        start_time: Instant::now(),
+        success_callback: dlc_install_on_success_callback,
+        failure_callback: dlc_install_on_failure_callback,
+    };
 
     let mut retry_sleep = time::Duration::from_secs(1);
     let max_retry_sleep = time::Duration::from_secs(120);
@@ -139,23 +206,25 @@ fn download_dlcs_until_installed(
     for _retry_count in 0..i32::MAX {
         let mut todo_next = vec![];
         for dlc in todo.iter() {
-            match install_dlc(dlc) {
+            // The DLC is already registered to be installed according to D-Bus signals.
+            // Skip this item.
+            if STATE_CACHE
+                .lock()
+                .unwrap()
+                .get(dlc)
+                .is_some_and(|state| state.installed)
+            {
+                continue;
+            }
+
+            match install_dlc(&mut service, dlc) {
                 Ok(state) => {
-                    log::info!("successfully installed {dlc}");
-                    STATE_CACHE.lock().unwrap().insert(dlc.to_string(), state);
-                    cras_s2::global::cras_s2_set_dlc_installed(dlc, true);
-                    dlc_install_on_success_callback(
-                        CrasDlcId128::from(dlc.as_str()),
-                        start_time.elapsed().as_secs() as i32,
-                    );
+                    set_dlc_state(&metric_context, dlc.to_string(), state, "install_dlc()");
                 }
                 Err(e) => {
                     log::info!("failed to install {dlc}: {e}");
+                    metric_context.record_failure(dlc);
                     todo_next.push(dlc.to_string());
-                    dlc_install_on_failure_callback(
-                        CrasDlcId128::from(dlc.as_str()),
-                        start_time.elapsed().as_secs() as i32,
-                    );
                 }
             }
         }
@@ -171,7 +240,7 @@ fn download_dlcs_until_installed(
         todo_next.rotate_left(1);
         todo = todo_next;
         log::info!("retrying DLC installation in {retry_sleep:?}, order {todo:?}");
-        sleep(retry_sleep);
+        handle_signals(&metric_context, &mut service, &todo, retry_sleep);
         retry_sleep = max_retry_sleep.min(retry_sleep * 2);
     }
 }
