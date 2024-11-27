@@ -120,9 +120,16 @@ def dict_to_xml(data, output_file):
     dict_to_xml_element(data, root)
     # add the licence comment in the xml
     comment = ET.Comment(
-        "Copyright 2024 The Chromium OS Authors. All rights reserved.\n"
-        "Use of this source code is governed by a BSD-style license that can be\n"
-        "found in the LICENSE file."
+        "Copyright (C) 2024 The Android Open Source Project\n\n"
+        "Licensed under the Apache License, Version 2.0 (the \"License\");\n"
+        "you may not use this file except in compliance with the License.\n"
+        "You may obtain a copy of the License at\n\n"
+        "     http://www.apache.org/licenses/LICENSE-2.0\n\n"
+        "Unless required by applicable law or agreed to in writing, software \n"
+        "distributed under the License is distributed on an \"AS IS\" BASIS,\n"
+        "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
+        "See the License for the specific language governing permissions and\n"
+        "limitations under the License."
     )
     root.insert(0, comment)  # insert before the root's first child
     tree = ET.ElementTree(root)
