@@ -30,6 +30,7 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/sidetone.h"
@@ -712,6 +713,10 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info* alsa_card_info) {
 
   if (alsa_card == NULL) {
     return -ENOMEM;
+  }
+  if (alsa_card_info->card_type != ALSA_CARD_TYPE_USB) {
+    cras_server_metrics_ucm_create_status(alsa_card_info->card_type,
+                                          cras_alsa_card_has_ucm(alsa_card));
   }
   card = calloc(1, sizeof(*card));
   if (card == NULL) {

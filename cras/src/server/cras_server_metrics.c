@@ -108,6 +108,7 @@ const char kHfpMicSuperResolutionStatus[] = "Cras.HfpMicSuperResolutionStatus";
 const char kCrasDlcManagerStatus[] = "Cras.DlcManagerStatus";
 const char kWakeDelay[] = "Cras.WakeDelay";
 const char kWakeDelayCountPer10kWakes[] = "Cras.WakeDelayCountPer10kWakes";
+const char kUcmCreateStatus[] = "Cras.UcmCreateStatus";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -192,6 +193,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   STREAM_RUNTIME,
   STREAM_OVERRUN_COUNT,
   STREAM_OVERRUN_FRAMES,
+  UCM_CREATE_STATUS,
   WAKE_DELAY,
   WAKE_DELAY_COUNT_PER_10K_WAKES
 };
@@ -283,6 +285,11 @@ struct cras_server_metrics_dlc_manager_data {
   int elapsed_seconds;
 };
 
+struct cras_server_metrics_ucm_data {
+  enum CRAS_ALSA_CARD_TYPE card_type;
+  int value;
+};
+
 union cras_server_metrics_data {
   unsigned value;
   struct cras_server_metrics_stream_config stream_config;
@@ -291,6 +298,7 @@ union cras_server_metrics_data {
   struct cras_server_metrics_timespec_data timespec_data;
   struct cras_server_metrics_rtc_data rtc_data;
   struct cras_server_metrics_dlc_manager_data dlc_manager_data;
+  struct cras_server_metrics_ucm_data ucm_data;
 };
 
 /*
@@ -1743,6 +1751,28 @@ int cras_server_metrics_hfp_telephony_event(enum HFP_TELEPHONY_EVENT event) {
   return 0;
 }
 
+int cras_server_metrics_ucm_create_status(enum CRAS_ALSA_CARD_TYPE card_type,
+                                          bool success) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  int err;
+  union cras_server_metrics_data data = {
+      .ucm_data =
+          {
+              .card_type = card_type,
+              .value = success,
+          },
+  };
+
+  init_server_metrics_msg(&msg, UCM_CREATE_STATUS, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: UCM_CREATE_STATUS");
+    return err;
+  }
+  return 0;
+}
+
 static void metrics_device_runtime(
     struct cras_server_metrics_device_data data) {
   switch (data.type) {
@@ -2028,6 +2058,16 @@ static void metrics_device_open_status(
       data.has_open_dev ? "HasOpenDev" : "FirstOpen");
 }
 
+static void metrics_ucm_create_status(
+    struct cras_server_metrics_ucm_data data) {
+  char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+  snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s", kUcmCreateStatus,
+           cras_card_type_to_string(data.card_type));
+
+  cras_metrics_log_sparse_histogram(metrics_name, data.value);
+}
+
 static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
   struct cras_server_metrics_message* metrics_msg =
       (struct cras_server_metrics_message*)msg;
@@ -2257,6 +2297,9 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
     case INTERNAL_SOUNDCARD_STATUS_10S:
       cras_metrics_log_sparse_histogram(kInternalSoundcardStatus10s,
                                         metrics_msg->data.value);
+      break;
+    case UCM_CREATE_STATUS:
+      metrics_ucm_create_status(metrics_msg->data.ucm_data);
       break;
     case WAKE_DELAY:
       cras_metrics_log_histogram(kWakeDelay, metrics_msg->data.value, 0,

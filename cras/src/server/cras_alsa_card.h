@@ -6,6 +6,7 @@
 #ifndef CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 #define CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "cras/src/common/cras_alsa_card_info.h"
@@ -77,6 +78,13 @@ size_t cras_alsa_card_get_index(const struct cras_alsa_card* alsa_card);
  */
 enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
     const struct cras_alsa_card* alsa_card);
+
+/* Returns whether the alsa card has ucm.
+ * Args:
+ *    alsa_card - The cras_alsa_card pointer returned from
+ *        cras_alsa_card_create.
+ */
+bool cras_alsa_card_has_ucm(const struct cras_alsa_card* alsa_card);
 
 #ifdef __cplusplus
 }  // extern "C"

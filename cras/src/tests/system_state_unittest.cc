@@ -14,6 +14,7 @@
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras/src/tests/metrics_stub.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 
@@ -813,6 +814,10 @@ void cras_observer_notify_audio_effect_ui_appearance_changed(
 
 void cras_observer_notify_nodes() {
   cras_observer_notify_nodes_called++;
+}
+
+bool cras_alsa_card_has_ucm(const struct cras_alsa_card* alsa_card) {
+  return false;
 }
 
 }  // extern "C"

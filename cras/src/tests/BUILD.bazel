@@ -1745,6 +1745,8 @@ cc_test(
 cc_test(
     name = "system_state_unittest",
     srcs = [
+        ":metrics_stub.cc",
+        ":metrics_stub.h",
         ":system_state_unittest.cc",
         "//cras/src/common:cras_selinux_helper_stub.c",
         "//cras/src/common:cras_shm.c",
@@ -1762,6 +1764,7 @@ cc_test(
         ":test_support",
         "//cras/common:check",
         "//cras/common:rust_common_cc",
+        "//cras/server/platform/dlc:cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",

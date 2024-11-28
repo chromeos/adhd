@@ -807,3 +807,7 @@ enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
   CRAS_CHECK(alsa_card);
   return alsa_card->card_type;
 }
+
+bool cras_alsa_card_has_ucm(const struct cras_alsa_card* alsa_card) {
+  return !!alsa_card->ucm;
+}

@@ -129,4 +129,10 @@ int cras_server_metrics_wake_delay_per_10k_wakes(unsigned count) {
 int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask) {
   return 0;
 }
+
+int cras_server_metrics_ucm_create_status(enum CRAS_ALSA_CARD_TYPE card_type,
+                                          bool success) {
+  return 0;
+}
+
 }  // extern "C"

@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 #include "cras/server/platform/dlc/dlc.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 
@@ -282,6 +283,10 @@ int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask);
 // Logs the Bluetooth hfp telephony event counts when CRAS receives the event
 // from Floss.
 int cras_server_metrics_hfp_telephony_event(enum HFP_TELEPHONY_EVENT event);
+
+// Logs whether a UCM instance is created successfully.
+int cras_server_metrics_ucm_create_status(enum CRAS_ALSA_CARD_TYPE card_type,
+                                          bool success);
 
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();
