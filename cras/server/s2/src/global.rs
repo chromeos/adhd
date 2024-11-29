@@ -72,18 +72,16 @@ pub extern "C" fn cras_s2_set_reset_iodev_list_for_voice_isolation(
 #[no_mangle]
 pub extern "C" fn cras_s2_get_audio_effect_dlcs() -> *mut c_char {
     // TODO(b/372393426): Consider returning protobuf instead of string.
-    let s = state()
-        .input
-        .dlcs_to_install_cached
-        .iter()
-        .cloned()
-        .collect::<Vec<String>>()
-        .join(",");
+    let s = cras_s2_get_dlcs_to_install().join(",");
     CString::new(s).expect("CString::new").into_raw()
 }
 
 pub fn cras_s2_get_dlcs_to_install() -> Vec<String> {
-    state().input.dlcs_to_install_cached.clone()
+    state()
+        .input
+        .dlcs_to_install_cached
+        .clone()
+        .unwrap_or_default()
 }
 
 pub fn cras_s2_set_dlc_installed(dlc: &str, installed: bool) {
@@ -155,7 +153,7 @@ pub unsafe extern "C" fn cras_s2_init(
         }
     }
     s.set_feature_tier(CrasFeatureTier::new_c(board_name, cpu_name));
-    s.input.dlcs_to_install_cached = s.compute_dlcs_to_install();
+    s.input.dlcs_to_install_cached = Some(s.compute_dlcs_to_install());
     s.update();
 }
 

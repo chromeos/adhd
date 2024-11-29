@@ -32,7 +32,8 @@ struct Input {
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
     /// Cached result of compute_dlcs_to_install.
-    dlcs_to_install_cached: Vec<String>,
+    /// None if not initialized yet.
+    dlcs_to_install_cached: Option<Vec<String>>,
     dlcs_installed: HashSet<String>,
     style_transfer_featured_allowed: bool,
     // cros_config /audio/main cras-config-dir.
@@ -206,8 +207,12 @@ fn resolve(input: &Input) -> Output {
     Output {
         audio_effects_ready: input
             .dlcs_to_install_cached
-            .iter()
-            .all(|dlc| input.dlcs_installed.contains(dlc)),
+            .as_ref()
+            .is_some_and(|dlcs_to_install| {
+                dlcs_to_install
+                    .iter()
+                    .all(|dlc| input.dlcs_installed.contains(dlc))
+            }),
         dsp_input_effects_blocked,
         audio_effects_status,
         audio_effect_ui_appearance,
@@ -675,7 +680,9 @@ mod tests {
     #[test]
     fn test_audio_effects_ready() {
         let mut s = S2::new();
-        s.input.dlcs_to_install_cached = vec![NC_AP_DLC.to_string(), BF_DLC.to_string()];
+        assert!(!s.output.audio_effects_ready);
+
+        s.input.dlcs_to_install_cached = Some(vec![NC_AP_DLC.to_string(), BF_DLC.to_string()]);
         s.update();
         assert!(
             !s.output.audio_effects_ready,
