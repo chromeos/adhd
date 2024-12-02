@@ -30,8 +30,7 @@ def dict_to_xml_element(data, root):
             sub_element = ET.SubElement(root, key)
             dict_to_xml_element(value, sub_element)
         elif isinstance(value, list):
-            sub_element = ET.SubElement(root, key + '_list')
-            list_to_xml_element(value, sub_element, key)
+            list_to_xml_element(value, root, key)
         else:
             ET.SubElement(root, key).text = str(value)
 
@@ -46,7 +45,7 @@ def dict_to_xml(data, output_file):
         "you may not use this file except in compliance with the License.\n"
         "You may obtain a copy of the License at\n\n"
         "     http://www.apache.org/licenses/LICENSE-2.0\n\n"
-        "Unless required by applicable law or agreed to in writing, software \n"
+        "Unless required by applicable law or agreed to in writing, software\n"
         "distributed under the License is distributed on an \"AS IS\" BASIS,\n"
         "WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
         "See the License for the specific language governing permissions and\n"
