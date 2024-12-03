@@ -54,7 +54,7 @@ def dict_to_xml(data, output_file):
     dict_to_xml_element(data, root)
     # add the licence comment in the xml
     comment = ET.Comment(
-        "\nCopyright (C) 2024 The Android Open Source Project\n\n"
+        "\nCopyright (C) 2025 The Android Open Source Project\n\n"
         "Licensed under the Apache License, Version 2.0 (the \"License\");\n"
         "you may not use this file except in compliance with the License.\n"
         "You may obtain a copy of the License at\n\n"
