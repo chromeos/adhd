@@ -252,8 +252,36 @@ impl Amp for TAS2563 {
         Ok(())
     }
 
-    fn get_applied_rdc(&mut self, _ch: usize) -> Result<f32> {
-        Ok(0.0)
+    fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
+        if ch >= self.setting.controls.len() {
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
+        }
+
+        info!("Get applied rdc channel {}", ch);
+        let data = match self.setting.controls.len() {
+            2 => {
+                &(self
+                    .card
+                    .control_by_name::<TwoChannelsControl>(&self.setting.controls[0].cal_data)?
+                    .get()?)[..]
+            }
+            4 => {
+                &(self
+                    .card
+                    .control_by_name::<FourChannelsControl>(&self.setting.controls[0].cal_data)?
+                    .get()?)[..]
+            }
+            _ => {
+                return Err(Error::InvalidChannelNumber(
+                    self.setting.controls.len().try_into().unwrap(),
+                )
+                .into())
+            }
+        };
+        let start_location =
+            Self::HEADER_LENGTH + Self::CHANNEL_DATA_LENGTH * ch + Self::R0_LOCATION;
+        let rdc = u32::from_be_bytes(data[start_location..start_location + 4].try_into().unwrap());
+        Ok(TAS2563CalibData::rdc_to_ohm(rdc.try_into().unwrap()))
     }
 
     /// Get the fake dsm_calib_r0 value by channel index.
@@ -284,6 +312,9 @@ impl TAS2563 {
     const TEMP_LOWER_LIMIT_CELSIUS: f32 = 0.0;
     const CALIB_DATA_LEN_2_CH: usize = 59;
     const CALIB_DATA_LEN_4_CH: usize = 101;
+    const HEADER_LENGTH: usize = 17;
+    const CHANNEL_DATA_LENGTH: usize = 21;
+    const R0_LOCATION: usize = 1;
 
     /// Creates an `TAS2563`.
     /// # Arguments

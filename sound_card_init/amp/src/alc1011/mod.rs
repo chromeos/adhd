@@ -114,7 +114,7 @@ impl Amp for ALC1011 {
 
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
         if ch >= self.setting.controls.len() {
-            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
 
         Ok(ALC1011CalibData::rdc_to_ohm(

@@ -254,7 +254,7 @@ impl Amp for Max98390 {
 
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
         if ch >= self.setting.controls.len() {
-            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
 
         Ok(Max98390CalibData::rdc_to_ohm(
@@ -289,7 +289,7 @@ impl Amp for Max98390 {
 
     fn get_current_rdc(&mut self, ch: usize) -> Result<Option<f32>> {
         if ch >= self.setting.controls.len() {
-            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
 
         let mut zero_player: ZeroPlayer = Default::default();

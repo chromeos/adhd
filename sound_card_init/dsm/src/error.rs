@@ -29,7 +29,7 @@ pub enum Error {
     #[error("internal speaker is not found in cras")]
     InternalSpeakerNotFound,
     #[error("invalid channel number: {0}")]
-    InvalidChannelNumer(usize),
+    InvalidChannelNumber(usize),
     #[error("invalid datastore format")]
     InvalidDatastore,
     #[error("invalid shutdown time")]

@@ -190,7 +190,7 @@ impl Amp for CS35L41 {
         zero_player.start(Self::CALIB_APPLY_TIME)?;
 
         if ch >= self.setting.controls.len() {
-            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
 
         if let Err(e) = self.verify_calibration_applied() {

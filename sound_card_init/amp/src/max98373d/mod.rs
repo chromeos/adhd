@@ -223,7 +223,7 @@ impl Amp for Max98373 {
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
         let rdc = self.get_rdc()?;
         if ch >= rdc.len() {
-            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
         Ok(Max98373CalibData::rdc_to_ohm(rdc[ch]))
     }
@@ -231,7 +231,7 @@ impl Amp for Max98373 {
     fn get_current_rdc(&mut self, ch: usize) -> Result<Option<f32>> {
         let rdc = self.get_adaptive_rdc()?;
         if ch >= rdc.len() {
-            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+            return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
         Ok(Some(Max98373CalibData::rdc_to_ohm(rdc[ch])))
     }
