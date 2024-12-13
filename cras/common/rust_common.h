@@ -124,6 +124,8 @@ void cras_rust_free_string(char *s);
  */
 const char *cras_processor_effect_to_str(enum CrasProcessorEffect effect);
 
+CRAS_STREAM_ACTIVE_AP_EFFECT cras_processor_effect_to_active_ap_effects(enum CrasProcessorEffect effect);
+
 /**
  * Returns the names of active effects as a string.
  * The resulting string should be freed with cras_rust_free_string.

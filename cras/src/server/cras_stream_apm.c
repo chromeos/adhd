@@ -592,30 +592,8 @@ static CRAS_STREAM_ACTIVE_AP_EFFECT get_active_ap_effects(
     }
   }
 
-  switch (apm->cras_processor_effect) {
-    case NoEffects:
-      break;
-    case Negate:
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NEGATE;
-      break;
-    case NoiseCancellation:
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION;
-      break;
-    case StyleTransfer:
-      // Style transfer implies noise cancellation.
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION;
-
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_STYLE_TRANSFER;
-      break;
-    case Beamforming:
-      // Beamforming is a variant of noise cancellation.
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION;
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_BEAMFORMING;
-      break;
-    case Overridden:
-      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN;
-      break;
-  }
+  effects |=
+      cras_processor_effect_to_active_ap_effects(apm->cras_processor_effect);
 
   return effects;
 }

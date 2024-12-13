@@ -32,6 +32,27 @@ impl CrasProcessorEffect {
             CrasProcessorEffect::Overridden => c"Overridden",
         }
     }
+
+    fn to_active_ap_effects(&self) -> CRAS_STREAM_ACTIVE_AP_EFFECT {
+        match self {
+            CrasProcessorEffect::NoEffects => CRAS_STREAM_ACTIVE_AP_EFFECT::empty(),
+            CrasProcessorEffect::Negate => CRAS_STREAM_ACTIVE_AP_EFFECT::NEGATE,
+            CrasProcessorEffect::NoiseCancellation => {
+                CRAS_STREAM_ACTIVE_AP_EFFECT::NOISE_CANCELLATION
+            }
+            CrasProcessorEffect::StyleTransfer => {
+                // Style transfer implies noise cancellation.
+                CRAS_STREAM_ACTIVE_AP_EFFECT::NOISE_CANCELLATION
+                    | CRAS_STREAM_ACTIVE_AP_EFFECT::STYLE_TRANSFER
+            }
+            CrasProcessorEffect::Beamforming => {
+                // Beamforming is a variant of noise cancellation.
+                CRAS_STREAM_ACTIVE_AP_EFFECT::NOISE_CANCELLATION
+                    | CRAS_STREAM_ACTIVE_AP_EFFECT::BEAMFORMING
+            }
+            CrasProcessorEffect::Overridden => CRAS_STREAM_ACTIVE_AP_EFFECT::PROCESSOR_OVERRIDDEN,
+        }
+    }
 }
 
 /// Returns the name of the CrasProcessorEffect as a string.
@@ -39,6 +60,13 @@ impl CrasProcessorEffect {
 #[no_mangle]
 pub extern "C" fn cras_processor_effect_to_str(effect: CrasProcessorEffect) -> *const libc::c_char {
     effect.as_c_str().as_ptr()
+}
+
+#[no_mangle]
+pub extern "C" fn cras_processor_effect_to_active_ap_effects(
+    effect: CrasProcessorEffect,
+) -> CRAS_STREAM_ACTIVE_AP_EFFECT {
+    effect.to_active_ap_effects()
 }
 
 bitflags! {
