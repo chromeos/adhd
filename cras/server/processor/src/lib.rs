@@ -38,10 +38,15 @@ pub enum CrasProcessorWrapMode {
     WrapModeNone,
     /// Run the processor pipeline in a separate, dedicated thread.
     WrapModeDedicatedThread,
-    /// Run the processor pipeline with a ChunkWrapper.
+    /// Run the processor pipeline with a ChunkWrapper with the inner block
+    /// size set to  [`CrasProcessorConfig::block_size`].
     /// In this mode, the caller is allowed to run the pipeline with a block
-    /// size that is different from `CrasProcessorConfig::block_size`
+    /// size that is different from  [`CrasProcessorConfig::block_size`].
     WrapModeChunk,
+    /// Like `WrapModeChunk` but the pipeline is run inside a peer processor (sandbox).
+    /// [`CrasProcessorConfig::max_block_size`] must be set in this mode.
+    /// WAVE dump is not supported in this mode.
+    WrapModePeerChunk,
 }
 
 #[repr(C)]
@@ -58,6 +63,10 @@ pub struct CrasProcessorConfig {
 
     // Enable processing dumps as WAVE files.
     wav_dump: bool,
+
+    /// The max block size when wrap_mode is WrapModePeerChunk.
+    /// Used to determine buffer size to allocate for peer IPC.
+    max_block_size: usize,
 }
 
 impl CrasProcessorConfig {
@@ -275,22 +284,37 @@ impl CrasProcessor {
             });
         }
 
-        let pipeline = if matches!(config.wrap_mode, CrasProcessorWrapMode::WrapModeChunk) {
-            Processor::WrapChunk {
-                inner: Box::new(Processor::Pipeline { processors: decl }),
+        let mut pipeline = Processor::Pipeline { processors: decl };
+        if matches!(
+            config.wrap_mode,
+            CrasProcessorWrapMode::WrapModeChunk | CrasProcessorWrapMode::WrapModePeerChunk
+        ) {
+            pipeline = Processor::WrapChunk {
+                inner: Box::new(pipeline),
                 inner_block_size: config.block_size,
                 disallow_hoisting: true,
+            };
+            if matches!(config.wrap_mode, CrasProcessorWrapMode::WrapModePeerChunk) {
+                pipeline = Processor::Peer {
+                    processor: Box::new(pipeline),
+                };
             }
-        } else {
-            Processor::Pipeline { processors: decl }
-        };
+        }
 
         let decl_debug = format!("{pipeline:?}");
-        let pipeline = PipelineBuilder::new(config.format())
-            // TODO(b/349784210): Use a hardened worker factory.
-            .with_worker_factory(AudioWorkerSubprocessFactory::default().with_set_thread_priority())
-            .build(pipeline)
-            .context("failed to build pipeline")?;
+        let pipeline = PipelineBuilder::new(Format {
+            block_size: if matches!(config.wrap_mode, CrasProcessorWrapMode::WrapModePeerChunk) {
+                assert_ne!(config.max_block_size, 0);
+                config.max_block_size // Used for allocation.
+            } else {
+                config.block_size
+            },
+            ..config.format()
+        })
+        // TODO(b/349784210): Use a hardened worker factory.
+        .with_worker_factory(AudioWorkerSubprocessFactory::default().with_set_thread_priority())
+        .build(pipeline)
+        .context("failed to build pipeline")?;
 
         log::info!("CrasProcessor #{id} created with: {config:?}");
         log::info!("CrasProcessor #{id} pipeline: {decl_debug}");

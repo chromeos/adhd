@@ -27,11 +27,18 @@ enum CrasProcessorWrapMode {
    */
   WrapModeDedicatedThread,
   /**
-   * Run the processor pipeline with a ChunkWrapper.
+   * Run the processor pipeline with a ChunkWrapper with the inner block
+   * size set to  [`CrasProcessorConfig::block_size`].
    * In this mode, the caller is allowed to run the pipeline with a block
-   * size that is different from `CrasProcessorConfig::block_size`
+   * size that is different from  [`CrasProcessorConfig::block_size`].
    */
   WrapModeChunk,
+  /**
+   * Like `WrapModeChunk` but the pipeline is run inside a peer processor (sandbox).
+   * [`CrasProcessorConfig::max_block_size`] must be set in this mode.
+   * WAVE dump is not supported in this mode.
+   */
+  WrapModePeerChunk,
 };
 
 struct CrasProcessorCreateResult {
@@ -53,6 +60,11 @@ struct CrasProcessorConfig {
   enum CrasProcessorEffect effect;
   enum CrasProcessorWrapMode wrap_mode;
   bool wav_dump;
+  /**
+   * The max block size when wrap_mode is WrapModePeerChunk.
+   * Used to determine buffer size to allocate for peer IPC.
+   */
+  size_t max_block_size;
 };
 
 /**

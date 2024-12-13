@@ -822,10 +822,11 @@ static int cras_processor_instantiate(struct dsp_module* module,
   struct CrasProcessorConfig cfg = {
       .channels = data->channels,
       .block_size = 256,
-      .wrap_mode = WrapModeChunk,
+      .max_block_size = DSP_BUFFER_SIZE,
+      .wrap_mode = WrapModePeerChunk,
       .frame_rate = sample_rate,
       .effect = data->effect,
-      .wav_dump = cras_feature_enabled(CrOSLateBootCrasProcessorWavDump),
+      .wav_dump = false,  // Not supported for WrapModePeerChunk.
   };
   struct CrasProcessorCreateResult result = cras_processor_create(&cfg, NULL);
 
