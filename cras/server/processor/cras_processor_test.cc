@@ -35,15 +35,55 @@ static const struct plugin_processor_ops noop_processor_ops = {
 
 static struct plugin_processor noop_processor = {.ops = &noop_processor_ops};
 
-TEST(CrasProcessor, Negate) {
+struct CrasProcessorParam {
+  std::string name;
+  CrasProcessorEffect effect;
+  struct plugin_processor* apm;
+  double expected_output_mult;
+};
+
+class CrasProcessor : public testing::TestWithParam<CrasProcessorParam> {};
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    CrasProcessor,
+    testing::Values((CrasProcessorParam{
+                        .name = "negate_noop",
+                        .effect = Negate,
+                        .apm = &noop_processor,
+                        .expected_output_mult = -1,
+                    }),
+                    (CrasProcessorParam{
+                        .name = "negate_nullptr",
+                        .effect = Negate,
+                        .apm = nullptr,
+                        .expected_output_mult = -1,
+                    }),
+                    (CrasProcessorParam{
+                        .name = "noeffects_noop",
+                        .effect = NoEffects,
+                        .apm = &noop_processor,
+                        .expected_output_mult = 1,
+                    }),
+                    (CrasProcessorParam{
+                        .name = "noeffects_nullptr",
+                        .effect = NoEffects,
+                        .apm = nullptr,
+                        .expected_output_mult = 1,
+                    })),
+    [](const testing::TestParamInfo<CrasProcessor::ParamType>& info) {
+      return info.param.name;
+    });
+
+TEST_P(CrasProcessor, Simple) {
   CrasProcessorConfig cfg = {
       .channels = 1,
       .block_size = 480,
       .frame_rate = 48000,
-      .effect = CrasProcessorEffect::Negate,
+      .effect = GetParam().effect,
   };
 
-  auto r = cras_processor_create(&cfg, &noop_processor);
+  auto r = cras_processor_create(&cfg, GetParam().apm);
   plugin_processor* processor = r.plugin_processor;
   ASSERT_EQ(r.effect, cfg.effect);
   ASSERT_THAT(processor, testing::NotNull());
@@ -55,8 +95,7 @@ TEST(CrasProcessor, Negate) {
     for (int i = 0; i < 480; i++) {
       input_buffer[i] = i * 0.001;
 
-      // Running a negate processor. Output should be -input.
-      expected_output[i] = -i * 0.001;
+      expected_output[i] = GetParam().expected_output_mult * i * 0.001;
     }
 
     multi_slice input = {

@@ -26,7 +26,6 @@ use crate::processors::SpeexResampler;
 use crate::AudioProcessor;
 use crate::Format;
 use crate::Pipeline;
-use crate::ProcessorVec;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Processor {
@@ -113,8 +112,7 @@ impl PartialEq for PreloadedProcessor {
 impl Eq for PreloadedProcessor {}
 
 pub struct PipelineBuilder {
-    input_format: Format,
-    pipeline: ProcessorVec,
+    pipeline: Pipeline,
     profile_sender: Option<Sender<ProfileStats>>,
     worker_factory: Rc<dyn WorkerFactory>,
 }
@@ -122,14 +120,13 @@ pub struct PipelineBuilder {
 impl PipelineBuilder {
     pub fn new(input_format: Format) -> Self {
         Self {
-            input_format,
-            pipeline: vec![],
+            pipeline: Pipeline::new(input_format),
             profile_sender: None,
             worker_factory: Rc::new(ThreadedWorkerFactory),
         }
     }
 
-    pub fn build(mut self, config: Processor) -> anyhow::Result<ProcessorVec> {
+    pub fn build(mut self, config: Processor) -> anyhow::Result<Pipeline> {
         self.add(config)?;
         Ok(self.pipeline)
     }
@@ -149,15 +146,12 @@ impl PipelineBuilder {
     }
 
     fn output_format(&self) -> Format {
-        self.pipeline
-            .get_last_output_format()
-            .unwrap_or(self.input_format)
+        self.pipeline.get_output_format()
     }
 
     fn child_builder(&self, input_format: Format) -> Self {
         Self {
-            input_format,
-            pipeline: vec![],
+            pipeline: Pipeline::new(input_format),
             profile_sender: self.profile_sender.clone(),
             worker_factory: self.worker_factory.clone(),
         }
@@ -252,7 +246,7 @@ impl PipelineBuilder {
                 }
             }
             Preloaded(PreloadedProcessor { processor, .. }) => {
-                self.pipeline.push(processor);
+                self.pipeline.vec.push(processor);
             }
             ShuffleChannels { channel_indexes } => {
                 // Optimization: only shuffle channels if it would change the
@@ -543,7 +537,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(
-            pipeline.len(),
+            pipeline.vec.len(),
             1,
             "channel swap, should not be optimized away"
         );
@@ -558,7 +552,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(
-            pipeline.len(),
+            pipeline.vec.len(),
             1,
             "different length, should not be optimized away"
         );
@@ -573,7 +567,7 @@ mod tests {
         })
         .unwrap();
         assert_eq!(
-            pipeline.len(),
+            pipeline.vec.len(),
             1,
             "different length, should not be optimized away"
         );
@@ -587,7 +581,7 @@ mod tests {
             channel_indexes: vec![0, 1],
         })
         .unwrap();
-        assert_eq!(pipeline.len(), 0, "should optimize");
+        assert_eq!(pipeline.vec.len(), 0, "should optimize");
     }
 
     #[test]

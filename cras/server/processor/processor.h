@@ -49,7 +49,7 @@ struct CrasProcessorConfig {
  * # Safety
  *
  * `config` must point to a CrasProcessorConfig struct.
- * `apm_plugin_processor` must point to a plugin_processor.
+ * `apm_plugin_processor` must point to a plugin_processor or NULL.
  */
 struct CrasProcessorCreateResult cras_processor_create(const struct CrasProcessorConfig *config,
                                                        struct plugin_processor *apm_plugin_processor);

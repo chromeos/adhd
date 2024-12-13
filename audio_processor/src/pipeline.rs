@@ -15,33 +15,41 @@ use crate::MultiSlice;
 
 pub type ProcessorVec = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
 
-pub trait Pipeline {
-    fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static);
+pub struct Pipeline {
+    pub input_format: Format,
+    pub vec: ProcessorVec,
+}
 
-    fn get_last_output_format(&self) -> Option<Format>;
+impl Pipeline {
+    pub fn new(input_format: Format) -> Self {
+        Pipeline {
+            input_format,
+            vec: Vec::new(),
+        }
+    }
 
-    fn add_wav_dump(
-        &mut self,
-        filename: &Path,
-        channels: usize,
-        frame_rate: usize,
-    ) -> anyhow::Result<()> {
+    pub fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static) {
+        self.vec.push(Box::new(processor));
+    }
+
+    pub fn add_wav_dump(&mut self, filename: &Path) -> anyhow::Result<()> {
+        let format = self.get_output_format();
         {
             self.add(WavSink::new(
                 WavWriter::create(
                     filename,
                     WavSpec {
-                        channels: channels.try_into().context("channels.try_into()")?,
-                        sample_rate: frame_rate.try_into().context("frame_rate.try_into()")?,
+                        channels: format.channels.try_into().context("channels.try_into()")?,
+                        sample_rate: format
+                            .frame_rate
+                            .try_into()
+                            .context("frame_rate.try_into()")?,
                         bits_per_sample: 32,
                         sample_format: hound::SampleFormat::Float,
                     },
                 )
                 .context("WavWriter::create")?,
-                self.get_last_output_format()
-                    .map(|f| f.block_size)
-                    // Use a fake block size if the pipeline is empty.
-                    .unwrap_or(0),
+                format.block_size,
             ));
             anyhow::Result::<()>::Ok(())
         }
@@ -50,17 +58,7 @@ pub trait Pipeline {
     }
 }
 
-impl Pipeline for ProcessorVec {
-    fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static) {
-        self.push(Box::new(processor));
-    }
-
-    fn get_last_output_format(&self) -> Option<Format> {
-        self.last().map(|p| p.get_output_format())
-    }
-}
-
-impl AudioProcessor for ProcessorVec {
+impl AudioProcessor for Pipeline {
     type I = f32;
     type O = f32;
 
@@ -68,14 +66,17 @@ impl AudioProcessor for ProcessorVec {
         &'a mut self,
         mut input: MultiSlice<'a, Self::I>,
     ) -> crate::Result<MultiSlice<'a, Self::O>> {
-        for processor in self.iter_mut() {
+        for processor in self.vec.iter_mut() {
             input = processor.process(input)?;
         }
         Ok(input)
     }
 
     fn get_output_format(&self) -> Format {
-        self.last().unwrap().get_output_format()
+        match self.vec.last() {
+            Some(last) => last.get_output_format(),
+            None => self.input_format,
+        }
     }
 }
 
@@ -90,7 +91,6 @@ mod tests {
     use crate::Format;
     use crate::MultiBuffer;
     use crate::Pipeline;
-    use crate::ProcessorVec;
 
     #[test]
     fn test_pipeline() -> anyhow::Result<()> {
@@ -99,15 +99,19 @@ mod tests {
         let dump1 = tmpd.path().join("dump-1.wav");
         let dump2 = tmpd.path().join("dump-2.wav");
 
-        let mut p: ProcessorVec = vec![];
+        let mut p = Pipeline::new(Format {
+            channels: 1,
+            block_size: 4,
+            frame_rate: 48000,
+        });
 
-        p.add_wav_dump(&dump1, 1, 48000).unwrap();
+        p.add_wav_dump(&dump1).unwrap();
         p.add(NegateAudioProcessor::new(Format {
             channels: 1,
             block_size: 4,
             frame_rate: 48000,
         }));
-        p.add_wav_dump(&dump2, 1, 48000).unwrap();
+        p.add_wav_dump(&dump2).unwrap();
 
         assert_eq!(
             p.get_output_format(),

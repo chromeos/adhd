@@ -23,14 +23,14 @@ use crate::util::set_thread_priority;
 use crate::AudioProcessor;
 use crate::MultiBuffer;
 use crate::MultiSlice;
-use crate::ProcessorVec;
+use crate::Pipeline;
 
 pub(super) const AUDIO_WORKER_SET_THREAD_PRIORITY: &'static str =
     "AUDIO_WORKER_SET_THREAD_PRIORITY";
 
 pub struct Worker<'a> {
     fd: BorrowedFd<'a>,
-    pipeline: ProcessorVec,
+    pipeline: Pipeline,
     input_buffer: MultiBuffer<f32>,
 }
 
@@ -75,7 +75,7 @@ impl<'a> Worker<'a> {
 
     fn process_one_command<'b, 'c>(
         fd: BorrowedFd<'b>,
-        pipeline: &'c mut ProcessorVec,
+        pipeline: &'c mut Pipeline,
         input_buffer: &'c mut MultiBuffer<f32>,
     ) -> anyhow::Result<Response<'c>> {
         let (request_op, payload_len) =

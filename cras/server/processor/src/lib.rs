@@ -23,7 +23,7 @@ use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
 use audio_processor::Format;
-use audio_processor::ProcessorVec;
+use audio_processor::Pipeline;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_dlc::get_dlc_state_cached;
 use cras_s2::global::cras_s2_get_beamforming_config_path;
@@ -61,7 +61,7 @@ impl CrasProcessorConfig {
 
 pub struct CrasProcessor {
     id: usize,
-    pipeline: ProcessorVec,
+    pipeline: Pipeline,
     config: CrasProcessorConfig,
 }
 
@@ -71,12 +71,9 @@ impl AudioProcessor for CrasProcessor {
 
     fn process<'a>(
         &'a mut self,
-        mut input: audio_processor::MultiSlice<'a, Self::I>,
+        input: audio_processor::MultiSlice<'a, Self::I>,
     ) -> audio_processor::Result<audio_processor::MultiSlice<'a, Self::O>> {
-        for processor in self.pipeline.iter_mut() {
-            input = processor.process(input)?
-        }
-        Ok(input)
+        self.pipeline.process(input)
     }
 
     fn get_output_format(&self) -> audio_processor::Format {
@@ -137,7 +134,7 @@ fn get_beamforming_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Resul
 impl CrasProcessor {
     fn new(
         mut config: CrasProcessorConfig,
-        apm_processor: PluginProcessor,
+        apm_processor: Option<PluginProcessor>,
     ) -> anyhow::Result<Self> {
         let override_config = processor_override::read_system_config().input;
         if override_config.enabled {
@@ -166,19 +163,21 @@ impl CrasProcessor {
             });
         }
 
-        decl.push(Processor::Preloaded(PreloadedProcessor {
-            description: "apm",
-            processor: Box::new(apm_processor),
-        }));
-        decl.push(Processor::Preloaded(PreloadedProcessor {
-            description: "CheckShape",
-            processor: Box::new(CheckShape::new(config.format())),
-        }));
+        if let Some(apm_processor) = apm_processor {
+            decl.push(Processor::Preloaded(PreloadedProcessor {
+                description: "apm",
+                processor: Box::new(apm_processor),
+            }));
+            decl.push(Processor::Preloaded(PreloadedProcessor {
+                description: "CheckShape",
+                processor: Box::new(CheckShape::new(config.format())),
+            }));
 
-        if config.wav_dump {
-            decl.push(Processor::WavSink {
-                path: dump_base.join("post_apm.wav"),
-            });
+            if config.wav_dump {
+                decl.push(Processor::WavSink {
+                    path: dump_base.join("post_apm.wav"),
+                });
+            }
         }
 
         match config.effect {
@@ -292,6 +291,20 @@ impl CrasProcessorCreateResult {
     }
 }
 
+unsafe fn create_apm_processor(
+    config: &CrasProcessorConfig,
+    apm_plugin_processor: *mut plugin_processor,
+) -> anyhow::Result<Option<PluginProcessor>> {
+    let apm_processor = match NonNull::new(apm_plugin_processor) {
+        Some(apm_plugin_processor) => Some(
+            PluginProcessor::from_handle(apm_plugin_processor.as_ptr(), config.format())
+                .context("failed PluginProcessor::from_handle")?,
+        ),
+        None => None,
+    };
+    Ok(apm_processor)
+}
+
 /// Create a CRAS processor.
 ///
 /// Returns the created processor (might be NULL), and the applied effect.
@@ -299,11 +312,11 @@ impl CrasProcessorCreateResult {
 /// # Safety
 ///
 /// `config` must point to a CrasProcessorConfig struct.
-/// `apm_plugin_processor` must point to a plugin_processor.
+/// `apm_plugin_processor` must point to a plugin_processor or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn cras_processor_create(
     config: *const CrasProcessorConfig,
-    apm_plugin_processor: NonNull<plugin_processor>,
+    apm_plugin_processor: *mut plugin_processor,
 ) -> CrasProcessorCreateResult {
     let config = match config.as_ref() {
         Some(config) => config,
@@ -312,14 +325,13 @@ pub unsafe extern "C" fn cras_processor_create(
         }
     };
 
-    let apm_processor =
-        match PluginProcessor::from_handle(apm_plugin_processor.as_ptr(), config.format()) {
-            Ok(processor) => processor,
-            Err(err) => {
-                log::error!("failed PluginProcessor::from_handle {:#}", err);
-                return CrasProcessorCreateResult::none();
-            }
-        };
+    let apm_processor = match create_apm_processor(config, apm_plugin_processor) {
+        Ok(apm_processor) => apm_processor,
+        Err(err) => {
+            log::error!("{err:#}");
+            return CrasProcessorCreateResult::none();
+        }
+    };
 
     let processor = match CrasProcessor::new(config.clone(), apm_processor) {
         Ok(processor) => processor,
@@ -340,9 +352,7 @@ pub unsafe extern "C" fn cras_processor_create(
                     wav_dump: config.wav_dump,
                 },
                 // apm_processor was consumed so create it again.
-                // It should not fail given that we created it successfully once.
-                PluginProcessor::from_handle(apm_plugin_processor.as_ptr(), config.format())
-                    .expect("PluginProcessor::from_handle failed"),
+                create_apm_processor(&config, apm_plugin_processor).expect("create_apm_processor should not fail given that we created it successfully once"),
             )
             .expect("CrasProcessor::new with CrasProcessorEffect::NoEffects should never fail")
         }
