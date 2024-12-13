@@ -8,6 +8,9 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/common/check.h"
+#include "cras/server/platform/features/features.h"
+#include "cras/server/processor/processor.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/drc.h"
 #include "cras/src/dsp/eq2.h"
@@ -796,6 +799,110 @@ static void drc_init_module(struct dsp_module* module) {
 }
 
 /*
+ *  audio_processor module functions
+ */
+
+struct cras_processor_data {
+  // Parameters set in init.
+  int channels;
+  enum CrasProcessorEffect effect;
+
+  // input channels, then output channels.
+  float* ports[2 * MULTI_SLICE_MAX_CH];
+
+  // The created processor. Set in instantiate().
+  struct plugin_processor* processor;
+};
+
+static int cras_processor_instantiate(struct dsp_module* module,
+                                      unsigned long sample_rate,
+                                      struct cras_expr_env* env) {
+  struct cras_processor_data* data = module->data;
+
+  struct CrasProcessorConfig cfg = {
+      .channels = data->channels,
+      .block_size = 256,
+      .wrap_mode = WrapModeChunk,
+      .frame_rate = sample_rate,
+      .effect = data->effect,
+      .wav_dump = cras_feature_enabled(CrOSLateBootCrasProcessorWavDump),
+  };
+  struct CrasProcessorCreateResult result = cras_processor_create(&cfg, NULL);
+
+  data->processor = result.plugin_processor;
+  return 0;
+}
+
+static void cras_processor_connect_port(struct dsp_module* module,
+                                        unsigned long port,
+                                        float* data_location) {
+  struct cras_processor_data* data = module->data;
+  data->ports[port] = data_location;
+}
+
+static void cras_processor_run(struct dsp_module* module,
+                               unsigned long sample_count) {
+  struct cras_processor_data* data = module->data;
+
+  struct multi_slice input = {
+      .channels = data->channels,
+      .num_frames = sample_count,
+  };
+  for (int i = 0; i < data->channels; i++) {
+    input.data[i] = data->ports[i];
+  }
+
+  struct multi_slice output = {};
+  enum status status =
+      data->processor->ops->run(data->processor, &input, &output);
+  if (status != StatusOk) {
+    syslog(LOG_ERR, "data->processor->ops->run failed with %d", status);
+    output = input;  // Use input as output.
+  }
+
+  for (int i = 0; i < data->channels; i++) {
+    memmove(data->ports[data->channels + i], output.data[i],
+            sample_count * sizeof(float));
+  }
+}
+
+static void cras_processor_deinstantiate(struct dsp_module* module) {
+  struct cras_processor_data* data = module->data;
+
+  data->processor->ops->destroy(data->processor);
+}
+
+static void cras_processor_free_module(struct dsp_module* module) {
+  free(module->data);
+  free(module);
+}
+
+static void cras_processor_init_module(struct dsp_module* module,
+                                       int channels,
+                                       enum CrasProcessorEffect effect) {
+  struct cras_processor_data* data =
+      calloc(1, sizeof(struct cras_processor_data));
+  CRAS_CHECK(data);
+  *data = (struct cras_processor_data){
+      .channels = channels,
+      .effect = effect,
+  };
+
+  *module = (struct dsp_module){
+      .data = data,
+      .instantiate = cras_processor_instantiate,
+      .connect_port = cras_processor_connect_port,
+      .configure = empty_configure,
+      .get_delay = empty_get_delay,
+      .run = cras_processor_run,
+      .deinstantiate = cras_processor_deinstantiate,
+      .free_module = cras_processor_free_module,
+      .get_properties = empty_get_properties,
+      .dump = empty_dump,
+  };
+}
+
+/*
  * sink module functions
  */
 struct sink_data {
@@ -913,6 +1020,8 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
     swap_lr_init_module(module);
   } else if (strcmp(plugin->label, "quad_rotation") == 0) {
     quad_rotation_init_module(module);
+  } else if (strcmp(plugin->label, "gen_echo2") == 0) {
+    cras_processor_init_module(module, 2, GenerateEcho);
   } else if (strcmp(plugin->label, "sink") == 0) {
     sink_init_module(module);
   } else {

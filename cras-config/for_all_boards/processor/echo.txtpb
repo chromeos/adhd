@@ -1,0 +1,17 @@
+# To use this processor in the output path:
+# 1. Configure dsp.ini with something like (see also dsp.ini.sample-cras_processor):
+# [echo]
+# library=builtin
+# label=gen_echo2
+# input_0={src:0}
+# input_1={src:1}
+# output_2={dst:0}
+# output_3={dst:1}
+# 2. `stop cras` and run cras with `cras-dev.sh`
+plugin {
+  # This plugin is available at /usr/local/lib[64] on test images.
+  # To build your own plugin, follow:
+  # https://chromium.googlesource.com/chromiumos/third_party/adhd/+/HEAD/audio_processor/#running-a-plugin-offline-on-a-chromiumos-device
+  path: "libtest_plugins.so"
+  constructor: "echo_processor_create"
+}

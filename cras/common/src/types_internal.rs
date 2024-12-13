@@ -18,6 +18,7 @@ pub enum CrasProcessorEffect {
     NoiseCancellation,
     StyleTransfer,
     Beamforming,
+    GenerateEcho,
     Overridden,
 }
 
@@ -29,6 +30,7 @@ impl CrasProcessorEffect {
             CrasProcessorEffect::NoiseCancellation => c"NoiseCancellation",
             CrasProcessorEffect::StyleTransfer => c"StyleTransfer",
             CrasProcessorEffect::Beamforming => c"Beamforming",
+            CrasProcessorEffect::GenerateEcho => c"GenerateEcho",
             CrasProcessorEffect::Overridden => c"Overridden",
         }
     }
@@ -50,6 +52,7 @@ impl CrasProcessorEffect {
                 CRAS_STREAM_ACTIVE_AP_EFFECT::NOISE_CANCELLATION
                     | CRAS_STREAM_ACTIVE_AP_EFFECT::BEAMFORMING
             }
+            CrasProcessorEffect::GenerateEcho => CRAS_STREAM_ACTIVE_AP_EFFECT::GENERATE_ECHO,
             CrasProcessorEffect::Overridden => CRAS_STREAM_ACTIVE_AP_EFFECT::PROCESSOR_OVERRIDDEN,
         }
     }
@@ -80,7 +83,8 @@ bitflags! {
         const NOISE_CANCELLATION = 1 << 4;
         const STYLE_TRANSFER = 1 << 5;
         const BEAMFORMING = 1 << 6;
-        const PROCESSOR_OVERRIDDEN = 1 << 7;
+        const GENERATE_ECHO = 1 << 7;
+        const PROCESSOR_OVERRIDDEN = 1 << 8;
     }
 }
 

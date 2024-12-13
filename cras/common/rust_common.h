@@ -41,6 +41,7 @@ enum CrasProcessorEffect {
   NoiseCancellation,
   StyleTransfer,
   Beamforming,
+  GenerateEcho,
   Overridden,
 };
 
@@ -57,7 +58,8 @@ typedef uint64_t CRAS_STREAM_ACTIVE_AP_EFFECT;
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION (uint64_t)(1 << 4)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_STYLE_TRANSFER (uint64_t)(1 << 5)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_BEAMFORMING (uint64_t)(1 << 6)
-#define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 7)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_GENERATE_ECHO (uint64_t)(1 << 7)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 8)
 
 typedef uint32_t EFFECT_TYPE;
 #define EFFECT_TYPE_NONE (uint32_t)0

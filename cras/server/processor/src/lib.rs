@@ -142,6 +142,14 @@ fn get_beamforming_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Resul
     )
 }
 
+fn get_echo_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
+    cdcfg::parse(
+        context,
+        &cras_s2_get_cras_processor_vars(),
+        Path::new("/etc/cras/processor/echo.txtpb"),
+    )
+}
+
 impl CrasProcessor {
     fn new(
         mut config: CrasProcessorConfig,
@@ -220,6 +228,12 @@ impl CrasProcessor {
                 decl.push(
                     get_beamforming_pipeline_decl(&resolver_context)
                         .context("failed when creating beamforming pipeline")?,
+                );
+            }
+            CrasProcessorEffect::GenerateEcho => {
+                decl.push(
+                    get_echo_pipeline_decl(&resolver_context)
+                        .context("failed when creating echo pipeline")?,
                 );
             }
             CrasProcessorEffect::Overridden => {
