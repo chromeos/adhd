@@ -258,7 +258,7 @@ impl CrasProcessor {
             .context("failed to build pipeline")?;
 
         log::info!("CrasProcessor #{id} created with: {config:?}");
-        log::info!("CrasProcessor #{id} pipeline: {decl_debug:?}");
+        log::info!("CrasProcessor #{id} pipeline: {decl_debug}");
 
         Ok(CrasProcessor {
             id,
