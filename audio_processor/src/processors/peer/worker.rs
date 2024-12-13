@@ -12,16 +12,18 @@ use anyhow::bail;
 use anyhow::Context;
 use zerocopy::AsBytes;
 
+use super::messages::multi_slice_from_buf;
+use super::messages::new_payload_buffer;
 use super::messages::send;
 use super::messages::send_str;
 use super::messages::ResponseOp;
 use crate::processors::peer::messages::recv;
 use crate::processors::peer::messages::Init;
 use crate::processors::peer::messages::RequestOp;
-use crate::processors::peer::messages::INIT_MAX_SIZE;
+use crate::processors::peer::messages::CONTROL_MSG_MAX_SIZE;
 use crate::util::set_thread_priority;
 use crate::AudioProcessor;
-use crate::MultiBuffer;
+use crate::Format;
 use crate::MultiSlice;
 use crate::Pipeline;
 
@@ -31,7 +33,10 @@ pub(super) const AUDIO_WORKER_SET_THREAD_PRIORITY: &'static str =
 pub struct Worker<'a> {
     fd: BorrowedFd<'a>,
     pipeline: Pipeline,
-    input_buffer: MultiBuffer<f32>,
+    /// The format of the input buffer.
+    /// the sender is allowed to send fewer frames than the configured block size.
+    input_format: Format,
+    input_buffer: Vec<f32>,
 }
 
 enum Response<'a> {
@@ -45,7 +50,7 @@ impl<'a> Worker<'a> {
             set_thread_priority().context("set_thread_priority")?;
         }
 
-        let mut buf = vec![0u8; INIT_MAX_SIZE];
+        let mut buf = vec![0u8; CONTROL_MSG_MAX_SIZE];
         let (request_op, payload_len) = recv::<RequestOp>(fd.as_fd(), &mut buf).context("init")?;
         if request_op != RequestOp::Init {
             bail!("unexpected request op {request_op:?} during init");
@@ -69,14 +74,16 @@ impl<'a> Worker<'a> {
         Ok(Self {
             fd,
             pipeline,
-            input_buffer: MultiBuffer::new(config.input_format.into()),
+            input_format: config.input_format,
+            input_buffer: new_payload_buffer(config.input_format),
         })
     }
 
     fn process_one_command<'b, 'c>(
         fd: BorrowedFd<'b>,
         pipeline: &'c mut Pipeline,
-        input_buffer: &'c mut MultiBuffer<f32>,
+        input_buffer: &'c mut Vec<f32>,
+        input_format: &'c Format,
     ) -> anyhow::Result<Response<'c>> {
         let (request_op, payload_len) =
             recv::<RequestOp>(fd.as_fd(), input_buffer.as_bytes_mut()).context("recv")?;
@@ -84,12 +91,8 @@ impl<'a> Worker<'a> {
         match request_op {
             RequestOp::Init => bail!("unexpected request op {request_op:?} after init"),
             RequestOp::Process => {
-                if payload_len != input_buffer.as_bytes().len() {
-                    bail!("unexpected audio payload len {payload_len}");
-                }
-                let output = pipeline
-                    .process(input_buffer.as_multi_slice())
-                    .context("pipeline.process")?;
+                let input = multi_slice_from_buf(input_buffer, payload_len, input_format.channels)?;
+                let output = pipeline.process(input).context("pipeline.process")?;
 
                 Ok(Response::AudioOutput(output))
             }
@@ -102,6 +105,7 @@ impl<'a> Worker<'a> {
             self.fd.as_fd(),
             &mut self.pipeline,
             &mut self.input_buffer,
+            &self.input_format,
         ) {
             Ok(response) => match response {
                 Response::AudioOutput(multi_slice) => {

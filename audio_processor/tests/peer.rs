@@ -51,4 +51,8 @@ fn test_peer() {
         output.into_raw(),
         [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]
     );
+
+    let mut input = MultiBuffer::from(vec![vec![11., 12., 13.], vec![15., 16., 17.]]);
+    let output = processor.process(input.as_multi_slice()).unwrap();
+    assert_eq!(output.into_raw(), [[-11., -12., -13.], [-15., -16., -17.]]);
 }

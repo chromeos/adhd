@@ -28,6 +28,7 @@ use serde::Serialize;
 
 use crate::config;
 use crate::Format;
+use crate::MultiSlice;
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -37,7 +38,8 @@ pub(super) enum RequestOp {
     Stop,
 }
 
-pub(super) const INIT_MAX_SIZE: usize = 4096;
+// The maximum size of control (non-audio data) messages.
+pub(super) const CONTROL_MSG_MAX_SIZE: usize = 4096;
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct Init {
@@ -131,6 +133,30 @@ pub(super) fn recv_slice<'a, T: Op>(
 ) -> anyhow::Result<(T, &'a mut [u8])> {
     let (op, len) = recv(fd, buf)?;
     Ok((op, &mut buf[..len]))
+}
+
+pub(super) fn new_payload_buffer(format: Format) -> Vec<f32> {
+    vec![
+        0f32;
+        Ord::max(
+            CONTROL_MSG_MAX_SIZE / 4,            // For control messages.
+            format.block_size * format.channels, // For audio data.
+        )
+    ]
+}
+
+pub(super) fn multi_slice_from_buf(
+    buf: &mut [f32],
+    payload_len: usize,
+    channels: usize,
+) -> anyhow::Result<MultiSlice<'_, f32>> {
+    if payload_len % (channels * std::mem::size_of::<f32>()) != 0 {
+        bail!("audio payload len {payload_len} not a multiple of channels ({channels}) * sample size (4)");
+    }
+    let frames = payload_len / channels / std::mem::size_of::<f32>();
+    Ok(MultiSlice::from_slices(
+        buf[..payload_len / 4].chunks_mut(frames),
+    ))
 }
 
 pub fn create_socketpair() -> nix::Result<(OwnedFd, OwnedFd)> {

@@ -15,6 +15,8 @@ use anyhow::bail;
 use anyhow::Context;
 use zerocopy::AsBytes;
 
+use super::messages::multi_slice_from_buf;
+use super::messages::new_payload_buffer;
 use super::messages::recv;
 use super::messages::recv_slice;
 use super::messages::send;
@@ -22,17 +24,16 @@ use super::messages::send_str;
 use super::messages::Init;
 use super::messages::RequestOp;
 use super::messages::ResponseOp;
-use super::messages::INIT_MAX_SIZE;
+use super::messages::CONTROL_MSG_MAX_SIZE;
 use crate::config;
 use crate::AudioProcessor;
 use crate::Format;
-use crate::MultiBuffer;
 use crate::MultiSlice;
 
 pub struct BlockingSeqPacketProcessor {
     fd: OwnedFd,
     output_format: Format,
-    output_buffer: MultiBuffer<f32>,
+    output_buffer: Vec<f32>,
 }
 
 impl BlockingSeqPacketProcessor {
@@ -51,7 +52,7 @@ impl BlockingSeqPacketProcessor {
             .context("serialize init message")?,
         )
         .context("send init message")?;
-        let mut buf = [0u8; INIT_MAX_SIZE];
+        let mut buf = [0u8; CONTROL_MSG_MAX_SIZE];
         let (response_op, payload) =
             recv_slice::<ResponseOp>(fd.as_fd(), &mut buf).context("recv init message reply")?;
         match response_op {
@@ -61,7 +62,7 @@ impl BlockingSeqPacketProcessor {
                 Ok(Self {
                     fd,
                     output_format,
-                    output_buffer: MultiBuffer::new(output_format.into()),
+                    output_buffer: new_payload_buffer(output_format),
                 })
             }
             ResponseOp::Error => bail!("error from peer: {}", String::from_utf8_lossy(payload)),
@@ -87,16 +88,11 @@ impl AudioProcessor for BlockingSeqPacketProcessor {
         let (response_op, payload_len) = recv::<ResponseOp>(self.fd.as_fd(), buf)?;
 
         match response_op {
-            ResponseOp::Ok => {
-                if payload_len != self.output_buffer.as_bytes().len() {
-                    return Err(anyhow!(
-                        "unexpected response payload length {payload_len} from peer"
-                    )
-                    .into());
-                }
-
-                Ok(self.output_buffer.as_multi_slice())
-            }
+            ResponseOp::Ok => Ok(multi_slice_from_buf(
+                &mut self.output_buffer,
+                payload_len,
+                self.output_format.channels,
+            )?),
             ResponseOp::Error => Err(anyhow!(
                 "error from peer: {}",
                 String::from_utf8_lossy(&self.output_buffer.as_bytes()[..payload_len])
@@ -120,17 +116,21 @@ impl Drop for BlockingSeqPacketProcessor {
 
 #[cfg(test)]
 mod tests {
+    use std::io::IoSlice;
     use std::os::fd::AsFd;
+
+    use zerocopy::AsBytes;
 
     use super::BlockingSeqPacketProcessor;
     use crate::config;
     use crate::processors::peer::messages::create_socketpair;
     use crate::processors::peer::messages::recv;
     use crate::processors::peer::messages::recv_slice;
+    use crate::processors::peer::messages::send;
     use crate::processors::peer::messages::send_str;
     use crate::processors::peer::messages::RequestOp;
     use crate::processors::peer::messages::ResponseOp;
-    use crate::processors::peer::messages::INIT_MAX_SIZE;
+    use crate::processors::peer::messages::CONTROL_MSG_MAX_SIZE;
     use crate::processors::peer::worker;
     use crate::AudioProcessor;
     use crate::Format;
@@ -146,7 +146,7 @@ mod tests {
         };
         std::thread::scope(|s| {
             s.spawn(|| {
-                let mut buf = [0u8; INIT_MAX_SIZE];
+                let mut buf = [0u8; CONTROL_MSG_MAX_SIZE];
                 let (op, _) = recv_slice::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
                 assert_eq!(op, RequestOp::Init);
 
@@ -178,7 +178,7 @@ mod tests {
         let (host_fd, worker_fd) = create_socketpair().unwrap();
         std::thread::scope(|s| {
             s.spawn(|| {
-                let mut buf = [0u8; INIT_MAX_SIZE];
+                let mut buf = [0u8; CONTROL_MSG_MAX_SIZE];
                 let (op, _) = recv_slice::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
                 assert_eq!(op, RequestOp::Init);
 
@@ -217,7 +217,7 @@ mod tests {
         };
         std::thread::scope(|s| {
             s.spawn(|| {
-                let mut buf = [0u8; INIT_MAX_SIZE];
+                let mut buf = [0u8; CONTROL_MSG_MAX_SIZE];
                 let (op, _) = recv_slice::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
                 assert_eq!(op, RequestOp::Init);
 
@@ -260,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn process_incorrect_payload_length() {
+    fn process_variable_output_block_size() {
         let (host_fd, worker_fd) = create_socketpair().unwrap();
         let output_format = Format {
             block_size: 4096,
@@ -269,7 +269,7 @@ mod tests {
         };
         std::thread::scope(|s| {
             s.spawn(|| {
-                let mut buf = [0u8; INIT_MAX_SIZE];
+                let mut buf = [0u8; CONTROL_MSG_MAX_SIZE];
                 let (op, _) = recv_slice::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
                 assert_eq!(op, RequestOp::Init);
 
@@ -281,7 +281,61 @@ mod tests {
                 .unwrap();
 
                 recv::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
-                send_str(worker_fd.as_fd(), ResponseOp::Ok, "123").unwrap();
+                send(
+                    worker_fd.as_fd(),
+                    ResponseOp::Ok,
+                    std::iter::once(IoSlice::new([1f32, 2.].as_bytes())),
+                )
+                .unwrap();
+            });
+            s.spawn(|| {
+                let mut processor = BlockingSeqPacketProcessor::new(
+                    host_fd,
+                    Format {
+                        block_size: 1,
+                        channels: 1,
+                        frame_rate: 1,
+                    },
+                    config::Processor::Negate,
+                )
+                .unwrap();
+
+                let mut input = MultiBuffer::from(vec![vec![1f32]]);
+                let output = processor.process(input.as_multi_slice()).unwrap();
+
+                assert_eq!(output.into_raw(), [[1f32], [2.]]);
+            });
+        });
+    }
+
+    #[test]
+    fn process_output_block_size_too_large() {
+        let (host_fd, worker_fd) = create_socketpair().unwrap();
+        let output_format = Format {
+            block_size: 1,
+            channels: 1,
+            frame_rate: 12345,
+        };
+        std::thread::scope(|s| {
+            s.spawn(|| {
+                let mut buf = [0u8; CONTROL_MSG_MAX_SIZE];
+                let (op, _) = recv_slice::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
+                assert_eq!(op, RequestOp::Init);
+
+                send_str(
+                    worker_fd.as_fd(),
+                    ResponseOp::Ok,
+                    &serde_json::to_string(&output_format).unwrap(),
+                )
+                .unwrap();
+
+                recv::<RequestOp>(worker_fd.as_fd(), &mut buf).unwrap();
+                send(
+                    worker_fd.as_fd(),
+                    ResponseOp::Ok,
+                    std::iter::once(IoSlice::new(&vec![0; 100000])),
+                )
+                .unwrap();
             });
             s.spawn(|| {
                 let mut processor = BlockingSeqPacketProcessor::new(
@@ -298,9 +352,8 @@ mod tests {
                 let mut input = MultiBuffer::from(vec![vec![1f32]]);
                 let err = processor.process(input.as_multi_slice()).unwrap_err();
                 assert!(
-                    err.to_string()
-                        .contains("unexpected response payload length 3 from peer"),
-                    "{err}"
+                    format!("{err:#}").contains("unrecoverable error: message too long"),
+                    "{err:#}"
                 );
             });
         });

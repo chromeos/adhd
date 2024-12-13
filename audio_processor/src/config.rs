@@ -21,7 +21,7 @@ use crate::processors::profile::Profile;
 use crate::processors::profile::ProfileStats;
 use crate::processors::ChunkWrapper;
 use crate::processors::DynamicPluginProcessor;
-use crate::processors::NegateAudioProcessor;
+use crate::processors::InPlaceNegateAudioProcessor;
 use crate::processors::SpeexResampler;
 use crate::AudioProcessor;
 use crate::Format;
@@ -166,7 +166,7 @@ impl PipelineBuilder {
         match config {
             Negate => {
                 self.pipeline
-                    .add(NegateAudioProcessor::new(self.output_format()));
+                    .add(InPlaceNegateAudioProcessor::new(self.output_format()));
             }
             WavSink { path } => {
                 let output_format = self.output_format();

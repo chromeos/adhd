@@ -170,4 +170,53 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn process_negate_variable_block_size() {
+        let mut processor = ManagedBlockingSeqPacketProcessor::new(
+            &ThreadedWorkerFactory,
+            Format {
+                channels: 2,
+                block_size: 10, // Note this is larger than the actual input we pass.
+                frame_rate: 48000,
+            },
+            config::Processor::Negate,
+        )
+        .unwrap();
+        let mut input = MultiBuffer::from(vec![vec![1f32, 2., 3., 4.], vec![5., 6., 7., 8.]]);
+        let output = processor.process(input.as_multi_slice()).unwrap();
+        assert_eq!(
+            output.into_raw(),
+            [[-1f32, -2., -3., -4.], [-5., -6., -7., -8.]]
+        );
+        assert_eq!(
+            processor.get_output_format(),
+            Format {
+                channels: 2,
+                block_size: 10,
+                frame_rate: 48000,
+            }
+        );
+    }
+
+    #[test]
+    fn process_negate_input_too_large() {
+        let mut processor = ManagedBlockingSeqPacketProcessor::new(
+            &ThreadedWorkerFactory,
+            Format {
+                channels: 2,
+                block_size: 1, // Note this is smaller than the actual input we pass.
+                frame_rate: 48000,
+            },
+            config::Processor::Negate,
+        )
+        .unwrap();
+        let mut input = MultiBuffer::from(vec![vec![0.; 10000], vec![0.; 10000]]);
+        let err = processor.process(input.as_multi_slice()).unwrap_err();
+        assert_eq!(
+            format!("{err:#}"),
+            "unrecoverable error: error from peer: recv: message too long",
+            "{err:#}"
+        );
+    }
 }
