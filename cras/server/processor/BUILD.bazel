@@ -61,7 +61,6 @@ cc_test(
     deps = [
         ":cc",
         "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
     ],
 )
 

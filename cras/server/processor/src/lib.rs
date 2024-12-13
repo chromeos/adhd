@@ -33,6 +33,18 @@ mod processor_override;
 mod proto;
 
 #[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub enum CrasProcessorWrapMode {
+    WrapModeNone,
+    /// Run the processor pipeline in a separate, dedicated thread.
+    WrapModeDedicatedThread,
+    /// Run the processor pipeline with a ChunkWrapper.
+    /// In this mode, the caller is allowed to run the pipeline with a block
+    /// size that is different from `CrasProcessorConfig::block_size`
+    WrapModeChunk,
+}
+
+#[repr(C)]
 #[derive(Clone, Debug)]
 pub struct CrasProcessorConfig {
     // The number of channels after apm_processor.
@@ -42,8 +54,7 @@ pub struct CrasProcessorConfig {
 
     effect: CrasProcessorEffect,
 
-    // Run the processor pipeline in a separate, dedicated thread.
-    dedicated_thread: bool,
+    wrap_mode: CrasProcessorWrapMode,
 
     // Enable processing dumps as WAVE files.
     wav_dump: bool,
@@ -226,6 +237,7 @@ impl CrasProcessor {
                     block_size => Processor::WrapChunk {
                         inner_block_size: block_size as usize,
                         inner: Box::new(plugin),
+                        disallow_hoisting: false,
                     },
                 });
             }
@@ -249,11 +261,21 @@ impl CrasProcessor {
             });
         }
 
-        let decl_debug = format!("{decl:?}");
+        let pipeline = if matches!(config.wrap_mode, CrasProcessorWrapMode::WrapModeChunk) {
+            Processor::WrapChunk {
+                inner: Box::new(Processor::Pipeline { processors: decl }),
+                inner_block_size: config.block_size,
+                disallow_hoisting: true,
+            }
+        } else {
+            Processor::Pipeline { processors: decl }
+        };
+
+        let decl_debug = format!("{pipeline:?}");
         let pipeline = PipelineBuilder::new(config.format())
             // TODO(b/349784210): Use a hardened worker factory.
             .with_worker_factory(AudioWorkerSubprocessFactory::default().with_set_thread_priority())
-            .build(Processor::Pipeline { processors: decl })
+            .build(pipeline)
             .context("failed to build pipeline")?;
 
         log::info!("CrasProcessor #{id} created with: {config:?}");
@@ -345,11 +367,7 @@ pub unsafe extern "C" fn cras_processor_create(
             CrasProcessor::new(
                 CrasProcessorConfig {
                     effect: CrasProcessorEffect::NoEffects,
-                    channels: config.channels,
-                    block_size: config.block_size,
-                    frame_rate: config.frame_rate,
-                    dedicated_thread: config.dedicated_thread,
-                    wav_dump: config.wav_dump,
+                    ..config
                 },
                 // apm_processor was consumed so create it again.
                 create_apm_processor(&config, apm_plugin_processor).expect("create_apm_processor should not fail given that we created it successfully once"),
@@ -359,7 +377,10 @@ pub unsafe extern "C" fn cras_processor_create(
     };
 
     let effect = processor.config.effect;
-    let plugin_processor = if config.dedicated_thread {
+    let plugin_processor = if matches!(
+        config.wrap_mode,
+        CrasProcessorWrapMode::WrapModeDedicatedThread
+    ) {
         let threaded_processor = ThreadedProcessor::new(processor, 1);
         export_plugin(threaded_processor)
     } else {

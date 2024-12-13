@@ -20,6 +20,20 @@ extern "C" {
 #include "audio_processor/c/plugin_processor.h"
 #include "cras/common/rust_common.h"
 
+enum CrasProcessorWrapMode {
+  WrapModeNone,
+  /**
+   * Run the processor pipeline in a separate, dedicated thread.
+   */
+  WrapModeDedicatedThread,
+  /**
+   * Run the processor pipeline with a ChunkWrapper.
+   * In this mode, the caller is allowed to run the pipeline with a block
+   * size that is different from `CrasProcessorConfig::block_size`
+   */
+  WrapModeChunk,
+};
+
 struct CrasProcessorCreateResult {
   /**
    * The created processor.
@@ -37,7 +51,7 @@ struct CrasProcessorConfig {
   size_t block_size;
   size_t frame_rate;
   enum CrasProcessorEffect effect;
-  bool dedicated_thread;
+  enum CrasProcessorWrapMode wrap_mode;
   bool wav_dump;
 };
 

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <span>
 #include <vector>
 
 #include "audio_processor/c/plugin_processor.h"
@@ -81,6 +82,7 @@ TEST_P(CrasProcessor, Simple) {
       .block_size = 480,
       .frame_rate = 48000,
       .effect = GetParam().effect,
+      // wrap_mode is implicitly WrapModeNone.
   };
 
   auto r = cras_processor_create(&cfg, GetParam().apm);
@@ -116,4 +118,63 @@ TEST_P(CrasProcessor, Simple) {
   }
 
   processor->ops->destroy(processor);
+}
+
+TEST_P(CrasProcessor, Negate) {
+  CrasProcessorConfig cfg = {
+      .channels = 2,
+      .block_size = 2,
+      .frame_rate = 48000,
+      .effect = GetParam().effect,
+      .wrap_mode = WrapModeChunk,
+  };
+  const float m = GetParam().expected_output_mult;
+  auto r = cras_processor_create(&cfg, GetParam().apm);
+  plugin_processor* processor = r.plugin_processor;
+  ASSERT_EQ(r.effect, cfg.effect);
+  ASSERT_THAT(processor, testing::NotNull());
+
+  {
+    std::vector<float> ch0 = {1, 2, 3};
+    std::vector<float> ch1 = {4, 5, 6};
+    multi_slice input = {
+        .channels = 2,
+        .num_frames = ch0.size(),
+        .data = {ch0.data(), ch1.data()},
+    };
+    multi_slice output = {};
+    ASSERT_EQ(processor->ops->run(processor, &input, &output), StatusOk);
+    ASSERT_EQ(output.channels, 2);
+    ASSERT_EQ(output.num_frames, 3);
+    EXPECT_THAT(std::span(output.data[0], output.num_frames),
+                testing::ElementsAre(m * 0, m * 0, m * 1));
+    EXPECT_THAT(std::span(output.data[1], output.num_frames),
+                testing::ElementsAre(m * 0, m * 0, m * 4));
+  }
+
+  {
+    std::vector<float> ch0 = {7, 8, 9, 10};
+    std::vector<float> ch1 = {11, 12, 13, 14};
+    multi_slice input = {
+        .channels = 2,
+        .num_frames = ch0.size(),
+        .data = {ch0.data(), ch1.data()},
+    };
+    multi_slice output = {};
+    ASSERT_EQ(processor->ops->run(processor, &input, &output), StatusOk);
+    ASSERT_EQ(output.channels, 2);
+    ASSERT_EQ(output.num_frames, 4);
+    EXPECT_THAT(std::span(output.data[0], output.num_frames),
+                testing::ElementsAre(m * 2, m * 3, m * 7, m * 8));
+    EXPECT_THAT(std::span(output.data[1], output.num_frames),
+                testing::ElementsAre(m * 5, m * 6, m * 11, m * 12));
+  }
+
+  processor->ops->destroy(processor);
+}
+
+int main(int argc, char** argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  cras_rust_init_logging();
+  return RUN_ALL_TESTS();
 }

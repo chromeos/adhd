@@ -782,10 +782,11 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       .block_size = frame_length,
       .frame_rate = apm->fmt.frame_rate,
       .effect = cp_effect,
-      .dedicated_thread =
-          cp_effect == NoEffects
-              ? false
-              : cras_feature_enabled(CrOSLateBootCrasProcessorDedicatedThread),
+      .wrap_mode =
+          cp_effect != NoEffects &&
+                  cras_feature_enabled(CrOSLateBootCrasProcessorDedicatedThread)
+              ? WrapModeDedicatedThread
+              : WrapModeNone,
       .wav_dump = cras_feature_enabled(CrOSLateBootCrasProcessorWavDump),
   };
   struct CrasProcessorCreateResult cras_processor_create_result =

@@ -40,6 +40,10 @@ pub enum Processor {
     WrapChunk {
         inner: Box<Processor>,
         inner_block_size: usize,
+        /// Prevents merging with the outer pipeline even if they have the same block size.
+        /// Used when the outer pipeline doesn't actually have a stable block size and the
+        /// ChunkWrapper is used for regulating it.
+        disallow_hoisting: bool,
     },
     Resample {
         output_frame_rate: usize,
@@ -208,8 +212,9 @@ impl PipelineBuilder {
             WrapChunk {
                 inner,
                 inner_block_size,
+                disallow_hoisting,
             } => {
-                if self.output_format().block_size == inner_block_size {
+                if self.output_format().block_size == inner_block_size && !disallow_hoisting {
                     self.add(*inner).context("inner")?;
                 } else {
                     let inner_pipeline = self
@@ -336,6 +341,7 @@ mod tests {
                 WrapChunk {
                     inner: Box::new(Negate),
                     inner_block_size: 1,
+                    disallow_hoisting: false,
                 },
                 WavSink {
                     path: tempdir.path().join("2.wav"),
@@ -353,12 +359,14 @@ mod tests {
                         ],
                     }),
                     inner_block_size: 2,
+                    disallow_hoisting: false,
                 },
                 WrapChunk {
                     inner_block_size: 5, // Same block size, should pass through.
                     inner: Box::new(WavSink {
                         path: tempdir.path().join("5.wav"),
                     }),
+                    disallow_hoisting: false,
                 },
                 Resample {
                     output_frame_rate: 48000,
@@ -725,6 +733,7 @@ mod bazel_tests {
                         ],
                     }),
                     inner_block_size: 4096,
+                    disallow_hoisting: false,
                 },
             ],
         })

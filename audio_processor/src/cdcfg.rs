@@ -165,6 +165,7 @@ fn resolve(
                 .inner_block_size
                 .try_into()
                 .context("wrap_chunk inner_block_size")?,
+            disallow_hoisting: false,
         },
         Resample(resample) => Processor::Resample {
             output_frame_rate: resample
@@ -334,7 +335,8 @@ mod tests {
                         inner: Box::new(Processor::Resample {
                             output_frame_rate: 24000
                         }),
-                        inner_block_size: 10
+                        inner_block_size: 10,
+                        disallow_hoisting: false,
                     },
                     Processor::Plugin {
                         path: PathBuf::from("foo"),
