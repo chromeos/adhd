@@ -11,6 +11,7 @@ mod settings;
 use std::fmt;
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
 
 use cros_alsa::elem::Elem;
 use cros_alsa::Card;
@@ -18,9 +19,12 @@ use cros_alsa::Control;
 use cros_alsa::ControlOps;
 use cros_alsa::Ctl;
 use cros_alsa::ElemId;
+use cros_alsa::IntControl;
+use cros_alsa::SwitchControl;
 use dsm::vpd::Tas2563VPD;
 use dsm::CalibData;
 use dsm::RDCRange;
+use dsm::ZeroPlayer;
 use dsm::DSM;
 pub use error::Error;
 use log::info;
@@ -29,6 +33,14 @@ use settings::DeviceSettings;
 
 use crate::Amp;
 use crate::Result;
+
+/// Amp Config ID mode used by set_mode().
+enum ConfigMode {
+    /// Regular playback.
+    Playback,
+    /// Config should be set to this before updating Speaker Calibrated Data.
+    Calibration,
+}
 
 /// The calibration values in `Speaker Calibrated Data` are in the following
 /// format:
@@ -253,27 +265,27 @@ impl Amp for TAS2563 {
     }
 
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
-        if ch >= self.setting.controls.len() {
+        if ch >= self.setting.num_channels() {
             return Err(dsm::Error::InvalidChannelNumber(ch).into());
         }
 
         info!("Get applied rdc channel {}", ch);
-        let data = match self.setting.controls.len() {
+        let data = match self.setting.rdc_ranges.len() {
             2 => {
                 &(self
                     .card
-                    .control_by_name::<TwoChannelsControl>(&self.setting.controls[0].cal_data)?
+                    .control_by_name::<TwoChannelsControl>(&self.setting.cal_data)?
                     .get()?)[..]
             }
             4 => {
                 &(self
                     .card
-                    .control_by_name::<FourChannelsControl>(&self.setting.controls[0].cal_data)?
+                    .control_by_name::<FourChannelsControl>(&self.setting.cal_data)?
                     .get()?)[..]
             }
             _ => {
                 return Err(Error::InvalidChannelNumber(
-                    self.setting.controls.len().try_into().unwrap(),
+                    self.setting.num_channels().try_into().unwrap(),
                 )
                 .into())
             }
@@ -305,6 +317,20 @@ impl Amp for TAS2563 {
     fn rdc_ranges(&mut self) -> Vec<RDCRange> {
         self.setting.rdc_ranges.clone()
     }
+
+    fn set_safe_mode(&mut self, enable: bool) -> Result<()> {
+        info!("set_safe_mode: {}", enable);
+        if enable {
+            self.card
+                .control_by_name::<SwitchControl>(&self.setting.force_firmware_load)?
+                .on()?;
+            let mut zero_player: ZeroPlayer = Default::default();
+            zero_player.start(Self::CALIB_APPLY_TIME)?;
+            zero_player.stop()?;
+            self.set_profile(ConfigMode::Playback);
+        }
+        Ok(())
+    }
 }
 
 impl TAS2563 {
@@ -315,6 +341,7 @@ impl TAS2563 {
     const HEADER_LENGTH: usize = 17;
     const CHANNEL_DATA_LENGTH: usize = 21;
     const R0_LOCATION: usize = 1;
+    const CALIB_APPLY_TIME: Duration = Duration::from_millis(100);
 
     /// Creates an `TAS2563`.
     /// # Arguments
@@ -371,20 +398,55 @@ impl TAS2563 {
             values.extend(rms_pow.to_be_bytes());
             values.extend(tlimit.to_be_bytes());
         }
-
+        self.set_profile(ConfigMode::Calibration);
         if calib.len() == 2 {
             self.card
-                .control_by_name::<TwoChannelsControl>(&self.setting.controls[0].cal_data)?
+                .control_by_name::<TwoChannelsControl>(&self.setting.cal_data)?
                 .set(values.as_slice())?;
-            Ok(())
         } else if calib.len() == 4 {
             self.card
-                .control_by_name::<FourChannelsControl>(&self.setting.controls[0].cal_data)?
+                .control_by_name::<FourChannelsControl>(&self.setting.cal_data)?
                 .set(values.as_slice())?;
-            Ok(())
         } else {
             return Err(Error::InvalidChannelNumber(calib.len().try_into().unwrap()).into());
         }
+
+        let mut zero_player: ZeroPlayer = Default::default();
+        zero_player.start(Self::CALIB_APPLY_TIME)?;
+        zero_player.stop()?;
+        self.set_profile(ConfigMode::Playback);
+        Ok(())
+    }
+
+    /// Change the Profile and Config Id to playback mode.
+    fn set_profile(&mut self, config: ConfigMode) -> Result<()> {
+        // Different configs are hardcoded values.
+        match config {
+            ConfigMode::Playback => {
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.speaker_profile)?
+                    .set(self.setting.playback_profile_id)?;
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.speaker_config)?
+                    .set(ConfigMode::Playback as i32)?;
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.speaker_program)?
+                    .set(0)?;
+            }
+            ConfigMode::Calibration => {
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.speaker_profile)?
+                    .set(self.setting.calibration_profile_id)?;
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.speaker_config)?
+                    .set(ConfigMode::Calibration as i32)?;
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.speaker_program)?
+                    .set(0)?;
+            }
+        };
+
+        Ok(())
     }
 }
 
