@@ -190,7 +190,7 @@ fn resolve(input: &Input) -> Output {
         },
     };
 
-    let mut system_valid_nc_providers = audio_effects_status
+    let system_valid_nc_providers = audio_effects_status
         .iter()
         .filter_map(|(provider, status)| {
             if status.supported_and_allowed() {
@@ -199,10 +199,8 @@ fn resolve(input: &Input) -> Output {
                 None
             }
         })
-        .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union);
-    if input.voice_isolation_ui_preferred_effect == EFFECT_TYPE::STYLE_TRANSFER {
-        system_valid_nc_providers.remove(CRAS_NC_PROVIDER::BF);
-    }
+        .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union)
+        & input.voice_isolation_ui_preferred_effect.nc_providers();
 
     Output {
         audio_effects_ready: input
@@ -941,6 +939,11 @@ mod tests {
                 | CRAS_NC_PROVIDER::DSP
                 | CRAS_NC_PROVIDER::AST
                 | CRAS_NC_PROVIDER::BF
+        );
+        s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::NOISE_CANCELLATION);
+        assert_eq!(
+            s.output.system_valid_nc_providers,
+            CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP
         );
     }
 

@@ -134,6 +134,23 @@ impl EFFECT_TYPE {
             _ => c"Invalid NC provider",
         }
     }
+
+    /// Return the set of NC providers for this effect type.
+    pub fn nc_providers(&self) -> CRAS_NC_PROVIDER {
+        match self {
+            &EFFECT_TYPE::NOISE_CANCELLATION => CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP,
+            &EFFECT_TYPE::STYLE_TRANSFER => {
+                CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP | CRAS_NC_PROVIDER::AST
+            }
+            &EFFECT_TYPE::BEAMFORMING => {
+                CRAS_NC_PROVIDER::AP
+                    | CRAS_NC_PROVIDER::DSP
+                    | CRAS_NC_PROVIDER::AST
+                    | CRAS_NC_PROVIDER::BF
+            }
+            _ => CRAS_NC_PROVIDER::all(),
+        }
+    }
 }
 
 /// Returns the name of the effect type as a string.
