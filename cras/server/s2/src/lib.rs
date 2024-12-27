@@ -904,22 +904,24 @@ mod tests {
     #[test]
     fn test_system_valid_nc_providers() {
         let mut s = S2::new();
-        let mut expected = CRAS_NC_PROVIDER::NONE;
-        assert_eq!(s.output.system_valid_nc_providers, expected);
+        assert_eq!(s.output.system_valid_nc_providers, CRAS_NC_PROVIDER::NONE);
 
         s.set_dsp_nc_supported(true);
-        expected |= CRAS_NC_PROVIDER::DSP;
-        assert_eq!(s.output.system_valid_nc_providers, expected);
+        assert_eq!(s.output.system_valid_nc_providers, CRAS_NC_PROVIDER::DSP);
 
         s.set_ap_nc_featured_allowed(true);
         s.set_dlc_installed(NC_AP_DLC, true);
-        expected |= CRAS_NC_PROVIDER::AP;
-        assert_eq!(s.output.system_valid_nc_providers, expected);
+        assert_eq!(
+            s.output.system_valid_nc_providers,
+            CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP
+        );
 
         s.set_ap_nc_segmentation_allowed(true);
         s.set_style_transfer_featured_allowed(true);
-        expected |= CRAS_NC_PROVIDER::AST;
-        assert_eq!(s.output.system_valid_nc_providers, expected);
+        assert_eq!(
+            s.output.system_valid_nc_providers,
+            CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP | CRAS_NC_PROVIDER::AST
+        );
 
         s.set_beamforming_config(BeamformingConfig::Supported(BeamformingProperties {
             required_dlcs: HashSet::from([BF_DLC.to_string()]),
@@ -928,10 +930,18 @@ mod tests {
         s.set_dlc_installed(BF_DLC, true);
 
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::STYLE_TRANSFER);
-        assert_eq!(s.output.system_valid_nc_providers, expected);
+        assert_eq!(
+            s.output.system_valid_nc_providers,
+            CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP | CRAS_NC_PROVIDER::AST
+        );
         s.set_voice_isolation_ui_preferred_effect(EFFECT_TYPE::BEAMFORMING);
-        expected |= CRAS_NC_PROVIDER::BF;
-        assert_eq!(s.output.system_valid_nc_providers, expected);
+        assert_eq!(
+            s.output.system_valid_nc_providers,
+            CRAS_NC_PROVIDER::AP
+                | CRAS_NC_PROVIDER::DSP
+                | CRAS_NC_PROVIDER::AST
+                | CRAS_NC_PROVIDER::BF
+        );
     }
 
     #[test]
