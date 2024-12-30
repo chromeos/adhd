@@ -124,3 +124,4 @@ execve: 1
 arch_prctl: 1
 set_tid_address: 1
 sigaltstack: 1
+pselect6: 1

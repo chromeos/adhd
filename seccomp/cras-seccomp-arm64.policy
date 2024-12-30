@@ -112,3 +112,4 @@ eventfd2: 1
 shutdown: 1
 mkdirat: 1
 sigaltstack: 1
+pselect6: 1
