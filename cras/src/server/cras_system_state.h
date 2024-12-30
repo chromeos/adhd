@@ -146,11 +146,13 @@ void cras_system_set_bt_wbs_enabled(bool enabled);
 // Gets the elable flag of bluetooth wideband speech feature.
 bool cras_system_get_bt_wbs_enabled();
 
-// (Unused) Sets the flag to apply BT HFP offload enabling by Finch or not.
+// Note: bt_hfp_offload_finch_applied is leveraged for a blocking flag, see
+// cras_system_state.c#line246
+
+// Sets the flag to apply BT HFP offload enabling by Finch or not.
 void cras_system_set_bt_hfp_offload_finch_applied(bool applied);
 
-// (Unused) Gets the flag of whether to determine BT HFP offload enabling by
-//          Finch.
+// Gets the flag of whether to determine BT HFP offload enabling by Finch.
 bool cras_system_get_bt_hfp_offload_finch_applied();
 
 // Sets the supported statement of BT HFP offload.

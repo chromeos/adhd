@@ -134,9 +134,9 @@ void set_dev_started(struct cras_hfp* hfp,
 }
 
 static bool is_sco_pcm_used() {
-  // The feature flag is rolled to launched by M132. HFP offload path will
-  // be chosen anyway when available.
-  return true;
+  // bt_hfp_offload_finch_applied is leveraged for a blocking flag, see
+  // cras_system_state.c#line246
+  return !cras_system_get_bt_hfp_offload_finch_applied();
 }
 
 static bool is_sco_pcm_supported() {

@@ -243,7 +243,10 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->ns_on_dsp_supported = board_config->ns_on_dsp_supported;
   exp_state->agc_on_dsp_supported = board_config->agc_on_dsp_supported;
   exp_state->bt_wbs_enabled = board_config->bt_wbs_enabled;
-  // bt_hfp_offload_finch_applied is useless after the finch rolled to launched.
+  // bt_hfp_offload_finch_applied is leveraged for a blocking flag.
+  //   0: HFP offload path is allowed, used on MTK boards e.g. kukui, corsola
+  //   1: HFP offload path is blocked, used by default
+  // TODO(b/382299977,b/382121641): set default to 0 after issues are fixed
   exp_state->bt_hfp_offload_finch_applied =
       board_config->bt_hfp_offload_finch_applied;
   exp_state->deprioritize_bt_wbs_mic = board_config->deprioritize_bt_wbs_mic;

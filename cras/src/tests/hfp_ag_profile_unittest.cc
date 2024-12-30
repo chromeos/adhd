@@ -11,6 +11,7 @@
 #include "cras/src/server/cras_iodev.h"
 
 static int with_sco_pcm;
+static bool bt_hfp_offload_finch_applied;
 static struct cras_iodev fake_sco_out, fake_sco_in;
 static struct cras_bt_device* fake_device;
 static struct cras_bt_profile* internal_bt_profile;
@@ -38,6 +39,7 @@ class HfpAgProfile : public testing::Test {
  protected:
   virtual void SetUp() {
     btlog = cras_bt_event_log_init();
+    bt_hfp_offload_finch_applied = false;
     ResetStubData();
   }
 
@@ -89,6 +91,30 @@ TEST_F(HfpAgProfile, StartWithScoPCM) {
   bt_profile->release(bt_profile);
 
   EXPECT_EQ(2, hfp_alsa_iodev_destroy_called);
+}
+
+TEST_F(HfpAgProfile, StartWithScoPCMAndFlagEnabled) {
+  int ret;
+  struct cras_bt_profile* bt_profile;
+
+  with_sco_pcm = 1;
+  // bt_hfp_offload_finch_applied is used as a blocking flag.
+  // TODO(b/382299977,b/382121641): update if the flag is reinterpreted.
+  bt_hfp_offload_finch_applied = true;
+  fake_device = (struct cras_bt_device*)0xdeadbeef;
+  // to get the cras_hfp_ag_profile
+  cras_hfp_ag_profile_create(NULL);
+  bt_profile = internal_bt_profile;
+  bt_profile->new_connection(NULL, bt_profile, fake_device, 0);
+
+  ret = cras_hfp_ag_start(fake_device);
+
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(2, hfp_iodev_create_called);
+
+  bt_profile->release(bt_profile);
+
+  EXPECT_EQ(2, hfp_iodev_destroy_called);
 }
 
 TEST_F(HfpAgProfile, RemoveConflictAG) {
@@ -288,7 +314,7 @@ bool cras_system_get_bt_wbs_enabled() {
 }
 
 bool cras_system_get_bt_hfp_offload_finch_applied() {
-  return true;
+  return bt_hfp_offload_finch_applied;
 }
 
 int cras_server_metrics_hfp_wideband_selected_codec(int codec) {

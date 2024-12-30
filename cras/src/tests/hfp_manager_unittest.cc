@@ -336,7 +336,7 @@ struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
 
 // From cras_system_state
 bool cras_system_get_bt_hfp_offload_finch_applied() {
-  return true;
+  return false;
 }
 
 bool cras_system_get_bt_wbs_enabled() {
