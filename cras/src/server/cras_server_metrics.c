@@ -21,6 +21,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_rstream_config.h"
+#include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_server_metrics.h"
 #include "cras_shm.h"
@@ -122,6 +123,8 @@ const time_t CRAS_METRICS_LONG_PERIOD_THRESHOLD_SECONDS = 3600;
 const int DLC_INSTALL_ELAPSED_TIME_MIN_SECONDS = 0;
 const int DLC_INSTALL_ELAPSED_TIME_MAX_SECONDS = 60 * 120;
 const int DLC_INSTALL_ELAPSED_TIME_NUM_BUCKETS = 60;
+
+const unsigned kMeaningfulAudioUsageInSec = 10;
 
 static const char* get_timespec_period_str(struct timespec ts) {
   if (ts.tv_sec < CRAS_METRICS_SHORT_PERIOD_THRESHOLD_SECONDS) {
@@ -1419,19 +1422,22 @@ int cras_server_metrics_missed_cb_event(struct cras_rstream* stream) {
 
 // Logs the stream configurations from clients.
 static int cras_server_metrics_stream_config(
-    const struct cras_rstream_config* config) {
+    const struct cras_rstream* stream) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
   int err;
 
-  data.stream_config.direction = config->direction;
-  data.stream_config.cb_threshold = (unsigned)config->cb_threshold;
-  data.stream_config.flags = (unsigned)config->flags;
-  data.stream_config.effects = (unsigned)config->effects;
-  data.stream_config.format = (int)config->format->format;
-  data.stream_config.rate = (unsigned)config->format->frame_rate;
-  data.stream_config.num_channels = (unsigned)config->format->num_channels;
-  data.stream_config.client_type = config->client_type;
+  data.stream_config.direction = stream->direction;
+  data.stream_config.cb_threshold = (unsigned)stream->cb_threshold;
+  data.stream_config.flags = (unsigned)stream->flags;
+  data.stream_config.effects =
+      stream->stream_apm
+          ? (unsigned)cras_stream_apm_get_effects(stream->stream_apm)
+          : 0;
+  data.stream_config.format = (int)stream->format.format;
+  data.stream_config.rate = (unsigned)stream->format.frame_rate;
+  data.stream_config.num_channels = (unsigned)stream->format.num_channels;
+  data.stream_config.client_type = stream->client_type;
 
   init_server_metrics_msg(&msg, STREAM_CONFIG, data);
   err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
@@ -1509,11 +1515,21 @@ int cras_server_metrics_stream_overrun(const struct cras_rstream* stream) {
 
 int cras_server_metrics_stream_create(
     const struct cras_rstream_config* config) {
-  return cras_server_metrics_stream_config(config);
+  return 0;
 }
 
 int cras_server_metrics_stream_destroy(const struct cras_rstream* stream) {
+  struct timespec now, runtime;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+  subtract_timespecs(&now, &stream->start_ts, &runtime);
+
   int rc;
+  if (runtime.tv_sec >= kMeaningfulAudioUsageInSec) {
+    rc = cras_server_metrics_stream_config(stream);
+    if (rc < 0) {
+      return rc;
+    }
+  }
   rc = cras_server_metrics_missed_cb_frequency(stream);
   if (rc < 0) {
     return rc;

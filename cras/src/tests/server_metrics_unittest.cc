@@ -285,40 +285,11 @@ TEST(ServerMetricsTestSuite, SetMetricsMissedCallbackEventOutputStream) {
   EXPECT_EQ(stream.num_missed_cb, 2);
 }
 
-TEST(ServerMetricsTestSuite, SetMetricsStreamCreate) {
-  ResetStubData();
-  struct cras_rstream_config config;
-  struct cras_audio_format format;
-
-  config.direction = CRAS_STREAM_INPUT;
-  config.cb_threshold = 1024;
-  config.flags = BULK_AUDIO_OK;
-  format.format = SND_PCM_FORMAT_S16_LE;
-  format.frame_rate = 48000;
-  format.num_channels = 2;
-  config.client_type = CRAS_CLIENT_TYPE_TEST;
-  config.format = &format;
-  cras_server_metrics_stream_create(&config);
-
-  // Log stream config.
-  EXPECT_EQ(sent_msgs.size(), 1);
-  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
-  EXPECT_EQ(sent_msgs[0].header.length,
-            sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[0].metrics_type, STREAM_CONFIG);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.direction, CRAS_STREAM_INPUT);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.cb_threshold, 1024);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.flags, BULK_AUDIO_OK);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.format, SND_PCM_FORMAT_S16_LE);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.rate, 48000);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.num_channels, 2);
-  EXPECT_EQ(sent_msgs[0].data.stream_config.client_type, CRAS_CLIENT_TYPE_TEST);
-}
-
 TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   ResetStubData();
   struct cras_rstream stream;
   struct timespec diff_ts;
+  struct cras_audio_format format;
 
   stream.flags = 0;
   stream.start_ts.tv_sec = 0;
@@ -340,85 +311,103 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   stream.shm->header->overrun_frames = 1000;
 
   stream.direction = CRAS_STREAM_INPUT;
+  stream.cb_threshold = 1024;
   stream.client_type = CRAS_CLIENT_TYPE_TEST;
   stream.stream_type = CRAS_STREAM_TYPE_DEFAULT;
+  format.format = SND_PCM_FORMAT_S16_LE;
+  format.frame_rate = 48000;
+  format.num_channels = 2;
+  stream.format = format;
   cras_server_metrics_stream_destroy(&stream);
 
   subtract_timespecs(&clock_gettime_retspec, &stream.start_ts, &diff_ts);
-  EXPECT_EQ(sent_msgs.size(), 7);
+  EXPECT_EQ(sent_msgs.size(), 8);
 
-  // Log missed cb frequency.
+  // Log stream config.
   EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[0].header.length,
             sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[0].metrics_type, MISSED_CB_FREQUENCY_INPUT);
-  EXPECT_EQ(sent_msgs[0].data.value,
+  EXPECT_EQ(sent_msgs[0].metrics_type, STREAM_CONFIG);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.direction, CRAS_STREAM_INPUT);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.cb_threshold, 1024);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.flags, 0);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.format, SND_PCM_FORMAT_S16_LE);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.rate, 48000);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.num_channels, 2);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.client_type, CRAS_CLIENT_TYPE_TEST);
+
+  // Log missed cb frequency.
+  EXPECT_EQ(sent_msgs[1].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[1].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[1].metrics_type, MISSED_CB_FREQUENCY_INPUT);
+  EXPECT_EQ(sent_msgs[1].data.value,
             stream.num_missed_cb * 86400 / diff_ts.tv_sec);
 
   // Log missed cb frequency after rescheduling.
   subtract_timespecs(&clock_gettime_retspec, &stream.first_missed_cb_ts,
                      &diff_ts);
-  EXPECT_EQ(sent_msgs[1].header.type, CRAS_MAIN_METRICS);
-  EXPECT_EQ(sent_msgs[1].header.length,
-            sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[1].metrics_type,
-            MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT);
-  EXPECT_EQ(sent_msgs[1].data.value,
-            (stream.num_missed_cb - 1) * 86400 / diff_ts.tv_sec);
-
-  // Log stream runtime.
   EXPECT_EQ(sent_msgs[2].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[2].header.length,
             sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[2].metrics_type, STREAM_RUNTIME);
-  EXPECT_EQ(sent_msgs[2].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
-  EXPECT_EQ(sent_msgs[2].data.stream_data.stream_type,
-            CRAS_STREAM_TYPE_DEFAULT);
-  EXPECT_EQ(sent_msgs[2].data.stream_data.direction, CRAS_STREAM_INPUT);
-  EXPECT_EQ(sent_msgs[2].data.stream_data.runtime.tv_sec, 1000);
+  EXPECT_EQ(sent_msgs[2].metrics_type,
+            MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT);
+  EXPECT_EQ(sent_msgs[2].data.value,
+            (stream.num_missed_cb - 1) * 86400 / diff_ts.tv_sec);
 
-  // Log longest fetch delay.
+  // Log stream runtime.
   EXPECT_EQ(sent_msgs[3].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[3].header.length,
             sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[3].metrics_type, LONGEST_FETCH_DELAY);
+  EXPECT_EQ(sent_msgs[3].metrics_type, STREAM_RUNTIME);
   EXPECT_EQ(sent_msgs[3].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
   EXPECT_EQ(sent_msgs[3].data.stream_data.stream_type,
             CRAS_STREAM_TYPE_DEFAULT);
   EXPECT_EQ(sent_msgs[3].data.stream_data.direction, CRAS_STREAM_INPUT);
-  EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_sec, 0);
-  EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_nsec, 995000000);
+  EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_sec, 1000);
 
-  // Log number of fetch delays.
+  // Log longest fetch delay.
   EXPECT_EQ(sent_msgs[4].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[4].header.length,
             sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[4].metrics_type, FETCH_DELAY_COUNT);
+  EXPECT_EQ(sent_msgs[4].metrics_type, LONGEST_FETCH_DELAY);
   EXPECT_EQ(sent_msgs[4].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
   EXPECT_EQ(sent_msgs[4].data.stream_data.stream_type,
             CRAS_STREAM_TYPE_DEFAULT);
   EXPECT_EQ(sent_msgs[4].data.stream_data.direction, CRAS_STREAM_INPUT);
-  EXPECT_EQ(sent_msgs[4].data.stream_data.count, 10);
+  EXPECT_EQ(sent_msgs[4].data.stream_data.runtime.tv_sec, 0);
+  EXPECT_EQ(sent_msgs[4].data.stream_data.runtime.tv_nsec, 995000000);
 
-  // Log number of overrun count.
+  // Log number of fetch delays.
   EXPECT_EQ(sent_msgs[5].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[5].header.length,
             sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[5].metrics_type, STREAM_OVERRUN_COUNT);
+  EXPECT_EQ(sent_msgs[5].metrics_type, FETCH_DELAY_COUNT);
   EXPECT_EQ(sent_msgs[5].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
   EXPECT_EQ(sent_msgs[5].data.stream_data.stream_type,
             CRAS_STREAM_TYPE_DEFAULT);
-  EXPECT_EQ(sent_msgs[5].data.stream_data.count, 3);
+  EXPECT_EQ(sent_msgs[5].data.stream_data.direction, CRAS_STREAM_INPUT);
+  EXPECT_EQ(sent_msgs[5].data.stream_data.count, 10);
 
-  // Log overrun frames.
+  // Log number of overrun count.
   EXPECT_EQ(sent_msgs[6].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[6].header.length,
             sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[6].metrics_type, STREAM_OVERRUN_FRAMES);
+  EXPECT_EQ(sent_msgs[6].metrics_type, STREAM_OVERRUN_COUNT);
   EXPECT_EQ(sent_msgs[6].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
   EXPECT_EQ(sent_msgs[6].data.stream_data.stream_type,
             CRAS_STREAM_TYPE_DEFAULT);
-  EXPECT_EQ(sent_msgs[6].data.stream_data.count, 1000);
+  EXPECT_EQ(sent_msgs[6].data.stream_data.count, 3);
+
+  // Log overrun frames.
+  EXPECT_EQ(sent_msgs[7].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[7].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[7].metrics_type, STREAM_OVERRUN_FRAMES);
+  EXPECT_EQ(sent_msgs[7].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[7].data.stream_data.stream_type,
+            CRAS_STREAM_TYPE_DEFAULT);
+  EXPECT_EQ(sent_msgs[7].data.stream_data.count, 1000);
 
   free(stream.shm->header);
   free(stream.shm);
@@ -608,6 +597,10 @@ unsigned int cras_iodev_get_num_underruns_during_nc(
 unsigned int cras_iodev_get_num_samples_dropped(
     const struct cras_iodev* iodev) {
   return iodev->num_samples_dropped;
+}
+
+uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
+  return 0;
 }
 
 }  // extern "C"
