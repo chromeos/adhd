@@ -321,12 +321,6 @@ impl Amp for TAS2563 {
     fn set_safe_mode(&mut self, enable: bool) -> Result<()> {
         info!("set_safe_mode: {}", enable);
         if enable {
-            self.card
-                .control_by_name::<SwitchControl>(&self.setting.force_firmware_load)?
-                .on()?;
-            let mut zero_player: ZeroPlayer = Default::default();
-            zero_player.start(Self::CALIB_APPLY_TIME)?;
-            zero_player.stop()?;
             self.set_profile(ConfigMode::Playback);
         }
         Ok(())
