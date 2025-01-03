@@ -21,6 +21,8 @@ def bool_flag_config(name, build_setting_default):
 
 def define_feature(condition, define):
     """Defines `define`=1 if condition is true, otherwise 0"""
+    if not define.startswith(("CRAS_", "HAVE_")):
+        fail("Invalid feature switch %r. Feature switch names must start with CRAS_ or HAVE_. See go/cras-style#build-time-feature-switches" % define)
     return select({
         condition: ["{}=1".format(define)],
         "//conditions:default": ["{}=0".format(define)],
