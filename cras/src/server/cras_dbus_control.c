@@ -2419,6 +2419,10 @@ static void signal_sidetone_supported_changed(void* context, bool supported) {
 static void signal_audio_effect_ui_appearance_changed(
     void* context,
     struct CrasEffectUIAppearance ui_appearance) {
+  // TODO(b/385234416): Remove debug log once fixed.
+  syslog(LOG_INFO, "signal_audio_effect_ui_appearance_changed(%p, ...)",
+         context);
+
   struct cras_dbus_control* control = (struct cras_dbus_control*)context;
   dbus_uint32_t serial = 0;
 
