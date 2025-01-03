@@ -706,13 +706,16 @@ struct cras_alsa_card* cras_alsa_card_create(struct cras_alsa_card_info* info,
     syslog(LOG_WARNING, "Fail opening mixer for %s.", alsa_card->name.str);
     goto error_bail;
   }
-
+#if CRAS_ALWAYS_ADD_CONTROLS_AND_IODEVS_WITH_UCM
+  rc = add_controls_and_iodevs_with_ucm(info, alsa_card, card_name, handle);
+#else
   if (alsa_card->ucm && ucm_has_fully_specified_ucm_flag(alsa_card->ucm)) {
     rc = add_controls_and_iodevs_with_ucm(info, alsa_card, card_name, handle);
   } else {
     rc =
         add_controls_and_iodevs_by_matching(info, alsa_card, card_name, handle);
   }
+#endif
   if (rc) {
     goto error_bail;
   }

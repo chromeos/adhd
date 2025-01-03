@@ -75,6 +75,11 @@ bool_flag_config(
     build_setting_default = True,
 )
 
+bool_flag_config(
+    name = "cras_always_add_controls_and_iodevs_with_ucm",
+    build_setting_default = False,
+)
+
 config_setting(
     name = "x86_64_build",
     constraint_values = [
@@ -88,7 +93,8 @@ cc_library(
               define_feature("//:apm_build", "HAVE_WEBRTC_APM") +
               define_feature("//:metrics_build", "HAVE_LIB_METRICS") +
               define_feature("//:hats_build", "HAVE_HATS") +
-              define_feature("//:fuzzer_build", "HAVE_FUZZER"),
+              define_feature("//:fuzzer_build", "HAVE_FUZZER") +
+              define_feature("//:cras_always_add_controls_and_iodevs_with_ucm_build", "CRAS_ALWAYS_ADD_CONTROLS_AND_IODEVS_WITH_UCM"),
     target_compatible_with = select({
         ":incompatible_selinux_fuzzer_build": ["@platforms//:incompatible"],
         "//conditions:default": [],
