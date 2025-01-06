@@ -143,15 +143,7 @@ pub unsafe extern "C" fn cras_s2_init(
     cpu_name: *const libc::c_char,
 ) {
     let mut s = state();
-    match std::fs::read_to_string("/run/chromeos-config/v1/audio/main/cras-config-dir") {
-        Ok(str) => {
-            s.read_cras_config(&str);
-        }
-        Err(err) => {
-            s.read_cras_config("");
-            log::error!("Failed to read cras-config-dir: {err:#}");
-        }
-    }
+    s.read_cras_config();
     s.set_feature_tier(CrasFeatureTier::new_c(board_name, cpu_name));
     s.input.dlcs_to_install_cached = Some(s.compute_dlcs_to_install());
     s.update();

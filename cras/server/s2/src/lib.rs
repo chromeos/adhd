@@ -83,7 +83,7 @@ struct Input {
 }
 
 #[derive(Serialize)]
-struct Output {
+pub struct Output {
     audio_effects_ready: bool,
     dsp_input_effects_blocked: bool,
     audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
@@ -93,6 +93,7 @@ struct Output {
     system_valid_nc_providers: CRAS_NC_PROVIDER,
     // Added voice_isolation_ui_enabled here to track the value change in S2::update().
     voice_isolation_ui_enabled: bool,
+    pub label_audio_beamforming: &'static str,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -216,6 +217,10 @@ fn resolve(input: &Input) -> Output {
         audio_effect_ui_appearance,
         system_valid_nc_providers,
         voice_isolation_ui_enabled: input.voice_isolation_ui_enabled,
+        label_audio_beamforming: match input.beamforming_config {
+            BeamformingConfig::Supported(_) => "intelligo",
+            BeamformingConfig::Unsupported { .. } => "none",
+        },
     }
 }
 
@@ -305,16 +310,16 @@ struct CrasS2Callbacks {
 }
 
 #[derive(Serialize)]
-struct S2 {
+pub struct S2 {
     input: Input,
-    output: Output,
+    pub output: Output,
 
     #[serde(skip)]
     callbacks: CrasS2Callbacks,
 }
 
 impl S2 {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let input = Default::default();
         let output = resolve(&input);
         Self {
@@ -382,7 +387,19 @@ impl S2 {
         self.update();
     }
 
-    fn read_cras_config(&mut self, cras_config_dir: &str) {
+    pub fn read_cras_config(&mut self) {
+        match std::fs::read_to_string("/run/chromeos-config/v1/audio/main/cras-config-dir") {
+            Ok(str) => {
+                self.read_cras_config_from_dir(&str);
+            }
+            Err(err) => {
+                self.read_cras_config_from_dir("");
+                log::error!("Failed to read cras-config-dir: {err:#}");
+            }
+        }
+    }
+
+    fn read_cras_config_from_dir(&mut self, cras_config_dir: &str) {
         self.input.cras_config_dir = cras_config_dir.into();
         let board_ini = match cras_ini::parse_file(
             &Path::new("/etc/cras")

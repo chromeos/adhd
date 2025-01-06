@@ -1,0 +1,12 @@
+[package]
+name = "cras_server_tool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cras_s2 = { workspace = true }
+
+anyhow = { workspace = true }
+clap = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }

@@ -451,6 +451,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cras_server_tool"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "cras_s2",
+ "env_logger",
+ "log",
+]
+
+[[package]]
 name = "dasp_sample"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

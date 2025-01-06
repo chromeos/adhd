@@ -1,5 +1,5 @@
 {
-  "checksum": "3617ba629cc3c6bf6b4df0b7596a6285147b1f712bf925e4ffd13e4f59dc3d4b",
+  "checksum": "b9dbb036aa2c1c5e524f4ceb9b544b1f71a6ba3b78736af6cf267c1bdf396e32",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2548,6 +2548,45 @@
             {
               "id": "serde_json 1.0.96",
               "target": "serde_json"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
+    "cras_server_tool 0.1.0": {
+      "name": "cras_server_tool",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
+            {
+              "id": "clap 4.5.4",
+              "target": "clap"
+            },
+            {
+              "id": "env_logger 0.9.3",
+              "target": "env_logger"
+            },
+            {
+              "id": "log 0.4.20",
+              "target": "log"
             }
           ],
           "selects": {}
@@ -12053,6 +12092,7 @@
     "cras_rate_estimator 0.1.0": "cras/server/rate_estimator",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",
+    "cras_server_tool 0.1.0": "cras/server/tool",
     "dsp_rust 0.1.0": "cras/src/dsp/rust",
     "rock 0.1.0": "rock",
     "sof_helper 0.1.0": "sof_helper"
