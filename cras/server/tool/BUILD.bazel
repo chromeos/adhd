@@ -9,6 +9,7 @@ rust_binary(
     name = "tool",
     srcs = ["src/main.rs"],
     deps = [
+        "//cras/server/platform/dlc",
         "//cras/server/s2",
     ] + all_crate_deps(normal = True),
 )

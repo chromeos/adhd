@@ -457,8 +457,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "cras_dlc",
  "cras_s2",
  "env_logger",
+ "libc",
  "log",
 ]
 

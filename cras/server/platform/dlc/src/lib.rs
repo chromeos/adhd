@@ -185,7 +185,7 @@ impl DlcMetricContext {
     }
 }
 
-fn download_dlcs_until_installed(
+pub fn download_dlcs_until_installed(
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
     dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {

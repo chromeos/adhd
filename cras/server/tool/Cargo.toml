@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 cras_s2 = { workspace = true }
+cras_dlc = { workspace = true }
 
 anyhow = { workspace = true }
 clap = { workspace = true }
 env_logger = { workspace = true }
+libc = { workspace = true }
 log = { workspace = true }
