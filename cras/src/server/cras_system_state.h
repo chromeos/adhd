@@ -49,17 +49,13 @@ struct cras_tm;
  *    ro_shm_fd - FD of the shm region opened RO for sharing with clients.
  *    exp_state - Shared memory region for storing state.
  *    exp_state_size - Size of |exp_state|.
- *    board_name - The board name of the device that cras is running on.
- *    cpu_model_name - The cpu model name of the device that cras is running on.
  */
 void cras_system_state_init(const char* device_config_dir,
                             const char* shm_name,
                             int rw_shm_fd,
                             int ro_shm_fd,
                             struct cras_server_state* exp_state,
-                            size_t exp_state_size,
-                            const char* board_name,
-                            const char* cpu_model_name);
+                            size_t exp_state_size);
 void cras_system_state_deinit();
 
 // Sets the suffix string to control which UCM config to load.

@@ -16,7 +16,6 @@ protobuf = { workspace = true }
 static_assertions = { workspace = true }
 system_api = { workspace = true, optional = true }
 thiserror = { workspace = true }
-zerocopy = { workspace = true }
 
 [features]
 dlc = ["system_api"]

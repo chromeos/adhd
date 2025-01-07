@@ -1,5 +1,5 @@
 {
-  "checksum": "b9dbb036aa2c1c5e524f4ceb9b544b1f71a6ba3b78736af6cf267c1bdf396e32",
+  "checksum": "9afee04a1a8f5b2451149daa8caf173737e53c6813469d4f7196e39e31fd41c4",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2062,6 +2062,10 @@
             {
               "id": "syslog 6.0.1",
               "target": "syslog"
+            },
+            {
+              "id": "zerocopy 0.7.34",
+              "target": "zerocopy"
             }
           ],
           "selects": {}
@@ -2130,10 +2134,6 @@
             {
               "id": "thiserror 1.0.50",
               "target": "thiserror"
-            },
-            {
-              "id": "zerocopy 0.7.34",
-              "target": "zerocopy"
             }
           ],
           "selects": {}
@@ -2548,6 +2548,10 @@
             {
               "id": "serde_json 1.0.96",
               "target": "serde_json"
+            },
+            {
+              "id": "zerocopy 0.7.34",
+              "target": "zerocopy"
             }
           ],
           "selects": {}

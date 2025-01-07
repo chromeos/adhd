@@ -23,6 +23,10 @@ typedef void (*NotifyAudioEffectUIAppearanceChanged)(struct CrasEffectUIAppearan
 
 typedef void (*ResetIodevListForVoiceIsolation)(void);
 
+struct CrasBoardName128 {
+  char value[128];
+};
+
 void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
 void cras_s2_set_ap_nc_segmentation_allowed(bool allowed);
@@ -56,12 +60,14 @@ void cras_s2_set_voice_isolation_ui_enabled(bool enabled);
 
 bool cras_s2_get_voice_isolation_ui_enabled(void);
 
+void cras_s2_init(void);
+
 /**
  * # Safety
  *
  * board_name and cpu_name must be NULL-terminated strings or NULLs.
  */
-void cras_s2_init(const char *board_name, const char *cpu_name);
+void cras_s2_init_with_board_and_cpu_for_test(const char *board_name, const char *cpu_name);
 
 bool cras_s2_get_beamforming_supported(void);
 
@@ -112,6 +118,8 @@ void cras_s2_set_spatial_audio_supported(bool supported);
 bool cras_s2_get_spatial_audio_supported(void);
 
 bool cras_s2_get_sr_bt_supported(void);
+
+struct CrasBoardName128 cras_s2_get_board_name(void);
 
 #endif  /* CRAS_SERVER_S2_S2_H_ */
 

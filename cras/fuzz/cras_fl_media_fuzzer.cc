@@ -171,7 +171,7 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   int ro_shm_fd = open("/dev/null", O_RDONLY);
 
   cras_system_state_init("/tmp", shm_name, rw_shm_fd, ro_shm_fd, exp_state,
-                         sizeof(*exp_state), nullptr, nullptr);
+                         sizeof(*exp_state));
   free(shm_name);
 
   cras_observer_server_init();

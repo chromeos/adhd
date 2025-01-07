@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::ffi::CStr;
-
 use serde::Serialize;
 
 /// Support status for CRAS features.
@@ -31,42 +29,6 @@ impl CrasFeatureTier {
             ap_nc_supported: false,
             is_x86_64_v2: x86_64_v2,
         }
-    }
-
-    /// Construct a CrasFeatureTier from NULL terminated strings.
-    ///
-    /// # Safety
-    ///
-    /// board_name and cpu_name must be a NULL terminated strings or NULLs.
-    pub unsafe fn new_c(board_name: *const libc::c_char, cpu_name: *const libc::c_char) -> Self {
-        let board_name = if board_name.is_null() {
-            ""
-        } else {
-            match CStr::from_ptr(board_name).to_str() {
-                Ok(name) => name,
-                Err(_) => "",
-            }
-        };
-
-        let cpu_name = if cpu_name.is_null() {
-            ""
-        } else {
-            match CStr::from_ptr(cpu_name).to_str() {
-                Ok(name) => name,
-                Err(_) => "",
-            }
-        };
-
-        let tier = CrasFeatureTier::new(board_name, cpu_name);
-
-        log::info!(
-            "cras_feature_tier initialized with board={:?} cpu={:?} x86_64_v2={:?}",
-            board_name,
-            cpu_name,
-            tier.is_x86_64_v2
-        );
-
-        tier
     }
 }
 
@@ -132,10 +94,5 @@ mod tests {
     fn check_has_substr() {
         assert!(has_substr("DisalLoWed", &["abc", "Dis"]));
         assert!(!has_substr("DisalLoWed", &["abc"]));
-    }
-
-    #[test]
-    fn null_safety() {
-        unsafe { CrasFeatureTier::new_c(std::ptr::null(), std::ptr::null()) };
     }
 }

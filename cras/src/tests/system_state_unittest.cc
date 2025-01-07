@@ -129,7 +129,8 @@ static void do_sys_init() {
     exit(-1);
   }
   cras_system_state_init(device_config_dir, shm_name, rw_shm_fd, ro_shm_fd,
-                         exp_state, sizeof(*exp_state), nullptr, nullptr);
+                         exp_state, sizeof(*exp_state));
+  cras_s2_init_with_board_and_cpu_for_test(nullptr, nullptr);
   free(shm_name);
 }
 
@@ -662,7 +663,7 @@ TEST(SystemFeatureTier, SetSrBtEnabledWhenNotSupported) {
 TEST(SystemFeatureTier, SetSrBtEnabledWhenSupported) {
   ResetStubData();
   do_sys_init();
-  cras_s2_init("nami", "intel Core i7-1260P");
+  cras_s2_init_with_board_and_cpu_for_test("nami", "intel Core i7-1260P");
 
   cras_system_set_sr_bt_enabled(true);
   EXPECT_TRUE(cras_system_get_sr_bt_enabled());
@@ -682,7 +683,7 @@ TEST(SystemFeatureTier, GetSrBtUnsupported) {
 TEST(SystemFeatureTier, GetSrBtSupported) {
   ResetStubData();
   do_sys_init();
-  cras_s2_init("nami", "intel Core i7-1260P");
+  cras_s2_init_with_board_and_cpu_for_test("nami", "intel Core i7-1260P");
 
   EXPECT_EQ(cras_system_get_sr_bt_supported(), true);
 

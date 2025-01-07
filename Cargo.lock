@@ -338,6 +338,7 @@ dependencies = [
  "serde_json",
  "static_assertions",
  "syslog",
+ "zerocopy",
 ]
 
 [[package]]
@@ -355,7 +356,6 @@ dependencies = [
  "static_assertions",
  "system_api",
  "thiserror",
- "zerocopy",
 ]
 
 [[package]]
@@ -448,6 +448,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_json",
+ "zerocopy",
 ]
 
 [[package]]

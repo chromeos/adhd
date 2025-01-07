@@ -53,8 +53,6 @@ int main(int argc, char** argv) {
   const char* dsp_config = default_dsp_config;
   const char* device_config_dir = CRAS_CONFIG_FILE_DIR;
   const char* internal_ucm_suffix = NULL;
-  const char* board_name = NULL;
-  const char* cpu_model_name = NULL;
   unsigned int profile_disable_mask = 0;
 
   pthread_setname_np(pthread_self(), "cras-main");
@@ -112,14 +110,6 @@ int main(int argc, char** argv) {
         }
         break;
 
-      case 'b':
-        board_name = optarg;
-        break;
-
-      case 'p':
-        cpu_model_name = optarg;
-        break;
-
       default:
         break;
     }
@@ -160,8 +150,7 @@ int main(int argc, char** argv) {
     exit(-EINVAL);
   }
   cras_system_state_init(device_config_dir, shm_name, rw_shm_fd, ro_shm_fd,
-                         exp_state, sizeof(*exp_state), board_name,
-                         cpu_model_name);
+                         exp_state, sizeof(*exp_state));
   free(shm_name);
   if (internal_ucm_suffix) {
     cras_system_state_set_internal_ucm_suffix(internal_ucm_suffix);

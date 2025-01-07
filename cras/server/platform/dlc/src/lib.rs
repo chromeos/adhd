@@ -6,7 +6,6 @@ pub mod bindings;
 #[cfg(feature = "dlc")]
 mod chromiumos;
 mod stub;
-
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::thread::sleep;
@@ -14,10 +13,10 @@ use std::time::Duration;
 use std::time::Instant;
 use std::time::{self};
 
+use cras_common::string::null_terminated_char_array_from_str;
 use cras_s2::global::cras_s2_get_dlcs_to_install;
 use once_cell::sync::Lazy;
 use thiserror::Error;
-use zerocopy::AsBytes;
 
 #[derive(Clone)]
 pub struct State {
@@ -146,11 +145,9 @@ pub struct CrasDlcId128 {
 
 impl From<&str> for CrasDlcId128 {
     fn from(value: &str) -> Self {
-        let b = value.as_bytes();
-        let to_copy = b.len().min(127);
-        let mut id = [0; 128];
-        id.as_bytes_mut()[..to_copy].clone_from_slice(&b[..to_copy]);
-        Self { id }
+        Self {
+            id: null_terminated_char_array_from_str(value),
+        }
     }
 }
 

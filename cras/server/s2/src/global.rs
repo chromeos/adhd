@@ -12,11 +12,11 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
+use cras_common::string::null_terminated_char_array_from_str;
 use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::EFFECT_TYPE;
-use cras_feature_tier::CrasFeatureTier;
 
 use crate::processing::BeamformingConfig;
 
@@ -134,19 +134,38 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
     state().input.voice_isolation_ui_enabled
 }
 
+#[no_mangle]
+pub extern "C" fn cras_s2_init() {
+    state().init();
+}
+
 /// # Safety
 ///
 /// board_name and cpu_name must be NULL-terminated strings or NULLs.
 #[no_mangle]
-pub unsafe extern "C" fn cras_s2_init(
+pub unsafe extern "C" fn cras_s2_init_with_board_and_cpu_for_test(
     board_name: *const libc::c_char,
     cpu_name: *const libc::c_char,
 ) {
-    let mut s = state();
-    s.read_cras_config();
-    s.set_feature_tier(CrasFeatureTier::new_c(board_name, cpu_name));
-    s.input.dlcs_to_install_cached = Some(s.compute_dlcs_to_install());
-    s.update();
+    let board_name = if board_name.is_null() {
+        ""
+    } else {
+        match CStr::from_ptr(board_name).to_str() {
+            Ok(name) => name,
+            Err(_) => "",
+        }
+    };
+
+    let cpu_name = if cpu_name.is_null() {
+        ""
+    } else {
+        match CStr::from_ptr(cpu_name).to_str() {
+            Ok(name) => name,
+            Err(_) => "",
+        }
+    };
+
+    state().init_with_board_and_cpu(board_name.to_string(), cpu_name.to_string());
 }
 
 #[no_mangle]
@@ -306,4 +325,16 @@ pub extern "C" fn cras_s2_get_sr_bt_supported() -> bool {
 
 pub fn cras_s2_get_cras_processor_vars() -> HashMap<String, String> {
     state().input.cras_processor_vars.clone()
+}
+
+#[repr(C)]
+pub struct CrasBoardName128 {
+    value: [libc::c_char; 128],
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_board_name() -> CrasBoardName128 {
+    CrasBoardName128 {
+        value: null_terminated_char_array_from_str(&state().input.board_name),
+    }
 }

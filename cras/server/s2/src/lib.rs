@@ -15,17 +15,22 @@ use cras_common::types_internal::SR_BT_DLC;
 use cras_feature_tier::CrasFeatureTier;
 use cras_ini::CrasIniMap;
 use global::ResetIodevListForVoiceIsolation;
+use probe::probe_board_name;
+use probe::probe_cpu_model_name;
 use processing::BeamformingConfig;
 use serde::Serialize;
 
 use crate::global::NotifyAudioEffectUIAppearanceChanged;
 
 pub mod global;
+mod probe;
 pub mod processing;
 
 #[derive(Default, Serialize)]
 struct Input {
     feature_tier: CrasFeatureTier,
+    board_name: String,
+    cpu_model_name: String,
     ap_nc_featured_allowed: bool,
     ap_nc_segmentation_allowed: bool,
     /// Tells whether the DLC manager is ready.
@@ -384,6 +389,37 @@ impl S2 {
 
     fn set_voice_isolation_ui_preferred_effect(&mut self, preferred_effect: EFFECT_TYPE) {
         self.input.voice_isolation_ui_preferred_effect = preferred_effect;
+        self.update();
+    }
+
+    /// Initialize the instance by reading from system configs and the environment.
+    fn init(&mut self) {
+        let board_name = match probe_board_name() {
+            Ok(name) => name,
+            Err(err) => {
+                log::warn!("Failed to get board name: {err:#}");
+                String::new()
+            }
+        };
+        let cpu_model_name = match probe_cpu_model_name() {
+            Ok(name) => name,
+            Err(err) => {
+                log::warn!("Failed to get CPU model name: {err:#}");
+                String::new()
+            }
+        };
+        self.init_with_board_and_cpu(board_name, cpu_model_name);
+    }
+
+    fn init_with_board_and_cpu(&mut self, board_name: String, cpu_model_name: String) {
+        self.input.board_name = board_name;
+        self.input.cpu_model_name = cpu_model_name;
+        self.read_cras_config();
+        self.set_feature_tier(CrasFeatureTier::new(
+            &self.input.board_name,
+            &self.input.cpu_model_name,
+        ));
+        self.input.dlcs_to_install_cached = Some(self.compute_dlcs_to_install());
         self.update();
     }
 

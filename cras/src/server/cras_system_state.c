@@ -150,7 +150,7 @@ struct private_state {
   // this board is selected for output processing hats
   int32_t output_proc_hats;
   // The name of the ChromeOS board.
-  const char* board_name;
+  char* board_name;
   // Whether or not sidetone is enabled.
   int32_t sidetone_enabled;
 };
@@ -198,9 +198,7 @@ void cras_system_state_init(const char* device_config_dir,
                             int rw_shm_fd,
                             int ro_shm_fd,
                             struct cras_server_state* exp_state,
-                            size_t exp_state_size,
-                            const char* board_name,
-                            const char* cpu_model_name) {
+                            size_t exp_state_size) {
   int rc;
 
   CRAS_CHECK(sizeof(*exp_state) == exp_state_size);
@@ -217,7 +215,11 @@ void cras_system_state_init(const char* device_config_dir,
     syslog(LOG_ERR, "Fatal: no memory to create board config");
     exit(-ENOMEM);
   }
-  cras_s2_init(board_name, cpu_model_name);
+#if HAVE_FUZZER
+  cras_s2_init_with_board_and_cpu_for_test(NULL, NULL);
+#else
+  cras_s2_init();
+#endif
   cras_s2_set_notify_audio_effect_ui_appearance_changed(
       cras_observer_notify_audio_effect_ui_appearance_changed);
   cras_s2_set_reset_iodev_list_for_voice_isolation(cras_observer_notify_nodes);
@@ -305,7 +307,8 @@ void cras_system_state_init(const char* device_config_dir,
     state.dsp_offload_map_str = strdup(board_config->dsp_offload_map);
   }
 
-  state.board_name = board_name ?: "";
+  struct CrasBoardName128 board_name = cras_s2_get_board_name();
+  state.board_name = strdup(board_name.value);
 
   // Release board config.
   cras_board_config_destroy(board_config);
@@ -326,6 +329,7 @@ void cras_system_state_deinit() {
 
   deinit_ignore_suffix_cards();
   free(state.dsp_offload_map_str);
+  free(state.board_name);
   pthread_mutex_destroy(&state.update_lock);
 }
 
