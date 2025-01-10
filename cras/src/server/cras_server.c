@@ -535,6 +535,11 @@ int cras_server_run(unsigned int profile_disable_mask) {
 
   cras_udev_start_sound_subsystem_monitor();
 
+  rc = cras_alert_init();
+  if (rc < 0) {
+    goto bail;
+  }
+
   rc = cras_server_metrics_init();
   if (rc < 0) {
     goto bail;

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cras/server/cras_thread.h"
+#include "cras/server/main_message.h"
 #include "third_party/utlist/utlist.h"
 
 // A list of callbacks for an alert
@@ -131,7 +133,8 @@ struct cras_alert_event {
   struct cras_alert_data* data;
 };
 
-static void pending_event(struct cras_alert_event event) {
+static void pending_event_on_main(struct cras_main_ctx* mctx,
+                                  struct cras_alert_event event) {
   struct cras_alert* alert = event.alert;
 
   alert->pending = 1;
@@ -152,6 +155,28 @@ static void pending_event(struct cras_alert_event event) {
   /* Even when there is only one item, it is important to use DL_APPEND
    * here so that d's next and prev pointers are setup correctly. */
   DL_APPEND(alert->data, d);
+}
+
+struct cras_alert_event_msg {
+  struct cras_main_message header;
+  struct cras_alert_event event;
+};
+
+static void pending_event(struct cras_alert_event event) {
+  struct cras_main_ctx* mctx = get_main_ctx_or_null();
+  if (mctx) {
+    pending_event_on_main(mctx, event);
+  } else {
+    struct cras_alert_event_msg msg = {
+        .header =
+            {
+                .length = sizeof(msg),
+                .type = CRAS_MAIN_ALERT_EVENT,
+            },
+        .event = event,
+    };
+    cras_main_message_send(&msg.header);
+  }
 }
 
 void cras_alert_pending(struct cras_alert* alert) {
@@ -215,4 +240,14 @@ void cras_alert_destroy_all() {
   DL_FOREACH (all_alerts, alert) {
     cras_alert_destroy(alert);
   }
+}
+
+void handle_alert_event_message(struct cras_main_message* msg, void* arg) {
+  pending_event_on_main(checked_main_ctx(),
+                        ((struct cras_alert_event_msg*)msg)->event);
+}
+
+int cras_alert_init() {
+  return cras_main_message_add_handler(CRAS_MAIN_ALERT_EVENT,
+                                       handle_alert_event_message, NULL);
 }

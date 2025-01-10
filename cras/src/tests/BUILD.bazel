@@ -107,6 +107,8 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/server:cras_thread",
+        "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",

@@ -31,6 +31,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
   CRAS_MAIN_NOTIFY_RTC,
   CRAS_MAIN_EWMA_POWER_REPORT,
   CRAS_MAIN_DLC_INSTALLED,
+  CRAS_MAIN_ALERT_EVENT,
 };
 
 /* Structure of the header of the message handled by main thread.

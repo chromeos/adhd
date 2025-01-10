@@ -337,7 +337,11 @@ cc_library(
     srcs = ["cras_alert.c"],
     hdrs = ["cras_alert.h"],
     visibility = ["//cras/src/tests:__pkg__"],
-    deps = ["//third_party/utlist"],
+    deps = [
+        "//cras/server:cras_thread",
+        "//cras/server:main_message",
+        "//third_party/utlist",
+    ],
 )
 
 cc_library(

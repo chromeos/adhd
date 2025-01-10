@@ -127,6 +127,9 @@ void cras_alert_destroy(struct cras_alert* alert);
 // Frees the resources used by all alerts in the system.
 void cras_alert_destroy_all();
 
+// Initialize the alert message handler.
+int cras_alert_init();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
