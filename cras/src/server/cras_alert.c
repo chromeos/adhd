@@ -124,20 +124,24 @@ static void cras_alert_process(struct cras_alert* alert) {
   }
 }
 
-void cras_alert_pending(struct cras_alert* alert) {
+struct cras_alert_event {
+  struct cras_alert* alert;
+  // The data associated with the alert. May be NULL if the alert has no
+  // associated data.
+  struct cras_alert_data* data;
+};
+
+static void pending_event(struct cras_alert_event event) {
+  struct cras_alert* alert = event.alert;
+
   alert->pending = 1;
   has_alert_pending = 1;
-}
 
-void cras_alert_pending_data(struct cras_alert* alert,
-                             void* data,
-                             size_t data_size) {
-  struct cras_alert_data* d;
+  if (!event.data) {
+    return;
+  }
 
-  alert->pending = 1;
-  has_alert_pending = 1;
-  d = calloc(1, offsetof(struct cras_alert_data, buf) + data_size);
-  memcpy(d->buf, data, data_size);
+  struct cras_alert_data* d = event.data;
 
   if (!(alert->flags & CRAS_ALERT_FLAG_KEEP_ALL_DATA) && alert->data) {
     // There will never be more than one item in the list.
@@ -148,6 +152,28 @@ void cras_alert_pending_data(struct cras_alert* alert,
   /* Even when there is only one item, it is important to use DL_APPEND
    * here so that d's next and prev pointers are setup correctly. */
   DL_APPEND(alert->data, d);
+}
+
+void cras_alert_pending(struct cras_alert* alert) {
+  struct cras_alert_event event = {
+      .alert = alert,
+      .data = NULL,
+  };
+  pending_event(event);
+}
+
+void cras_alert_pending_data(struct cras_alert* alert,
+                             void* data,
+                             size_t data_size) {
+  struct cras_alert_data* d =
+      calloc(1, offsetof(struct cras_alert_data, buf) + data_size);
+  memcpy(d->buf, data, data_size);
+
+  struct cras_alert_event event = {
+      .alert = alert,
+      .data = d,
+  };
+  pending_event(event);
 }
 
 void cras_alert_process_all_pending_alerts() {
