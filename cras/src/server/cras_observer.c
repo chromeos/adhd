@@ -8,7 +8,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "cras/common/rust_common.h"
 #include "cras/src/common/cras_observer_ops.h"
@@ -495,10 +494,6 @@ static void audio_effect_ui_appearance_changed_alert(void* arg, void* data) {
   struct cras_observer_client* client;
   struct cras_observer_alert_data_audio_effect_ui_appearance_changed* report =
       (struct cras_observer_alert_data_audio_effect_ui_appearance_changed*)data;
-
-  // TODO(b/385234416): Remove debug log once fixed.
-  syslog(LOG_INFO, "audio_effect_ui_appearance_changed_alert(%p, %p)", arg,
-         data);
 
   DL_FOREACH (g_observer->clients, client) {
     if (client->ops.audio_effect_ui_appearance_changed) {
