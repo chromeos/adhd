@@ -1107,6 +1107,38 @@ unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
   }
 }
 
+void cras_iodev_force_all_streams_read(struct cras_iodev* iodev,
+                                       unsigned int read_limit) {
+  struct dev_stream* out;
+  if (!iodev->buf_state) {
+    return;
+  }
+  /* |<------------------->|      read_limit(dropped frames)
+   * |<------------------------>| offset for stream 1
+   * |<------------->|            offset for stream 2
+   * |<>|                         offset for stream 3
+   *
+   * after this operation, we expect them to be like
+   *
+   * |<------------------->|      read_limit(dropped frames)
+   *                       |<-->| offset for stream 1
+   *                       |      offset for stream 2
+   *                       |      offset for stream 3
+   */
+  DL_FOREACH (iodev->streams, out) {
+    int offset =
+        buffer_share_id_offset(iodev->buf_state, out->stream->stream_id);
+    if (offset >= read_limit) {
+      continue;
+    }
+    buffer_share_offset_update(iodev->buf_state, out->stream->stream_id,
+                               read_limit - offset);
+  }
+  // Now that all attached streams have offset no less than |read_limit| we can
+  // subtract this common part.
+  buffer_share_update_write_point(iodev->buf_state, read_limit);
+}
+
 unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {
   unsigned int max = 0;
   struct dev_stream* curr;
@@ -2059,6 +2091,16 @@ static int cras_iodev_drop_frames(struct cras_iodev* iodev,
     if (rc < 0) {
       return rc;
     }
+    // Drop frames breaks the stream read offsets, so we need to
+    // clean up a bit and restore to a normal state.
+    input_data_set_all_streams_read(iodev->input_data, frames);
+    cras_iodev_force_all_streams_read(iodev, frames);
+    if (iodev->input_dsp_offset > dropped_frames) {
+      iodev->input_dsp_offset -= dropped_frames;
+    } else {
+      iodev->input_dsp_offset = 0;
+    }
+
     dropped_frames += frames;
     /*
      * Tell rate estimator that some frames have been dropped to

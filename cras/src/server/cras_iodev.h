@@ -675,6 +675,13 @@ void cras_iodev_stream_written(struct cras_iodev* iodev,
 unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
                                             unsigned int write_limit);
 
+/* Force all streams acting like they consumed |read_limit| frames from
+ * iodev. This is used with cras_iodev_drop_frames to reset the potential
+ * offsets in individual streams.
+ */
+void cras_iodev_force_all_streams_read(struct cras_iodev* iodev,
+                                       unsigned int read_limit);
+
 // Return the state of an iodev.
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev);
 
