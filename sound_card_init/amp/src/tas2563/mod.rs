@@ -122,6 +122,9 @@ pub struct TAS2563 {
 struct TAS2563CalibData {
     /// The speaker impedance at ambient temperature during silent playback.
     pub r0: u32,
+    /// r0_low = r0 * (1 + alpha*(-60))
+    /// alpha is the temperature coefficient alpha (1/K)
+    /// Default alpha is 0.0039
     pub r0_low: u32,
     /// The inverse of r0
     pub invr0: u32,
