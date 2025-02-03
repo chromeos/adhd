@@ -12,12 +12,6 @@ This is because the client and the server may not be using the same source:
     *   Ash also sometimes references enum values defined in `cras_types.h`
         when dealing with D-Bus messages. Compatibility for those should be
         maintained too.
-*   LaCrOS: A newer LaCrOS, compiled with newer headers (in the future)
-    may be running on the system.
-    LaCrOS uses `libcras.so` through `static inline libcras_*` functions.
-    As a result, the ABI of `struct libcras` must be backwards compatible:
-    *a client built with a newer `cras_client.h` should be able to use an older
-    `libcras.so`*.
 *   crosvm: uses in-tree CRAS headers. Similar to Chrome (ash), we cannot use
     Cq-Depend to make atomic API changes, but instead an upgrade window must be
     maintained when changing public APIs, because crosvm code are landed
