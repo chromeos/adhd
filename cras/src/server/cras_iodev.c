@@ -797,9 +797,20 @@ static void cras_iodev_alloc_dsp(struct cras_iodev* iodev) {
   iodev->dsp_context = cras_dsp_context_new(iodev->format->frame_rate, purpose);
 
   if (iodev->dsp_offload_map) {
-    // The disallow bit by flag is retired, just clear it up.
-    cras_dsp_offload_clear_disallow_bit(iodev->dsp_offload_map,
+    /* Check feature enable flag from Chrome and cache the value to the
+     * disallow bit, which will be referenced in DSP offload processes. This is
+     * called per cras_iodev_alloc_dsp(), i.e. per cras_iodev_open(), as a
+     * result the value will be fixed during the open cycle once cached.
+     * TODO(b/394433359): clean this if-else clause up after getting past the
+     *                    finch experiment.
+     */
+    if (cras_feature_enabled(CrOSLateBootAudioOffloadCrasDSPToSOF)) {
+      cras_dsp_offload_clear_disallow_bit(iodev->dsp_offload_map,
+                                          DISALLOW_OFFLOAD_BY_FLAG);
+    } else {
+      cras_dsp_offload_set_disallow_bit(iodev->dsp_offload_map,
                                         DISALLOW_OFFLOAD_BY_FLAG);
+    }
 
     // Share the reference pointer for dsp_offload_map in dsp_context.
     cras_dsp_context_set_offload_map(iodev->dsp_context,
