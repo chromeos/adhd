@@ -25,6 +25,7 @@ use hound::WavSpec;
 use hound::WavWriter;
 use libcras::BoxError;
 use libcras::CrasClient;
+use libcras::CrasClientType;
 use libcras::CrasNodeType;
 use libcras::CrasStreamEffect;
 use nix::sys::signal::sigaction;
@@ -262,6 +263,7 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
     );
 
     let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
+    cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
     let (_control, mut stream) = cras_client
         .new_playback_stream(
             num_channels,
@@ -450,6 +452,7 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
     );
 
     let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
+    cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
     cras_client.enable_cras_capture();
 
     let pin_iodev_index = match opts.loopback_type {
