@@ -40,10 +40,12 @@ enum Command {
     RMACalibration(RMACalibrationArgs),
     Debug(DebugArgs),
     FakeVPD(FakeVPDArgs),
+    SetFakeVPD(SetFakeVPDArgs),
     SetCalibrationParam(SetCalibrationParamArgs),
     SetSafeMode(SetSafeModeArgs),
     ReadAppliedRdc(ReadAppliedRdcArgs),
     ReadCurrentRdc(ReadCurrentRdcArgs),
+    Channels(ChannelsArgs),
 }
 
 /// set the applied rdc of the input channel
@@ -169,6 +171,35 @@ struct FakeVPDArgs {
     /// show the vpd in json.
     #[argh(switch)]
     pub json: bool,
+}
+/// Set fake VPD information for amp.
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "set_fake_vpd")]
+struct SetFakeVPDArgs {
+    /// the sound card id.
+    #[argh(option)]
+    pub id: String,
+    /// the config file name. It should be $(cros_config /audio/main speaker-amp).
+    #[argh(option)]
+    pub amp: String,
+    /// the speaker amp on the device. It should be $(cros_config /audio/main sound-card-init-conf).
+    #[argh(option)]
+    pub conf: String,
+}
+
+/// Get channel count information for amp.
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "channels")]
+struct ChannelsArgs {
+    /// the sound card id.
+    #[argh(option)]
+    pub id: String,
+    /// the config file name. It should be $(cros_config /audio/main speaker-amp).
+    #[argh(option)]
+    pub amp: String,
+    /// the speaker amp on the device. It should be $(cros_config /audio/main sound-card-init-conf).
+    #[argh(option)]
+    pub conf: String,
 }
 
 /// The speaker rdc calibration result applied to the amp.
@@ -341,6 +372,18 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
             } else {
                 println!("{}", serde_yaml::to_string(&info)?);
             }
+        }
+        Command::SetFakeVPD(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!(
+                "cmd: fake_vpd sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
+            let info = amp.set_fake_vpd()?;
+        }
+        Command::Channels(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            println!("{}", amp.num_channels());
         }
     }
     Ok(())

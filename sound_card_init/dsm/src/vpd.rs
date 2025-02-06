@@ -13,6 +13,9 @@ use crate::Datastore;
 use crate::VPDTrait;
 
 const VPD_DIR: &str = "/sys/firmware/vpd/ro/vpdfile";
+const TAS2563_REGISTER_ARRAY: [u8; 16] = [
+    0x72, 0x00, 0x0f, 0x34, 0x00, 0x0f, 0x48, 0x00, 0x0f, 0x40, 0x00, 0x0d, 0x3c, 0x00, 0x10, 0x14,
+];
 
 /// `VPD`, which represents the amplifier factory calibration values.
 #[derive(Default, Debug)]
@@ -68,10 +71,7 @@ impl VPDTrait for Tas2563VPD {
             match read_vpd_files_hex_string(&format!("dsm_calib_register_array")) {
                 Ok(array) => array,
                 // If the register_array is not given, use a set of fixed values.
-                Err(e) => vec![
-                    0x72, 0x00, 0x0f, 0x34, 0x00, 0x0f, 0x48, 0x00, 0x0f, 0x40, 0x00, 0x0d, 0x3c,
-                    0x00, 0x10, 0x14,
-                ],
+                Err(_e) => TAS2563_REGISTER_ARRAY.to_vec(),
             };
         Ok(vpd)
     }
@@ -89,7 +89,7 @@ pub fn update_vpd(channel: usize, vpd: VPD) -> Result<()> {
     Ok(())
 }
 
-fn write_to_vpd(key: &str, value: i32) -> Result<()> {
+pub fn write_to_vpd<T: std::fmt::Display>(key: &str, value: T) -> Result<()> {
     let _output = Command::new("vpd")
         .arg("-s")
         .arg(&format!("{}={}", key, value))

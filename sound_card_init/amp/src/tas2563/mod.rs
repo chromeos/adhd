@@ -20,7 +20,7 @@ use cros_alsa::ControlOps;
 use cros_alsa::Ctl;
 use cros_alsa::ElemId;
 use cros_alsa::IntControl;
-use cros_alsa::SwitchControl;
+use dsm::vpd;
 use dsm::vpd::Tas2563VPD;
 use dsm::CalibData;
 use dsm::RDCRange;
@@ -328,6 +328,79 @@ impl Amp for TAS2563 {
         }
         Ok(())
     }
+
+    /// Get an example vpd value by channel index.
+    /// It is used for auto-repair job in lab testing.
+    /// Implementation of TAS2563 writes the default values as VPD
+    fn set_fake_vpd(&mut self) -> Result<()> {
+        // Make default value readable by writing fake value in playback mode.
+        let mut values: Vec<u8> = Vec::new();
+        if self.setting.num_channels() == 2 {
+            values.push(Self::CALIB_DATA_LEN_2_CH as u8);
+        } else if self.setting.num_channels() == 4 {
+            values.push(Self::CALIB_DATA_LEN_4_CH as u8);
+        } else {
+            return Err(Error::InvalidChannelNumber(
+                self.setting.num_channels().try_into().unwrap(),
+            )
+            .into());
+        }
+        self.set_profile(ConfigMode::Playback);
+        for ch in 0..self.setting.num_channels() {
+            if ch == 0 {
+                values.extend(Self::TAS2563_REGISTER_ARRAY);
+            }
+            values.push(ch as u8);
+            values.extend([0u8; 20]);
+        }
+        if self.setting.num_channels() == 2 {
+            self.card
+                .control_by_name::<TwoChannelsControl>(&self.setting.cal_data)?
+                .set(values.as_slice())?;
+        } else if self.setting.num_channels() == 4 {
+            self.card
+                .control_by_name::<FourChannelsControl>(&self.setting.cal_data)?
+                .set(values.as_slice())?;
+        } else {
+            return Err(Error::InvalidChannelNumber(
+                self.setting.num_channels().try_into().unwrap(),
+            )
+            .into());
+        }
+
+        // Read default values
+        let data = match self.setting.rdc_ranges.len() {
+            2 => {
+                &(self
+                    .card
+                    .control_by_name::<TwoChannelsControl>(&self.setting.cal_data)?
+                    .get()?)[..]
+            }
+            4 => {
+                &(self
+                    .card
+                    .control_by_name::<FourChannelsControl>(&self.setting.cal_data)?
+                    .get()?)[..]
+            }
+            _ => {
+                return Err(Error::InvalidChannelNumber(
+                    self.setting.num_channels().try_into().unwrap(),
+                )
+                .into())
+            }
+        };
+        for ch in 0..self.setting.num_channels() {
+            let start_location =
+                Self::HEADER_LENGTH + Self::CHANNEL_DATA_LENGTH * ch + Self::ID_LOCATION;
+            let mut value_string = String::new();
+            for j in start_location..start_location + Self::CHANNEL_DATA_LENGTH {
+                value_string = format!("{}{:02x}", value_string, data[j]);
+            }
+            vpd::write_to_vpd(&format!("dsm_calib_value_{}", ch), value_string)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl TAS2563 {
@@ -337,8 +410,13 @@ impl TAS2563 {
     const CALIB_DATA_LEN_4_CH: usize = 101;
     const HEADER_LENGTH: usize = 17;
     const CHANNEL_DATA_LENGTH: usize = 21;
+    const ID_LOCATION: usize = 0;
     const R0_LOCATION: usize = 1;
     const CALIB_APPLY_TIME: Duration = Duration::from_millis(100);
+    const TAS2563_REGISTER_ARRAY: [u8; 16] = [
+        0x72, 0x00, 0x0f, 0x34, 0x00, 0x0f, 0x48, 0x00, 0x0f, 0x40, 0x00, 0x0d, 0x3c, 0x00, 0x10,
+        0x14,
+    ];
 
     /// Creates an `TAS2563`.
     /// # Arguments

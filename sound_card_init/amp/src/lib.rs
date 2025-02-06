@@ -154,6 +154,9 @@ pub trait Amp {
                 .collect(),
         })
     }
+    /// Set example vpd value by channel index.
+    /// It is used for auto-repair job in lab testing.
+    fn set_fake_vpd(&mut self) -> Result<()>;
 
     /// Enable or disable the amp safe mode. The amp should act like a regular amp in safe mode
     /// that it should not boost or attenuate the volume.

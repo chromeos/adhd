@@ -258,6 +258,27 @@ impl Amp for CS35L41 {
         let range = (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0;
         CS35L41CalibData::ohm_to_rdc(range)
     }
+
+    /// Get an example vpd value by channel index.
+    /// It is used for auto-repair job in lab testing.
+    fn set_fake_vpd(&mut self) -> Result<()> {
+        let mut dsm = DSM::new(
+            self.card.name(),
+            self.setting.num_channels(),
+            Self::TEMP_UPPER_LIMIT_CELSIUS,
+            Self::TEMP_LOWER_LIMIT_CELSIUS,
+        );
+        for ch in 0..self.setting.num_channels() {
+            let calib_data = CS35L41CalibData {
+                rdc: CS35L41CalibData::ohm_to_rdc(
+                    (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0,
+                ),
+                temp: DSM::DEFAULT_FAKE_TEMP as f32,
+            };
+            dsm.update_vpd(ch, calib_data);
+        }
+        Ok(())
+    }
 }
 
 impl CS35L41 {
