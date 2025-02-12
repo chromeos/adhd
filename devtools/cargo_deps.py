@@ -6,7 +6,7 @@
 """This script collects all dependencies specified in Cargo.toml files
 
 [VPYTHON:BEGIN]
-python_version: "3.8"
+python_version: "3.11"
 
 wheel: <
   name: "infra/python/wheels/semantic-version-py2_py3"

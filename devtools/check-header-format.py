@@ -3,11 +3,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Check for include guards.
+"""Check for include guards.
 
 [VPYTHON:BEGIN]
-python_version: "3.8"
+python_version: "3.11"
 [VPYTHON:END]
 """
 

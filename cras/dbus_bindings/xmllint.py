@@ -3,16 +3,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-This script lints the D-Bus introspect XML files in CRAS.
-
+"""This script lints the D-Bus introspect XML files in CRAS.
 
 [VPYTHON:BEGIN]
-python_version: "3.8"
+python_version: "3.11"
 
 wheel: <
-  name: "infra/python/wheels/lxml/linux-amd64_cp38_cp38"
-  version: "version:4.6.2"
+  name: "infra/python/wheels/lxml/${vpython_platform}"
+  version: "version:4.9.3"
 >
 [VPYTHON:END]
 """
