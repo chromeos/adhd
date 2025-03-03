@@ -874,6 +874,10 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device* device,
 
 void cras_bt_device_set_use_hardware_volume(struct cras_bt_device* device,
                                             int use_hardware_volume) {
+  if (!cras_bt_device_valid(device)) {
+    syslog(LOG_WARNING, "%s: ignore request to invalid device", __func__);
+    return;
+  }
   device->use_hardware_volume = use_hardware_volume;
   bt_io_manager_set_use_hardware_volume(device->bt_io_mgr, use_hardware_volume);
 }
