@@ -486,10 +486,10 @@ impl TAS2563 {
             return Err(Error::InvalidChannelNumber(calib.len().try_into().unwrap()).into());
         }
 
+        self.set_profile(ConfigMode::Playback);
         let mut zero_player: ZeroPlayer = Default::default();
         zero_player.start(Self::CALIB_APPLY_TIME)?;
         zero_player.stop()?;
-        self.set_profile(ConfigMode::Playback);
         Ok(())
     }
 
