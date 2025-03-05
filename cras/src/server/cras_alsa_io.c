@@ -2313,7 +2313,8 @@ struct cras_iodev* alsa_iodev_create(
   }
 
   // Only internal speaker supports spatial audio.
-  if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, INTERNAL_SPEAKER)) {
+  if (direction == CRAS_STREAM_OUTPUT &&
+      aio->common.card_type == ALSA_CARD_TYPE_INTERNAL) {
     iodev->spatial_audio_changed = cras_iodev_update_spatial_audio;
   }
 
