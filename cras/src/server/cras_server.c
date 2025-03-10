@@ -612,6 +612,7 @@ int cras_server_run(unsigned int profile_disable_mask) {
   // After 5 and 10s, make sure there is an internal soundcard probed.
   cras_tm_create_timer(tm, 5000, check_internal_card, (void*)5);
   cras_tm_create_timer(tm, 10000, check_internal_card, (void*)10);
+  cras_tm_create_timer(tm, 30000, check_internal_card, (void*)30);
 
   // Main server loop - client callbacks are run from this context.
   while (1) {

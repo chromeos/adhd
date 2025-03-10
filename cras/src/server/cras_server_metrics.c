@@ -59,6 +59,7 @@ const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
 const char kHighestOutputHardwareLevel[] = "Cras.HighestOutputHardwareLevel";
 const char kInternalSoundcardStatus5s[] = "Cras.InternalSoundcardStatus";
 const char kInternalSoundcardStatus10s[] = "Cras.InternalSoundcardStatus.10s";
+const char kInternalSoundcardStatus30s[] = "Cras.InternalSoundcardStatus.30s";
 const char kMissedCallbackFirstTimeInput[] =
     "Cras.MissedCallbackFirstTimeInput";
 const char kMissedCallbackFirstTimeOutput[] =
@@ -174,6 +175,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   HIGHEST_OUTPUT_HW_LEVEL,
   INTERNAL_SOUNDCARD_STATUS_5S,
   INTERNAL_SOUNDCARD_STATUS_10S,
+  INTERNAL_SOUNDCARD_STATUS_30S,
   LONGEST_FETCH_DELAY,
   FETCH_DELAY_COUNT,
   MISSED_CB_FIRST_TIME_INPUT,
@@ -1709,6 +1711,8 @@ int cras_server_metrics_internal_soundcard_status(bool detected, int sec) {
     metric = INTERNAL_SOUNDCARD_STATUS_5S;
   } else if (sec == 10) {
     metric = INTERNAL_SOUNDCARD_STATUS_10S;
+  } else if (sec == 30) {
+    metric = INTERNAL_SOUNDCARD_STATUS_30S;
   } else {
     syslog(LOG_WARNING,
            "Not support to log InternalSoundcardStatus with %d sec", sec);
@@ -2312,6 +2316,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case INTERNAL_SOUNDCARD_STATUS_10S:
       cras_metrics_log_sparse_histogram(kInternalSoundcardStatus10s,
+                                        metrics_msg->data.value);
+      break;
+    case INTERNAL_SOUNDCARD_STATUS_30S:
+      cras_metrics_log_sparse_histogram(kInternalSoundcardStatus30s,
                                         metrics_msg->data.value);
       break;
     case UCM_CREATE_STATUS:
