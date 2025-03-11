@@ -912,7 +912,7 @@ static int add_streams_to_open_devs(struct cras_rstream** streams,
     if (streams[j]->stream_apm) {
       for (int i = 0; i < num_iodevs; i++) {
         cras_stream_apm_add(streams[j]->stream_apm, iodevs[i],
-                            iodevs[i]->format);
+                            iodevs[i]->format, &streams[j]->format);
       }
     }
   }

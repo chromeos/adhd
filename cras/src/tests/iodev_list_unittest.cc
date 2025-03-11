@@ -4176,9 +4176,11 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
   return 0;
 }
 
-struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
-                                     struct cras_iodev* idev,
-                                     const struct cras_audio_format* fmt) {
+struct cras_apm* cras_stream_apm_add(
+    struct cras_stream_apm* stream,
+    struct cras_iodev* idev,
+    const struct cras_audio_format* dev_fmt,
+    const struct cras_audio_format* stream_fmt) {
   cras_stream_apm_add_called++;
   return NULL;
 }

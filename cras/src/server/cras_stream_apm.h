@@ -78,11 +78,14 @@ struct cras_stream_apm* cras_stream_apm_create(uint64_t effects);
  * Args:
  *    stream - The stream apm holding APM instances.
  *    idev - Pointer to the input iodev to add new APM for.
- *    fmt - Format of the audio data used for this cras_apm.
+ *    dev_fmt - Format of the device associated with this cras_apm.
+ *    stream_fmt - Format of the stream associated with this cras_apm.
  */
-struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
-                                     struct cras_iodev* idev,
-                                     const struct cras_audio_format* fmt);
+struct cras_apm* cras_stream_apm_add(
+    struct cras_stream_apm* stream,
+    struct cras_iodev* idev,
+    const struct cras_audio_format* dev_fmt,
+    const struct cras_audio_format* stream_fmt);
 
 /*
  * Gets the active APM instance that is associated to given stream and dev pair.

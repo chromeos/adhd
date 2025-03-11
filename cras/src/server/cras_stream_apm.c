@@ -633,7 +633,8 @@ int left_and_right_channels_are_symmetric(int num_channels,
 
 // Returns the format that APM should use given a device format.
 static struct cras_audio_format get_best_channels(
-    const struct cras_audio_format* dev_fmt) {
+    const struct cras_audio_format* dev_fmt,
+    int channel_limit) {
   struct cras_audio_format apm_fmt = {
       .format = dev_fmt->format,
       .frame_rate = dev_fmt->frame_rate,
@@ -643,8 +644,12 @@ static struct cras_audio_format get_best_channels(
     apm_fmt.channel_layout[ch] = -1;
   }
 
+  if (channel_limit > MULTI_SLICE_MAX_CH) {
+    channel_limit = MULTI_SLICE_MAX_CH;
+  }
+
   for (int ch = CRAS_CH_FL;
-       ch < CRAS_CH_MAX && apm_fmt.num_channels < MULTI_SLICE_MAX_CH; ch++) {
+       ch < CRAS_CH_MAX && apm_fmt.num_channels < channel_limit; ch++) {
     if (dev_fmt->channel_layout[ch] != -1) {
       apm_fmt.channel_layout[ch] = apm_fmt.num_channels++;
     }
@@ -663,9 +668,11 @@ static size_t get_aec3_fixed_capture_delay_samples() {
   return 0;
 }
 
-struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
-                                     struct cras_iodev* idev,
-                                     const struct cras_audio_format* dev_fmt) {
+struct cras_apm* cras_stream_apm_add(
+    struct cras_stream_apm* stream,
+    struct cras_iodev* idev,
+    const struct cras_audio_format* dev_fmt,
+    const struct cras_audio_format* stream_fmt) {
   struct cras_apm* apm;
   bool aec_applied_on_dsp = false;
   bool ns_applied_on_dsp = false;
@@ -701,12 +708,6 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
 
   apm = (struct cras_apm*)calloc(1, sizeof(*apm));
 
-  /* Configures APM to the format used by input device. If the channel
-   * count is larger than stereo, use the standard channel count/layout
-   * in APM. */
-  apm->dev_fmt = *dev_fmt;
-  apm->fmt = get_best_channels(dev_fmt);
-
   // Reset detection of proper stereo
   apm->only_symmetric_content_in_render = true;
   apm->blocks_with_nonsymmetric_content_in_render = 0;
@@ -730,6 +731,16 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   if (stream->effects & APM_GAIN_CONTROL) {
     enforce_agc_on = !agc_applied_on_dsp;
   }
+
+  // Configure APM to the format used by input device.
+  // If beamforming is not in use, limit the channel count to the stream
+  // channel count to reduce AEC complexity.
+  apm->dev_fmt = *dev_fmt;
+  int channel_limit = INT_MAX;
+  if (enforce_aec_on && cp_effect != Beamforming) {
+    channel_limit = stream_fmt->num_channels;
+  }
+  apm->fmt = get_best_channels(dev_fmt, channel_limit);
 
   /*
    * |aec_ini| and |apm_ini| are tuned specifically for the typical aec

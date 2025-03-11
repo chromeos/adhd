@@ -27,9 +27,11 @@ int cras_stream_apm_deinit() {
 struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   return NULL;
 }
-struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
-                                     struct cras_iodev* idev,
-                                     const struct cras_audio_format* fmt) {
+struct cras_apm* cras_stream_apm_add(
+    struct cras_stream_apm* stream,
+    struct cras_iodev* idev,
+    const struct cras_audio_format* dev_fmt,
+    const struct cras_audio_format* stream_fmt) {
   return NULL;
 }
 struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
