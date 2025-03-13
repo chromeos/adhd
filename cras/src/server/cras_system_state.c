@@ -262,6 +262,7 @@ void cras_system_state_init(const char* device_config_dir,
   cras_s2_set_dsp_nc_supported(board_config->nc_supported);
   cras_s2_set_nc_standalone_mode(board_config->nc_standalone_mode);
   cras_s2_set_bypass_block_dsp_nc(0);
+  cras_s2_set_spatial_audio_supported(board_config->spatial_supported);
 
   // TODO(b/271383461): update AP NC availability through libsegmentation.
   exp_state->voice_isolation_supported = board_config->nc_supported | 1;

@@ -36,6 +36,7 @@ struct cras_board_config {
   int32_t output_proc_hats;
   char* dsp_offload_map;
   int32_t using_default_volume_curve_for_usb_audio_device;
+  int32_t spatial_supported;
 };
 
 /* Creates a configuration based on the config file specified.

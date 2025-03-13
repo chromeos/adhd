@@ -59,6 +59,7 @@ static const struct ini_int_field INI_INT_KEYS[] = {
     {0,    board_offset(speaker_output_latency_offset_ms),"output:speaker_output_latency_offset_ms"},
     {0,    board_offset(output_proc_hats),              "output:output_proc_hats"},
     {0,    board_offset(using_default_volume_curve_for_usb_audio_device),"usb:using_default_volume_curve_for_usb_audio_device"},
+    {0,    board_offset(spatial_supported),                "processing:spatial_supported"},
 };
 // clang-format on
 
