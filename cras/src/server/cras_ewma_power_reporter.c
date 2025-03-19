@@ -10,6 +10,7 @@
 #include "cras/include/cras_util.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_string.h"
+#include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rtc.h"
 #include "third_party/utlist/utlist.h"
@@ -63,6 +64,9 @@ void cras_ewma_power_reporter_set_target(uint32_t stream_id) {
 static int target_stream_score(const struct cras_rstream* stream) {
   if (stream->direction != CRAS_STREAM_INPUT) {
     return 0;
+  }
+  if (cras_iodev_list_is_floop_dev(stream->main_dev.dev_id)) {
+    return 90;
   }
   if (cras_rtc_check_stream_config(stream)) {
     return 110;
