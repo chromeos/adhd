@@ -1408,6 +1408,12 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
+int ucm_get_latency_offset_ms(struct cras_use_case_mgr* mgr,
+                              const char* name,
+                              int* latency) {
+  return -ENOENT;
+}
+
 int ucm_get_use_software_volume(struct cras_use_case_mgr* mgr) {
   return ucm_node_use_software_volume_ret_value;
 }

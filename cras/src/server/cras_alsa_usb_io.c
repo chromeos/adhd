@@ -777,6 +777,12 @@ static struct alsa_usb_output_node* usb_new_output(
     }
 
     node->dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
+
+    // Do we have a specified latency offset
+    int latency = 0;
+    if (!ucm_get_latency_offset_ms(aio->common.ucm, name, &latency)) {
+      node->latency_offset_ms = latency;
+    }
   }
   output->common.mixer = cras_control;
 

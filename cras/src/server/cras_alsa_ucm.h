@@ -328,6 +328,20 @@ const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
 int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
                              unsigned int* level);
 
+/* Gets the latency offset in ms for an output. This latency is not added but
+ * only reported to the streams. This is to take into account latency not due to
+ * device buffers.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to get the latency offset from.
+ *    latency_offset_ms - The pointer to the returned value.
+ * Returns:
+ *    0 on success, other error codes on failure.
+ */
+int ucm_get_latency_offset_ms(struct cras_use_case_mgr* mgr,
+                              const char* dev,
+                              int* latency_offset_ms);
+
 /* Gets the flag for enabling software volume.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.

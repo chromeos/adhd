@@ -45,6 +45,8 @@ static const char dsp_name_var[] = "DspName";
 static const char playback_mixer_elem_var[] = "PlaybackMixerElem";
 static const char capture_mixer_elem_var[] = "CaptureMixerElem";
 static const char min_buffer_level_var[] = "MinBufferLevel";
+static const char device_intrinsic_latency_ms_var[] =
+    "CRASDeviceIntrinsicLatencyMs";
 static const char dma_period_var[] = "DmaPeriodMicrosecs";
 static const char use_software_volume[] = "UseSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
@@ -791,6 +793,21 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
     return -ENOENT;
   }
   *level = value;
+
+  return 0;
+}
+
+int ucm_get_latency_offset_ms(struct cras_use_case_mgr* mgr,
+                              const char* dev,
+                              int* latency_offset_ms) {
+  int value;
+  int rc;
+
+  rc = get_int(mgr, device_intrinsic_latency_ms_var, dev, uc_verb(mgr), &value);
+  if (rc) {
+    return -ENOENT;
+  }
+  *latency_offset_ms = value;
 
   return 0;
 }

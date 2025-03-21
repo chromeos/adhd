@@ -974,6 +974,17 @@ static void set_node_initial_state(struct cras_ionode* node,
   if (endswith(node->name, SND_USE_CASE_MOD_ECHO_REF)) {
     node->type = CRAS_NODE_TYPE_ECHO_REFERENCE;
   }
+}
+
+static void update_node_latency_offset(struct cras_ionode* node,
+                                       struct alsa_io* aio,
+                                       const char* name) {
+  if (aio->common.ucm) {
+    int latency = 0;
+    if (!ucm_get_latency_offset_ms(aio->common.ucm, name, &latency)) {
+      node->latency_offset_ms = latency;
+    }
+  }
 
   // TODO(b/289173343): Remove when output latency offset is moved out of
   // board.ini
@@ -1159,6 +1170,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   strlcpy(node->name, name, sizeof(node->name));
   strlcpy(output->common.ucm_name, name, sizeof(output->common.ucm_name));
   set_node_initial_state(node, aio->common.card_type);
+  update_node_latency_offset(node, aio, name);
   cras_iodev_add_node(&aio->common.base, node);
   check_auto_unplug_output_node(aio, node, node->plugged);
   return output;

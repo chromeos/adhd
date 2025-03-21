@@ -3173,6 +3173,12 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
+int ucm_get_latency_offset_ms(struct cras_use_case_mgr* mgr,
+                              const char* name,
+                              int* latency) {
+  return -ENOENT;
+}
+
 int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr* mgr,
                                   const char* dev,
                                   long* vol) {
