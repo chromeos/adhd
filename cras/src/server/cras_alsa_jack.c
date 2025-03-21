@@ -1193,6 +1193,11 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
    * Check monitor name length with name buffer size.
    */
   strlcpy(name_buf, buf + ELD_MONITOR_NAME_OFFSET, MIN(mnl + 1, buf_size));
+  // Use fallback name if monitor name from ELD is empty
+  if (strnlen(name_buf, MIN(mnl + 1, buf_size)) == 0) {
+    syslog(LOG_WARNING, "FALLBACK JACK");
+    goto fallback_jack_name;
+  }
 
   return;
 
