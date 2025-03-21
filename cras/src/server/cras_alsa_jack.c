@@ -749,8 +749,17 @@ static int find_gpio_jacks(struct cras_alsa_jack_list* jack_list,
 
     // Find ELD control only for HDMI/DP gpio jack.
     if (*result_jack && is_jack_hdmi_dp((*result_jack)->gpio.device_name)) {
-      (*result_jack)->eld_control = find_eld_control_by_dev_index(
-          jack_list->hctl, jack_list->device_index);
+      // If ELD control id is not specified, use device index
+      int control_index = jack_list->device_index;
+      if (jack_list->ucm) {
+        int rc = ucm_get_eld_control_id_for_dev(jack_list->ucm,
+                                                (*result_jack)->ucm_device);
+        if (rc >= 0) {
+          control_index = rc;
+        }
+      }
+      (*result_jack)->eld_control =
+          find_eld_control_by_dev_index(jack_list->hctl, control_index);
     }
   }
   return data.rc;
@@ -926,8 +935,17 @@ static int find_jack_controls(struct cras_alsa_jack_list* jack_list) {
       continue;
     }
 
+    // If ELD control id is not specified, use device index
+    int control_index = jack_list->device_index;
+    if (jack->jack_list->ucm) {
+      int rc = ucm_get_eld_control_id_for_dev(jack->jack_list->ucm,
+                                              jack->ucm_device);
+      if (rc >= 0) {
+        control_index = rc;
+      }
+    }
     jack->eld_control =
-        find_eld_control_by_dev_index(jack_list->hctl, jack_list->device_index);
+        find_eld_control_by_dev_index(jack_list->hctl, control_index);
   }
 
   return 0;

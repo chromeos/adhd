@@ -294,6 +294,17 @@ char* ucm_get_dev_for_mixer(struct cras_use_case_mgr* mgr,
  */
 const char* ucm_get_edid_file_for_dev(struct cras_use_case_mgr* mgr,
                                       const char* dev);
+/* ELD control ID may not match device id.
+ * Get the ELD control ID specified in UCM for the given device.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for ELD control id.
+ * Returns:
+ *    ELD control id for device.
+ *    -ENOENT if not value not set.
+ */
+int ucm_get_eld_control_id_for_dev(struct cras_use_case_mgr* mgr,
+                                   const char* dev);
 
 /* Gets the dsp name which is associated with the given ucm device.
  * Args:

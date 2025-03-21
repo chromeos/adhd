@@ -1166,6 +1166,11 @@ const char* ucm_get_edid_file_for_dev(struct cras_use_case_mgr* mgr,
   return edid_file_ret;
 }
 
+int ucm_get_eld_control_id_for_dev(struct cras_use_case_mgr* mgr,
+                                   const char* dev) {
+  return 0;
+}
+
 const char* ucm_get_override_type_name(struct cras_use_case_mgr* mgr,
                                        const char* ucm_dev) {
   ++ucm_get_override_type_name_called;

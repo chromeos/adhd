@@ -38,6 +38,7 @@ static const char jack_control_var[] = "JackControl";
 static const char jack_dev_var[] = "JackDev";
 static const char jack_switch_var[] = "JackSwitch";
 static const char edid_var[] = "EDIDFile";
+static const char eld_control_id[] = "CRASELDControlID";
 static const char cap_var[] = "CaptureControl";
 static const char override_type_name_var[] = "OverrideNodeType";
 static const char dsp_name_var[] = "DspName";
@@ -761,6 +762,18 @@ char* ucm_get_dev_for_mixer(struct cras_use_case_mgr* mgr,
 inline const char* ucm_get_edid_file_for_dev(struct cras_use_case_mgr* mgr,
                                              const char* dev) {
   return ucm_get_value_for_dev(mgr, edid_var, dev);
+}
+
+int ucm_get_eld_control_id_for_dev(struct cras_use_case_mgr* mgr,
+                                   const char* dev) {
+  int control_id;
+
+  int rc = get_int(mgr, eld_control_id, dev, uc_verb(mgr), &control_id);
+  if (rc) {
+    return -ENOENT;
+  }
+
+  return control_id;
 }
 
 inline const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
