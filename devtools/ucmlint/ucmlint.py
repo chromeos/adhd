@@ -443,6 +443,11 @@ def lint_device(card_name: str, dev: Section):
                 'See "Switch events" in include/uapi/linux/input-event-codes.h'
             )
 
+    # check CaptureChannelMap
+    if t == DeviceType.InternalMic:
+        if dev.value.get('CaptureChannelMap') is None:
+            dev.value.warning(f'Value CaptureChannelMap is required for `{dev.name}`.')
+
     # check EDIDFile
     if t == DeviceType.HDMI:
         if dev.value.get('EDIDFile') is None:
