@@ -2135,7 +2135,7 @@ static void cras_iodev_update_spatial_audio(struct cras_iodev* iodev) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
   struct cras_use_case_mgr* ucm = aio->common.ucm;
 
-  if (iodev->active_node && ucm_node_spatial_audio_exists(ucm)) {
+  if (iodev->active_node && ucm && ucm_node_spatial_audio_exists(ucm)) {
     bool enable_dsp_spatial_audio = cras_s2_get_spatial_audio_enabled();
 
     ucm_enable_node_spatial_audio(ucm, enable_dsp_spatial_audio);
