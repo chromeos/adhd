@@ -179,11 +179,13 @@ void cras_set_playback_timestamp(size_t frame_rate,
  *    frame_rate - The sample rate used to calculate the capture time.
  *    frames - The number of frames before the captured sample is read from the
  *      ADC.
+ *    offset_ms - Intrinsic device latency will be subtracted from `now_ts`.
  *    now_ts - The current timestamp, used to calculate the capture time.
  *    capture_ts - The timestamp the next capture sample was recorded.
  */
 void cras_set_capture_timestamp(size_t frame_rate,
                                 size_t frames,
+                                int32_t offset_ms,
                                 struct timespec* now_ts,
                                 struct cras_timespec* capture_ts);
 

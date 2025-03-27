@@ -1133,7 +1133,8 @@ TEST(DevStreamTimimg, SetCaptureTimeStampSimple) {
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 750000000;
-  cras_set_capture_timestamp(48000, 24000, &clock_gettime_retspec, &ts);
+  cras_set_capture_timestamp(48000, 24000, 0,
+                             /*offset_ms=*/&clock_gettime_retspec, &ts);
   EXPECT_EQ(1, ts.tv_sec);
   EXPECT_EQ(ts.tv_nsec, 250000000);
 }
@@ -1143,7 +1144,8 @@ TEST(DevStreamTimimg, SetCaptureTimeStampWrap) {
 
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 0;
-  cras_set_capture_timestamp(48000, 24000, &clock_gettime_retspec, &ts);
+  cras_set_capture_timestamp(48000, 24000, 0,
+                             /*offset_ms=*/&clock_gettime_retspec, &ts);
   EXPECT_EQ(0, ts.tv_sec);
   EXPECT_EQ(ts.tv_nsec, 500000000);
 }
@@ -1153,9 +1155,21 @@ TEST(DevStreamTimimg, SetCaptureTimeStampWrapPartial) {
 
   clock_gettime_retspec.tv_sec = 2;
   clock_gettime_retspec.tv_nsec = 750000000;
-  cras_set_capture_timestamp(48000, 72000, &clock_gettime_retspec, &ts);
+  cras_set_capture_timestamp(48000, 72000, /*offset_ms=*/0,
+                             &clock_gettime_retspec, &ts);
   EXPECT_EQ(1, ts.tv_sec);
   EXPECT_EQ(ts.tv_nsec, 250000000);
+}
+
+TEST(DevStreamTimimg, SetCaptureTimeStampAccountForOffset) {
+  struct cras_timespec ts;
+
+  clock_gettime_retspec.tv_sec = 2;
+  clock_gettime_retspec.tv_nsec = 750000000;
+  cras_set_capture_timestamp(48000, 72000, /*offset_ms=*/140,
+                             &clock_gettime_retspec, &ts);
+  EXPECT_EQ(1, ts.tv_sec);
+  EXPECT_EQ(ts.tv_nsec, 110000000);
 }
 
 TEST(MaxFramesForConverter, 8to48) {

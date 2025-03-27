@@ -587,6 +587,7 @@ void cras_set_playback_timestamp(size_t frame_rate,
 
 void cras_set_capture_timestamp(size_t frame_rate,
                                 size_t frames,
+                                int32_t offset_ms,
                                 struct timespec* now_ts,
                                 struct cras_timespec* capture_ts) {
   /* For capture, now - samples left to be read.
@@ -594,9 +595,11 @@ void cras_set_capture_timestamp(size_t frame_rate,
    */
 
   // Use timespec for cras_util.h functions
-  struct timespec samples_left_ts;
+  struct timespec samples_left_ts, offset_ts;
   cras_frames_to_time(frames, frame_rate, &samples_left_ts);
+  ms_to_timespec(offset_ms, &offset_ts);
   subtract_timespecs(now_ts, &samples_left_ts, now_ts);
+  subtract_timespecs(now_ts, &offset_ts, now_ts);
   capture_ts->tv_sec = now_ts->tv_sec;
   capture_ts->tv_nsec = now_ts->tv_nsec;
 }
@@ -625,8 +628,10 @@ int dev_stream_set_delay(const struct dev_stream* dev_stream,
     stream_frames =
         cras_fmt_conv_in_frames_to_out(dev_stream->conv, delay_frames);
     if (cras_shm_frames_written(shm) == 0) {
-      cras_set_capture_timestamp(rstream->format.frame_rate, stream_frames,
-                                 &now_ts, &shm->header->ts);
+      cras_set_capture_timestamp(
+          rstream->format.frame_rate, stream_frames,
+          dev_stream->iodev->active_node->latency_offset_ms, &now_ts,
+          &shm->header->ts);
     }
   }
   return 0;
