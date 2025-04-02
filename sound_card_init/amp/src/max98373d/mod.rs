@@ -372,11 +372,11 @@ impl Max98373 {
         self.set_spt_mode(SPTMode::OFF)?;
         self.set_calibration_mode(CalibMode::ON)?;
         // Playback of zeros is started, and the main thread can start the calibration.
-        let mut avg_rdc = vec![0; self.setting.num_channels()];
+        let mut avg_rdc: Vec<i64> = vec![0; self.setting.num_channels()];
         for _ in 0..Self::CALIB_REPEAT_TIMES {
             let rdc = self.get_adaptive_rdc()?;
             for i in 0..self.setting.num_channels() {
-                avg_rdc[i] += rdc[i];
+                avg_rdc[i] += rdc[i] as i64;
             }
             thread::sleep(Self::RDC_CALIB_INTERVAL);
         }
@@ -384,9 +384,9 @@ impl Max98373 {
         self.set_calibration_mode(CalibMode::OFF)?;
         zero_player.stop()?;
 
-        avg_rdc = avg_rdc
+        let avg_rdc: Vec<i32> = avg_rdc
             .iter()
-            .map(|val| val / Self::CALIB_REPEAT_TIMES as i32)
+            .map(|val| (val / Self::CALIB_REPEAT_TIMES as i64) as i32) // Cast back to i32 after division
             .collect();
         Ok(avg_rdc)
     }
