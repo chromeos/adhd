@@ -878,6 +878,12 @@ static struct alsa_usb_input_node* usb_new_input(
     }
 
     node->dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
+
+    // Do we have a specified latency offset
+    int latency = 0;
+    if (!ucm_get_latency_offset_ms(aio->common.ucm, name, &latency)) {
+      node->latency_offset_ms = latency;
+    }
   }
 
   // Set NC provider.
