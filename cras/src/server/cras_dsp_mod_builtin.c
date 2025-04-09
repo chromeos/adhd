@@ -1023,6 +1023,10 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
     quad_rotation_init_module(module);
   } else if (strcmp(plugin->label, "gen_echo2") == 0) {
     cras_processor_init_module(module, 2, GenerateEcho);
+  } else if (strcmp(plugin->label, "speaker_plugin_effect") == 0) {
+    cras_processor_init_module(module, 2, SpeakerPlugin);
+  } else if (strcmp(plugin->label, "headphone_plugin_effect") == 0) {
+    cras_processor_init_module(module, 2, HeadphonePlugin);
   } else if (strcmp(plugin->label, "sink") == 0) {
     sink_init_module(module);
   } else {

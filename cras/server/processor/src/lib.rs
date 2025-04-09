@@ -159,6 +159,22 @@ fn get_echo_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Proce
     )
 }
 
+fn get_speaker_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
+    cdcfg::parse(
+        context,
+        &cras_s2_get_cras_processor_vars(),
+        Path::new("/etc/cras/processor/speaker_plugin.txtpb"),
+    )
+}
+
+fn get_headphone_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
+    cdcfg::parse(
+        context,
+        &cras_s2_get_cras_processor_vars(),
+        Path::new("/etc/cras/processor/headphone_plugin.txtpb"),
+    )
+}
+
 impl CrasProcessor {
     fn new(
         mut config: CrasProcessorConfig,
@@ -245,6 +261,18 @@ impl CrasProcessor {
                         .context("failed when creating echo pipeline")?,
                 );
             }
+            CrasProcessorEffect::SpeakerPlugin => {
+                decl.push(
+                    get_speaker_pipeline_decl(&resolver_context)
+                        .context("failed when creating speaker plugin pipeline")?,
+                );
+            }
+            CrasProcessorEffect::HeadphonePlugin => {
+                decl.push(
+                    get_headphone_pipeline_decl(&resolver_context)
+                        .context("failed when creating headphone plugin pipeline")?,
+                );
+            }
             CrasProcessorEffect::Overridden => {
                 if override_config.frame_rate != 0 {
                     decl.push(Processor::Resample {
@@ -256,7 +284,7 @@ impl CrasProcessor {
                     constructor: override_config.constructor.clone(),
                 };
                 decl.push(match override_config.block_size {
-                    0 => plugin, // User existing block size if 0.
+                    0 => plugin, // Use existing block size if 0.
                     block_size => Processor::WrapChunk {
                         inner_block_size: block_size as usize,
                         inner: Box::new(plugin),

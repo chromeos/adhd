@@ -1,0 +1,40 @@
+# To use this processor in the output path:
+# 1. Configure /etc/cras/<model>/dsp.ini with something like:
+#   [output_processing_speaker]
+#   library=builtin
+#   label=speaker_plugin_effect
+#   purpose=playback
+#   disable=(not (equal? dsp_name "speaker_eq"))
+#   input_0={src:0}
+#   input_1={src:1}
+#   output_2={dst:0}
+#   output_3={dst:1}
+#   (see also dsp.ini.sample-cras_processor)
+# 2. Make sure the HiFi.conf has the corresponding DspName.
+#   For example:
+#   SectionDevice."Speaker".0 {
+#     Value {
+#       PlaybackPCM ...
+#       DspName "speaker_eq"
+#     }
+#     ...
+#   }
+# 3. Configure /etc/cras/<model>/board.ini:
+#   [cras_processor_vars]
+#   speaker_plugin_path=libtest_plugins.so
+#   speaker_plugin_constructor=echo_processor_create
+#
+#   libtest_plugins.so is available at /usr/local/lib[64] on test images.
+#   To build your own plugin, follow:
+#   https://chromium.googlesource.com/chromiumos/third_party/adhd/+/HEAD/audio_processor/#running-a-plugin-offline-on-a-chromiumos-device
+# 4. `stop cras` and run cras with `cras-dev.sh`
+#
+# File path on DUT:
+#   /etc/cras/processor/{speaker_plugin.txtpb, headphone_plugin.txtpb}
+#   /etc/cras/<model>/{dsp.ini, board.ini}
+#   /usr/share/alsa/ucm/sof-*.<model>/HiFi.conf
+
+plugin {
+  path_var: "speaker_plugin_path"
+  constructor_var: "speaker_plugin_constructor"
+}

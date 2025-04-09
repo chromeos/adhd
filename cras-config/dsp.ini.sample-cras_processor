@@ -1,22 +1,63 @@
-[output_source]
+[output_source_1]
 library=builtin
 label=source
 purpose=playback
 disable=(not (equal? dsp_name "speaker_eq"))
-output_0={src:0}
-output_1={src:1}
+output_0={src_1:0}
+output_1={src_1:1}
 
-[output_sink]
+[output_sink_1]
 library=builtin
 label=sink
 purpose=playback
-input_0={dst:0}
-input_1={dst:1}
+disable=(not (equal? dsp_name "speaker_eq"))
+input_0={dst_1:0}
+input_1={dst_1:1}
 
-[echo]
+# See speaker_plugin.txtpb for detailed configurations.
+[output_processing_speaker]
 library=builtin
-label=gen_echo2
-input_0={src:0}
-input_1={src:1}
-output_2={dst:0}
-output_3={dst:1}
+label=speaker_plugin_effect
+purpose=playback
+disable=(not (equal? dsp_name "speaker_eq"))
+input_0={src_1:0}
+input_1={src_1:1}
+output_2={dst_1:0}
+output_3={dst_1:1}
+
+# This is an example plugin processor that generates echo.
+# [echo]
+# library=builtin
+# label=gen_echo2
+# purpose=playback
+# disable=(not (equal? dsp_name "speaker_eq"))
+# input_0={src_1:0}
+# input_1={src_1:1}
+# output_2={dst_1:0}
+# output_3={dst_1:1}
+
+[output_source_2]
+library=builtin
+label=source
+purpose=playback
+disable=(not (equal? dsp_name "headphone_eq"))
+output_0={src_2:0}
+output_1={src_2:1}
+
+[output_sink_2]
+library=builtin
+label=sink
+purpose=playback
+disable=(not (equal? dsp_name "headphone_eq"))
+input_0={dst_2:0}
+input_1={dst_2:1}
+
+[output_processing_headphone]
+library=builtin
+label=headphone_plugin_effect
+purpose=playback
+disable=(not (equal? dsp_name "headphone_eq"))
+input_0={src_2:0}
+input_1={src_2:1}
+output_2={dst_2:0}
+output_3={dst_2:1}

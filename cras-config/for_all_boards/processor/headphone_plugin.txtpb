@@ -1,0 +1,11 @@
+# See speaker_plugin.txtpb for detailed configurations.
+#
+# To configure for headphone output processing:
+#   1. Add a section for headphone in dsp.ini. Mind the label and dsp_name.
+#   2. Make sure the HiFi.conf has the corresponding DspName.
+#   3. Add the headphone library info in board.ini [cras_processor_vars].
+
+plugin {
+  path_var: "headphone_plugin_path"
+  constructor_var: "headphone_plugin_constructor"
+}

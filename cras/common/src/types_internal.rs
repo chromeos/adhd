@@ -19,6 +19,8 @@ pub enum CrasProcessorEffect {
     StyleTransfer,
     Beamforming,
     GenerateEcho,
+    SpeakerPlugin,
+    HeadphonePlugin,
     Overridden,
 }
 
@@ -31,6 +33,8 @@ impl CrasProcessorEffect {
             CrasProcessorEffect::StyleTransfer => c"StyleTransfer",
             CrasProcessorEffect::Beamforming => c"Beamforming",
             CrasProcessorEffect::GenerateEcho => c"GenerateEcho",
+            CrasProcessorEffect::SpeakerPlugin => c"SpeakerPlugin",
+            CrasProcessorEffect::HeadphonePlugin => c"HeadphonePlugin",
             CrasProcessorEffect::Overridden => c"Overridden",
         }
     }
@@ -53,6 +57,8 @@ impl CrasProcessorEffect {
                     | CRAS_STREAM_ACTIVE_AP_EFFECT::BEAMFORMING
             }
             CrasProcessorEffect::GenerateEcho => CRAS_STREAM_ACTIVE_AP_EFFECT::GENERATE_ECHO,
+            CrasProcessorEffect::SpeakerPlugin => CRAS_STREAM_ACTIVE_AP_EFFECT::SPEAKER_PLUGIN,
+            CrasProcessorEffect::HeadphonePlugin => CRAS_STREAM_ACTIVE_AP_EFFECT::HEADPHONE_PLUGIN,
             CrasProcessorEffect::Overridden => CRAS_STREAM_ACTIVE_AP_EFFECT::PROCESSOR_OVERRIDDEN,
         }
     }
@@ -84,7 +90,9 @@ bitflags! {
         const STYLE_TRANSFER = 1 << 5;
         const BEAMFORMING = 1 << 6;
         const GENERATE_ECHO = 1 << 7;
-        const PROCESSOR_OVERRIDDEN = 1 << 8;
+        const SPEAKER_PLUGIN = 1 << 8;
+        const HEADPHONE_PLUGIN = 1 << 9;
+        const PROCESSOR_OVERRIDDEN = 1 << 10;
     }
 }
 

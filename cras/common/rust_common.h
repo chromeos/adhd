@@ -42,6 +42,8 @@ enum CrasProcessorEffect {
   StyleTransfer,
   Beamforming,
   GenerateEcho,
+  SpeakerPlugin,
+  HeadphonePlugin,
   Overridden,
 };
 
@@ -59,7 +61,9 @@ typedef uint64_t CRAS_STREAM_ACTIVE_AP_EFFECT;
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_STYLE_TRANSFER (uint64_t)(1 << 5)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_BEAMFORMING (uint64_t)(1 << 6)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_GENERATE_ECHO (uint64_t)(1 << 7)
-#define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 8)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_SPEAKER_PLUGIN (uint64_t)(1 << 8)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_HEADPHONE_PLUGIN (uint64_t)(1 << 9)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 10)
 
 typedef uint32_t EFFECT_TYPE;
 #define EFFECT_TYPE_NONE (uint32_t)0
