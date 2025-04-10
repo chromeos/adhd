@@ -27,11 +27,17 @@ message MaybeWavDump {
 
 // Load an audio processor plugin from the file system.
 message Plugin {
-  // The path of the DLC.
-  string path = 1;
+  // The path of the plugin.
+  oneof path_oneof {
+    string path = 1;
+    string path_var = 3;
+  }
   // The name of the processor_create function.
   // See also plugin_processor.h.
-  string constructor = 2;
+  oneof constructor_oneof {
+    string constructor = 2;
+    string constructor_var = 4;
+  }
 }
 
 // Load an audio processor plugin from DLC.

@@ -12,9 +12,9 @@ use anyhow::bail;
 use anyhow::Context;
 
 use crate::config::Processor;
-use crate::proto::cdcfg::dlc_plugin::Constructor_oneof;
+use crate::proto::cdcfg::dlc_plugin;
 use crate::proto::cdcfg::dlc_plugin::Dlc_id_oneof;
-use crate::proto::cdcfg::dlc_plugin::Path_oneof;
+use crate::proto::cdcfg::plugin;
 
 pub trait ResolverContext {
     fn get_wav_dump_root(&self) -> Option<&Path>;
@@ -80,20 +80,38 @@ impl<'a> From<&'a Dlc_id_oneof> for ConstOrVar<'a> {
     }
 }
 
-impl<'a> From<&'a Path_oneof> for ConstOrVar<'a> {
-    fn from(value: &'a Path_oneof) -> Self {
+impl<'a> From<&'a dlc_plugin::Path_oneof> for ConstOrVar<'a> {
+    fn from(value: &'a dlc_plugin::Path_oneof) -> Self {
         match value {
-            Path_oneof::Path(s) => ConstOrVar::Const(s),
-            Path_oneof::PathVar(s) => ConstOrVar::Var(s),
+            dlc_plugin::Path_oneof::Path(s) => ConstOrVar::Const(s),
+            dlc_plugin::Path_oneof::PathVar(s) => ConstOrVar::Var(s),
         }
     }
 }
 
-impl<'a> From<&'a Constructor_oneof> for ConstOrVar<'a> {
-    fn from(value: &'a Constructor_oneof) -> Self {
+impl<'a> From<&'a dlc_plugin::Constructor_oneof> for ConstOrVar<'a> {
+    fn from(value: &'a dlc_plugin::Constructor_oneof) -> Self {
         match value {
-            Constructor_oneof::Constructor(s) => ConstOrVar::Const(s),
-            Constructor_oneof::ConstructorVar(s) => ConstOrVar::Var(s),
+            dlc_plugin::Constructor_oneof::Constructor(s) => ConstOrVar::Const(s),
+            dlc_plugin::Constructor_oneof::ConstructorVar(s) => ConstOrVar::Var(s),
+        }
+    }
+}
+
+impl<'a> From<&'a plugin::Path_oneof> for ConstOrVar<'a> {
+    fn from(value: &'a plugin::Path_oneof) -> Self {
+        match value {
+            plugin::Path_oneof::Path(s) => ConstOrVar::Const(s),
+            plugin::Path_oneof::PathVar(s) => ConstOrVar::Var(s),
+        }
+    }
+}
+
+impl<'a> From<&'a plugin::Constructor_oneof> for ConstOrVar<'a> {
+    fn from(value: &'a plugin::Constructor_oneof) -> Self {
+        match value {
+            plugin::Constructor_oneof::Constructor(s) => ConstOrVar::Const(s),
+            plugin::Constructor_oneof::ConstructorVar(s) => ConstOrVar::Var(s),
         }
     }
 }
@@ -127,8 +145,24 @@ fn resolve(
             None => Processor::Nothing,
         },
         Plugin(plugin) => Processor::Plugin {
-            path: plugin.path.clone().into(),
-            constructor: plugin.constructor.clone(),
+            path: Path::new(get_const_or_var_str(
+                vars,
+                plugin
+                    .path_oneof
+                    .as_ref()
+                    .context("missing plugin path")?
+                    .into(),
+            )?)
+            .into(),
+            constructor: get_const_or_var_str(
+                vars,
+                plugin
+                    .constructor_oneof
+                    .as_ref()
+                    .context("missing constructor")?
+                    .into(),
+            )?
+            .to_string(),
         },
         DlcPlugin(dlc_plugin) => Processor::Plugin {
             path: context
@@ -500,6 +534,36 @@ pipeline {
             &context,
             &HashMap::new(),
             r#"dlc_plugin { dlc_id_var: "xyz" path: "libdenoiser.so" constructor: "plugin_processor_create" }"#,
+            r#"var "xyz" not found"#,
+        );
+    }
+
+    #[test]
+    fn plugin_var() {
+        let context: NaiveResolverContext = Default::default();
+        let vars = HashMap::from_iter(
+            [("a", "aaa"), ("b", "/path/to/bbb"), ("c", "ccc")]
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string())),
+        );
+        let spec = r#"plugin { path_var: "b" constructor_var: "c" }"#;
+        let processor = resolve_str(&context, &vars, spec).unwrap();
+        assert_eq!(
+            processor,
+            Processor::Plugin {
+                path: PathBuf::from("/path/to/bbb"),
+                constructor: "ccc".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn plugin_var_missing() {
+        let context: NaiveResolverContext = Default::default();
+        assert_resolve_error(
+            &context,
+            &HashMap::new(),
+            r#"plugin { path_var: "xyz"constructor: "plugin_processor_create" }"#,
             r#"var "xyz" not found"#,
         );
     }
