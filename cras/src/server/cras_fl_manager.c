@@ -36,6 +36,21 @@ enum BtState {
   BT_STATE_TURNING_OFF
 };
 
+// Helper to send an empty reply.
+static void send_empty_reply(DBusConnection* conn, DBusMessage* message) {
+  DBusMessage* reply;
+  dbus_uint32_t serial = 0;
+
+  reply = dbus_message_new_method_return(message);
+  if (!reply) {
+    return;
+  }
+
+  dbus_connection_send(conn, reply, &serial);
+
+  dbus_message_unref(reply);
+}
+
 static void floss_manager_on_register_callback(DBusPendingCall* pending_call,
                                                void* data) {
   DBusMessage* reply;
@@ -197,6 +212,7 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection* conn,
       floss_media_get_active_hci() != hci_interface) {
     FRALOG(SecondaryHciDeviceChanged, {"hci", tlsprintf("%u", hci_interface)},
            {"enabled", enabled ? "true" : "false"});
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   }
 
@@ -206,6 +222,7 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection* conn,
     floss_media_stop(conn, hci_interface);
   }
 
+  send_empty_reply(conn, message);
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
