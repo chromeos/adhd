@@ -142,6 +142,16 @@ static inline int count_non_empty_dev(struct open_dev* adevs) {
   int count = 0;
   struct open_dev* adev;
   DL_FOREACH (adevs, adev) {
+    // Skip silent playback/record devices. These virtual devices don't
+    // produce audible output or capture real input, so they shouldn't
+    // be included when counting devices handling non-empty audio.
+    // Also the empty check is not performed on the silent playback/record
+    // devices.
+    if (adev->dev->info.idx == SILENT_PLAYBACK_DEVICE ||
+        adev->dev->info.idx == SILENT_RECORD_DEVICE) {
+      continue;
+    }
+
     if (!adev->empty_pi || !pic_interval_elapsed(adev->empty_pi)) {
       count++;
     }
@@ -874,6 +884,7 @@ int write_output_samples(struct open_dev** odevs,
   int rc;
   int non_empty = 0;
   int* non_empty_ptr = NULL;
+  bool timer_just_created = false;  // Flag to force immediate non_empty check
   uint8_t* dst = NULL;
   struct cras_audio_area* area = NULL;
 
@@ -961,16 +972,17 @@ int write_output_samples(struct open_dev** odevs,
     }
 
     // This interval is lazily initialized once per device.
-    // Note that newly opened devices are considered non-empty
-    // (until their status is updated through the normal flow).
     if (!adev->non_empty_check_pi) {
       adev->non_empty_check_pi =
           pic_polled_interval_create(NON_EMPTY_UPDATE_INTERVAL_SEC);
+      // Set flag to true because we need to do the emptiness check immediately.
+      timer_just_created = true;
     }
 
     // If we were empty last iteration, or the sampling interval
-    // has elapsed, check for emptiness.
-    if (adev->empty_pi || pic_interval_elapsed(adev->non_empty_check_pi)) {
+    // has elapsed, or the timer was just created, check for emptiness.
+    if (adev->empty_pi || pic_interval_elapsed(adev->non_empty_check_pi) ||
+        timer_just_created) {
       non_empty_ptr = &non_empty;
       pic_interval_reset(adev->non_empty_check_pi);
     }
