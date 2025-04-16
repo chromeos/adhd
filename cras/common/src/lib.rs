@@ -4,6 +4,7 @@
 
 pub mod fra;
 pub mod logging;
+pub mod panic;
 pub mod pseudonymization;
 pub mod string;
 pub mod types_internal;

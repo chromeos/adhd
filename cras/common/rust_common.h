@@ -109,6 +109,11 @@ void fralog(enum CRAS_FRA_SIGNAL signal,
 int cras_rust_init_logging(void);
 
 /**
+ * Install a panic hook to allow the panic message to be included in crash reports.
+ */
+void cras_rust_register_panic_hook(void);
+
+/**
  * Pseudonymize the stable_id using the global salt.
  * Returns the salted stable_id.
  */

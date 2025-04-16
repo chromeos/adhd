@@ -1,0 +1,5 @@
+[package]
+name = "libchromeos"
+version = "0.1.0"
+authors = ["The ChromiumOS Authors"]
+edition = "2021"

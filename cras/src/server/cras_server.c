@@ -398,6 +398,7 @@ int cras_server_init() {
   if (cras_rust_init_logging()) {
     syslog(LOG_ERR, "cannot initialize logging in cras_rust");
   }
+  cras_rust_register_panic_hook();
   cras_alsa_lib_error_handler_init();
 
   server_instance.next_client_id = RESERVED_CLIENT_IDS;
