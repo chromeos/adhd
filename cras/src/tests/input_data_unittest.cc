@@ -170,8 +170,8 @@ int cras_stream_apm_process(struct cras_apm* apm,
 struct cras_audio_area* cras_stream_apm_get_processed(struct cras_apm* apm) {
   return &apm_area;
 }
-void cras_stream_apm_remove(struct cras_stream_apm* stream,
-                            const struct cras_iodev* idev) {}
+void cras_stream_apm_stop(struct cras_stream_apm* stream,
+                          struct cras_iodev* idev) {}
 void cras_stream_apm_put_processed(struct cras_apm* apm, unsigned int frames) {}
 bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {

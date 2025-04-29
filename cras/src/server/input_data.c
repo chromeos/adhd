@@ -57,7 +57,7 @@ void input_data_configure(struct ext_dsp_module* ext,
   data->fbuffer = float_buffer_create(buffer_size, num_channels);
 }
 
-struct input_data* input_data_create(const struct cras_iodev* idev) {
+struct input_data* input_data_create(struct cras_iodev* idev) {
   struct input_data* data = (struct input_data*)calloc(1, sizeof(*data));
 
   data->idev = idev;
@@ -169,7 +169,7 @@ int input_data_get_for_stream(struct input_data* data,
     apm_processed = cras_stream_apm_process(apm, data->fbuffer, stream_offset,
                                             preprocessing_gain_scalar);
     if (apm_processed < 0) {
-      cras_stream_apm_remove(stream->stream_apm, data->idev);
+      cras_stream_apm_stop(stream->stream_apm, data->idev);
       return 0;
     }
     buffer_share_offset_update(offsets, stream->stream_id, apm_processed);

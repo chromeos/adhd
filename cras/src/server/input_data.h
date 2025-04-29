@@ -26,7 +26,7 @@ struct input_data {
   // Provides interface to read and process buffer in dsp pipeline.
   struct ext_dsp_module ext;
   // Pointer to the associated input iodev.
-  const struct cras_iodev* idev;
+  struct cras_iodev* idev;
   // The audio area used for deinterleaved data copy.
   struct cras_audio_area* area;
   // Floating point buffer from input device.
@@ -38,7 +38,7 @@ struct input_data {
  * Args:
  *    idev - Pointer to the associated input device.
  */
-struct input_data* input_data_create(const struct cras_iodev* idev);
+struct input_data* input_data_create(struct cras_iodev* idev);
 
 // Destroys an input_data instance.
 void input_data_destroy(struct input_data** data);
