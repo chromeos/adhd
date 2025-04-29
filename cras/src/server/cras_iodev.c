@@ -2098,10 +2098,6 @@ static int cras_iodev_drop_frames(struct cras_iodev* iodev,
       return rc;
     }
 
-    rc = iodev->put_buffer(iodev, frames);
-    if (rc < 0) {
-      return rc;
-    }
     // Drop frames breaks the stream read offsets, so we need to
     // clean up a bit and restore to a normal state.
     input_data_set_all_streams_read(iodev->input_data, frames);
@@ -2112,6 +2108,10 @@ static int cras_iodev_drop_frames(struct cras_iodev* iodev,
       iodev->input_dsp_offset = 0;
     }
 
+    rc = iodev->put_buffer(iodev, frames);
+    if (rc < 0) {
+      return rc;
+    }
     dropped_frames += frames;
     /*
      * Tell rate estimator that some frames have been dropped to
