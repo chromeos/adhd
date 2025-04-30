@@ -2106,8 +2106,8 @@ static int cras_iodev_drop_frames(struct cras_iodev* iodev,
     // clean up a bit and restore to a normal state.
     input_data_set_all_streams_read(iodev->input_data, frames);
     cras_iodev_force_all_streams_read(iodev, frames);
-    if (iodev->input_dsp_offset > dropped_frames) {
-      iodev->input_dsp_offset -= dropped_frames;
+    if (iodev->input_dsp_offset > frames) {
+      iodev->input_dsp_offset -= frames;
     } else {
       iodev->input_dsp_offset = 0;
     }
