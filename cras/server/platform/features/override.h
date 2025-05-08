@@ -16,9 +16,11 @@ extern "C" {
 #endif
 
 // Override feature id enabled status.
+// Should not be used concurrently with cras_feature_enabled.
 void cras_features_set_override(enum cras_feature_id id, bool enabled);
 
 // Unset feature id override.
+// Should not be used concurrently with cras_feature_enabled.
 void cras_features_unset_override(enum cras_feature_id id);
 
 #ifdef __cplusplus
