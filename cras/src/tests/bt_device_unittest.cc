@@ -312,6 +312,8 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cras_bt_device_remove(device);
 }
 
+}  // namespace
+
 // Stubs
 extern "C" {
 
@@ -532,4 +534,3 @@ void dbus_message_iter_get_basic(DBusMessageIter* iter, void* value) {
 }
 
 }  // extern "C"
-}  // namespace

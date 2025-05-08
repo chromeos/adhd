@@ -2859,6 +2859,8 @@ TEST_F(IoDevSetDisplayRotationSuite, UpdateRotation) {
   EXPECT_EQ(ROTATE_180, display_rotation);
 }
 
+}  //  namespace
+
 extern "C" {
 
 struct main_thread_event_log* main_log;
@@ -3260,7 +3262,6 @@ struct timespec cras_apm_state_get_last_nc_closed() {
 }
 
 }  // extern "C"
-}  //  namespace
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -14,8 +14,6 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 
-namespace {
-
 extern "C" {
 struct audio_thread_event_log* atlog;
 // For audio_thread_log.h use.
@@ -25,6 +23,8 @@ unsigned int max_frames_for_conversion(unsigned int stream_frames,
                                        unsigned int stream_rate,
                                        unsigned int device_rate);
 };
+
+namespace {
 
 static struct timespec clock_gettime_retspec;
 static struct timespec cb_ts;
