@@ -60,6 +60,10 @@ void cras_s2_set_voice_isolation_ui_enabled(bool enabled);
 
 bool cras_s2_get_voice_isolation_ui_enabled(void);
 
+void cras_s2_set_output_plugin_processor_enabled(bool enabled);
+
+bool cras_s2_get_output_plugin_processor_enabled(void);
+
 void cras_s2_init(void);
 
 /**

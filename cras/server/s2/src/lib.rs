@@ -49,6 +49,7 @@ struct Input {
     voice_isolation_ui_enabled: bool,
     voice_isolation_ui_preferred_effect: EFFECT_TYPE,
     dsp_nc_supported: bool,
+    output_plugin_processor_enabled: bool,
 
     /*
      * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
@@ -325,7 +326,10 @@ pub struct S2 {
 
 impl S2 {
     pub fn new() -> Self {
-        let input = Default::default();
+        let input = Input {
+            output_plugin_processor_enabled: true,
+            ..Default::default()
+        };
         let output = resolve(&input);
         Self {
             input,
@@ -389,6 +393,11 @@ impl S2 {
 
     fn set_voice_isolation_ui_preferred_effect(&mut self, preferred_effect: EFFECT_TYPE) {
         self.input.voice_isolation_ui_preferred_effect = preferred_effect;
+        self.update();
+    }
+
+    fn set_output_plugin_processor_enabled(&mut self, enabled: bool) {
+        self.input.output_plugin_processor_enabled = enabled;
         self.update();
     }
 
@@ -675,6 +684,18 @@ mod tests {
 
         s.set_voice_isolation_ui_enabled(false);
         assert_eq!(s.input.voice_isolation_ui_enabled, false);
+    }
+
+    #[test]
+    fn test_output_plugin_processor_enabled() {
+        let mut s = S2::new();
+        assert_eq!(s.input.output_plugin_processor_enabled, true);
+
+        s.set_output_plugin_processor_enabled(false);
+        assert_eq!(s.input.output_plugin_processor_enabled, false);
+
+        s.set_output_plugin_processor_enabled(true);
+        assert_eq!(s.input.output_plugin_processor_enabled, true);
     }
 
     #[test]

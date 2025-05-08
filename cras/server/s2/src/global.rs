@@ -135,6 +135,16 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_set_output_plugin_processor_enabled(enabled: bool) {
+    state().set_output_plugin_processor_enabled(enabled);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_output_plugin_processor_enabled() -> bool {
+    state().input.output_plugin_processor_enabled
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_init() {
     state().init();
 }
