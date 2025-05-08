@@ -22,8 +22,7 @@ enum cras_feature_id {
 };
 
 // Initialize the cras_features backend.
-// Returns a negative error code on failure, 0 on success.
-int cras_features_init();
+void cras_features_init();
 
 // Clean up resources associated with the cras_features backend.
 void cras_features_deinit();

@@ -425,10 +425,7 @@ int cras_server_init() {
   }
 
   // Initialize the cras_features backend.
-  int rc = cras_features_init();
-  if (rc != 0) {
-    syslog(LOG_ERR, "failed to initialize the cras_features backend: %d", rc);
-  }
+  cras_features_init();
   cras_s2_set_ap_nc_segmentation_allowed(
       cras_segmentation_enabled("FeatureManagementAPNoiseCancellation"));
 

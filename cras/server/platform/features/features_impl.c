@@ -13,6 +13,7 @@
 
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
+#include "cras/server/platform/features/features_backend.h"
 #include "cras/server/platform/features/override.h"
 
 #define DEFINE_FEATURE(name, default_enabled) [name] = {#name, default_enabled},
@@ -58,7 +59,7 @@ static void notify_changed() {
   cras_main_message_send(&msg);
 }
 
-int cras_features_init() {
+void cras_features_init() {
   return cras_features_backend_init(notify_changed);
 }
 

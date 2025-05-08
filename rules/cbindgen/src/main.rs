@@ -109,7 +109,8 @@ fn main() {
     let b = b
         .rename_item("CrasDlcId", "enum CrasDlcId")
         .rename_item("CrasProcessorEffect", "enum CrasProcessorEffect")
-        .rename_item("CrasEffectUIAppearance", "struct CrasEffectUIAppearance");
+        .rename_item("CrasEffectUIAppearance", "struct CrasEffectUIAppearance")
+        .rename_item("cras_feature_id", "enum cras_feature_id");
 
     let mut b = b;
 

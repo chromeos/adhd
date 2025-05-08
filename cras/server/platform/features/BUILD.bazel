@@ -5,12 +5,14 @@
 load("@crate_index//:defs.bzl", "all_crate_deps")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
 load("//rules/rust:defs.bzl", "cras_rust_library")
 
 cc_library(
     name = "features",
     srcs = [
         "features.inc",
+        "features_backend.h",
         "features_impl.c",
         "features_impl.h",
         "override.h",
@@ -61,6 +63,14 @@ cras_rust_library(
     deps = [
         ":build_script",
     ] + all_crate_deps(normal = True),
+)
+
+cras_cbindgen(
+    name = "features_backend_h",
+    out = "features_backend.h",
+    copyright_year = 2025,
+    extra_args = ["--with-include=cras/server/platform/features/features.h"],
+    lib = ":backend",
 )
 
 cargo_build_script(

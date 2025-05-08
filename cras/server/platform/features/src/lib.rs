@@ -38,9 +38,9 @@ cfg_if::cfg_if! {
 
 static GLOBAL_REGISTRY: Lazy<RwLock<Option<BackendImpl>>> = Lazy::new(|| RwLock::new(None));
 
-/// See features_impl.h
+/// Initialize the cras_features backend.
 #[no_mangle]
-pub fn cras_features_backend_init(
+pub extern "C" fn cras_features_backend_init(
     changed_callback: cras_features_bindings::cras_features_notify_changed,
 ) {
     match BackendImpl::new(changed_callback) {
@@ -53,15 +53,17 @@ pub fn cras_features_backend_init(
     }
 }
 
-/// See features_impl.h
+/// Clean up resources associated with the cras_features backend.
 #[no_mangle]
-pub fn cras_features_backend_deinit() {
+pub extern "C" fn cras_features_backend_deinit() {
     *GLOBAL_REGISTRY.write().unwrap() = None;
 }
 
-/// See features_impl.h
+/// Get whether the feature is enabled.
 #[no_mangle]
-pub fn cras_features_backend_get_enabled(id: cras_features_bindings::cras_feature_id) -> bool {
+pub extern "C" fn cras_features_backend_get_enabled(
+    id: cras_features_bindings::cras_feature_id,
+) -> bool {
     if id >= cras_features_bindings::cras_feature_id_NUM_FEATURES {
         return false;
     }
