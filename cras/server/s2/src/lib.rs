@@ -14,6 +14,7 @@ use cras_common::types_internal::NC_AP_DLC;
 use cras_common::types_internal::SR_BT_DLC;
 use cras_feature_tier::CrasFeatureTier;
 use cras_ini::CrasIniMap;
+use global::ReloadOutputPluginProcessor;
 use global::ResetIodevListForVoiceIsolation;
 use probe::probe_board_name;
 use probe::probe_cpu_model_name;
@@ -313,6 +314,7 @@ impl AudioEffectStatus {
 struct CrasS2Callbacks {
     notify_audio_effect_ui_appearance_changed: Option<NotifyAudioEffectUIAppearanceChanged>,
     reset_iodev_list_for_voice_isolation: Option<ResetIodevListForVoiceIsolation>,
+    reload_output_plugin_processor: Option<ReloadOutputPluginProcessor>,
 }
 
 #[derive(Serialize)]
@@ -571,6 +573,13 @@ impl S2 {
     ) {
         self.callbacks.reset_iodev_list_for_voice_isolation =
             Some(reset_iodev_list_for_voice_isolation);
+    }
+
+    fn set_reload_output_plugin_processor(
+        &mut self,
+        reload_output_plugin_processor: ReloadOutputPluginProcessor,
+    ) {
+        self.callbacks.reload_output_plugin_processor = Some(reload_output_plugin_processor);
     }
 
     fn update(&mut self) {

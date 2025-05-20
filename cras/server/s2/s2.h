@@ -23,9 +23,13 @@ typedef void (*NotifyAudioEffectUIAppearanceChanged)(struct CrasEffectUIAppearan
 
 typedef void (*ResetIodevListForVoiceIsolation)(void);
 
+typedef void (*ReloadOutputPluginProcessor)(void);
+
 struct CrasBoardName128 {
   char value[128];
 };
+
+bool cras_s2_is_locked_for_test(void);
 
 void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
@@ -36,6 +40,8 @@ bool cras_s2_are_audio_effects_ready(void);
 void cras_s2_set_notify_audio_effect_ui_appearance_changed(NotifyAudioEffectUIAppearanceChanged notify_audio_effect_ui_appearance_changed);
 
 void cras_s2_set_reset_iodev_list_for_voice_isolation(ResetIodevListForVoiceIsolation reset_iodev_list_for_voice_isolation);
+
+void cras_s2_set_reload_output_plugin_processor(ReloadOutputPluginProcessor reload_output_plugin_processor);
 
 char *cras_s2_get_audio_effect_dlcs(void);
 

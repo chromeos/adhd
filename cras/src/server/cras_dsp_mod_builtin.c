@@ -11,11 +11,13 @@
 #include "cras/common/check.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/processor/processor.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/drc.h"
 #include "cras/src/dsp/eq2.h"
 #include "cras/src/dsp/quad_rotation.h"
 #include "cras/src/dsp/rust/dsp.h"
+#include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
 #include "cras/src/server/cras_expr.h"
@@ -893,7 +895,8 @@ static void cras_processor_init_module(struct dsp_module* module,
   CRAS_CHECK(data);
   *data = (struct cras_processor_data){
       .channels = channels,
-      .effect = effect,
+      .effect =
+          cras_s2_get_output_plugin_processor_enabled() ? effect : NoEffects,
   };
 
   *module = (struct dsp_module){

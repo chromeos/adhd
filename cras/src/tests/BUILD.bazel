@@ -1002,6 +1002,27 @@ cc_test(
 )
 
 cc_test(
+    name = "dsp_mod_builtin_unittest",
+    srcs = [
+        ":cras_dsp_mod_builtin_unittest.cc",
+        "//cras/src/common:dumper.c",
+        "//cras/src/server:cras_dsp_mod_builtin.c",
+        "//cras/src/server:cras_expr.c",
+    ],
+    deps = [
+        ":test_support",
+        "//cras/server/platform/features",
+        "//cras/server/processor:cc",
+        "//cras/server/s2:cc",
+        "//cras/src/common:all_headers",
+        "//cras/src/dsp",
+        "//cras/src/server:all_headers",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
     name = "dsp_unittest",
     srcs = [
         ":dsp_unittest.cc",
@@ -1020,7 +1041,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:rust_common_cc",
+        "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/dsp/tests:all_headers",

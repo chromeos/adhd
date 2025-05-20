@@ -32,6 +32,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
   CRAS_MAIN_EWMA_POWER_REPORT,
   CRAS_MAIN_DLC_INSTALLED,
   CRAS_MAIN_ALERT_EVENT,
+  CRAS_MAIN_RELOAD_DSP,
 };
 
 /* Structure of the header of the message handled by main thread.
@@ -66,10 +67,7 @@ struct cras_main_message {
  * It would help to avoid "use-of-uninitialized-value" errors.
  * See struct cras_main_message for details.
  */
-#define CRAS_MAIN_MESSAGE_INIT \
-  {                            \
-    .header = { 0 }            \
-  }
+#define CRAS_MAIN_MESSAGE_INIT {.header = {0}}
 
 // Callback function to handle main thread message.
 typedef void (*cras_message_callback)(struct cras_main_message* msg, void* arg);

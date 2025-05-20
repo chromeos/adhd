@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
+use std::sync::TryLockError;
 
 use cras_common::string::null_terminated_char_array_from_str;
 use cras_common::types_internal::CrasEffectUIAppearance;
@@ -20,11 +21,22 @@ use cras_common::types_internal::EFFECT_TYPE;
 
 use crate::processing::BeamformingConfig;
 
-fn state() -> MutexGuard<'static, crate::S2> {
+fn s2_mutex() -> &'static Mutex<crate::S2> {
     static CELL: OnceLock<Mutex<crate::S2>> = OnceLock::new();
     CELL.get_or_init(|| Mutex::new(crate::S2::new()))
-        .lock()
-        .unwrap()
+}
+
+fn state() -> MutexGuard<'static, crate::S2> {
+    s2_mutex().lock().unwrap()
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_is_locked_for_test() -> bool {
+    match s2_mutex().try_lock() {
+        Ok(_) => false,
+        Err(TryLockError::WouldBlock) => true,
+        Err(TryLockError::Poisoned(_)) => panic!("CRAS s2_mutex was poisoned!"),
+    }
 }
 
 #[no_mangle]
@@ -54,6 +66,9 @@ pub type NotifyAudioEffectUIAppearanceChanged = extern "C" fn(CrasEffectUIAppear
 // need to reset cras_iodev_list.
 pub type ResetIodevListForVoiceIsolation = extern "C" fn();
 
+// Called when output_plugin_processor_enabled is changed.
+pub type ReloadOutputPluginProcessor = extern "C" fn();
+
 #[no_mangle]
 pub extern "C" fn cras_s2_set_notify_audio_effect_ui_appearance_changed(
     notify_audio_effect_ui_appearance_changed: NotifyAudioEffectUIAppearanceChanged,
@@ -67,6 +82,13 @@ pub extern "C" fn cras_s2_set_reset_iodev_list_for_voice_isolation(
     reset_iodev_list_for_voice_isolation: ResetIodevListForVoiceIsolation,
 ) {
     state().set_reset_iodev_list_for_voice_isolation(reset_iodev_list_for_voice_isolation);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_reload_output_plugin_processor(
+    reload_output_plugin_processor: ReloadOutputPluginProcessor,
+) {
+    state().set_reload_output_plugin_processor(reload_output_plugin_processor);
 }
 
 #[no_mangle]
@@ -136,7 +158,16 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
 
 #[no_mangle]
 pub extern "C" fn cras_s2_set_output_plugin_processor_enabled(enabled: bool) {
-    state().set_output_plugin_processor_enabled(enabled);
+    let mut s2_guard = state();
+    if s2_guard.input.output_plugin_processor_enabled != enabled {
+        s2_guard.set_output_plugin_processor_enabled(enabled);
+        if let Some(reload_output_plugin_processor) =
+            s2_guard.callbacks.reload_output_plugin_processor
+        {
+            drop(s2_guard);
+            reload_output_plugin_processor();
+        }
+    }
 }
 
 #[no_mangle]

@@ -3,7 +3,10 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <stdlib.h>
 
+#include "cras/server/main_message.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_dsp.h"
@@ -50,6 +53,7 @@ class DspTestSuite : public testing::Test {
     strcpy(filename, FILENAME_TEMPLATE);
     int fd = mkstemp(filename);
     fp = fdopen(fd, "w");
+    cras_s2_reset_for_testing();
   }
 
   virtual void TearDown() {
@@ -633,6 +637,78 @@ input_1={c1})";
   cras_dsp_context_free(ctx);
   cras_dsp_stop();
   cras_dsp_offload_free_map(map_dev);
+}
+
+TEST_F(DspTestSuite, ReloadForOutputPluginProcessor) {
+  const char* content = R"(
+[output_source_1]
+library=builtin
+label=source
+purpose=playback
+disable=(not (equal? dsp_name "speaker_eq"))
+output_0={src_1:0}
+output_1={src_1:1}
+
+[output_sink_1]
+library=builtin
+label=sink
+purpose=playback
+disable=(not (equal? dsp_name "speaker_eq"))
+input_0={dst_1:0}
+input_1={dst_1:1}
+
+# See speaker_plugin.txtpb for detailed configurations.
+[output_processing_speaker]
+library=builtin
+label=speaker_plugin_effect
+purpose=playback
+disable=(not (equal? dsp_name "speaker_eq"))
+input_0={src_1:0}
+input_1={src_1:1}
+output_2={dst_1:0}
+output_3={dst_1:1}
+)";
+  fprintf(fp, "%s", content);
+  CloseFile();
+
+  // Init main message.
+  struct pollfd* pollfds = (struct pollfd*)malloc(sizeof(*pollfds));
+  pollfds[0].fd = cras_main_message_init();
+  pollfds[0].events = POLLIN;
+
+  // Init DSP ini and pipeline.
+  cras_dsp_init(filename);
+  struct cras_dsp_context* ctx = cras_dsp_context_new(48000, "playback");
+  cras_dsp_set_variable_string(ctx, "dsp_name", "speaker_eq");
+  cras_dsp_load_pipeline(ctx);
+
+  struct pipeline* pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_put_pipeline(ctx);
+
+  // Toggle S2 output_plugin_processor_enabled, should trigger reload
+  // through main message.
+  ASSERT_TRUE(cras_s2_get_output_plugin_processor_enabled());
+  cras_s2_set_output_plugin_processor_enabled(false);
+  ASSERT_EQ(ppoll(pollfds, 1, NULL, NULL), 1)
+      << "cras_s2_set_output_plugin_processor_enabled() should generate a "
+         "main_message";
+  handle_main_messages(NULL, 0);
+  struct pipeline* reloaded_pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_NE(reloaded_pipeline, pipeline);
+  cras_dsp_put_pipeline(ctx);
+
+  cras_s2_set_output_plugin_processor_enabled(true);
+  ASSERT_EQ(ppoll(pollfds, 1, NULL, NULL), 1)
+      << "cras_s2_set_output_plugin_processor_enabled() should generate a "
+         "main_message";
+  handle_main_messages(NULL, 0);
+  pipeline = reloaded_pipeline;
+  reloaded_pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_NE(reloaded_pipeline, pipeline);
+  cras_dsp_put_pipeline(ctx);
+
+  free(pollfds);
 }
 
 static int empty_instantiate(struct dsp_module* module,

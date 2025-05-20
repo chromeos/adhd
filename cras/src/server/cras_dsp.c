@@ -10,6 +10,8 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dsp_util.h"
@@ -287,12 +289,22 @@ static void cmd_reload_ini() {
   }
 }
 
+void notify_reload_cras_dsp() {
+  struct cras_main_message msg = {
+      .length = sizeof(msg),
+      .type = CRAS_MAIN_RELOAD_DSP,
+  };
+  cras_main_message_send(&msg);
+}
+
 // Exported functions
 
 void cras_dsp_init(const char* filename) {
   dsp_enable_flush_denormal_to_zero();
   ini_filename = strdup(filename);
   syslog_dumper = syslog_dumper_create(LOG_WARNING);
+  cras_main_message_add_handler(CRAS_MAIN_RELOAD_DSP, cmd_reload_ini, NULL);
+  cras_s2_set_reload_output_plugin_processor(notify_reload_cras_dsp);
   cmd_reload_ini();
 }
 
