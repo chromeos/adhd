@@ -878,6 +878,13 @@ static void cras_processor_free_module(struct dsp_module* module) {
   free(module);
 }
 
+static void cras_processor_dump(struct dsp_module* module, struct dumper* d) {
+  struct cras_processor_data* data = module->data;
+  dumpf(d, "CRAS DSP plugin processor module\n");
+  dumpf(d, "Channels: %d, Effect: %s\n", data->channels,
+        cras_processor_effect_to_str(data->effect));
+}
+
 static void cras_processor_init_module(struct dsp_module* module,
                                        int channels,
                                        enum CrasProcessorEffect effect) {
@@ -899,7 +906,7 @@ static void cras_processor_init_module(struct dsp_module* module,
       .deinstantiate = cras_processor_deinstantiate,
       .free_module = cras_processor_free_module,
       .get_properties = empty_get_properties,
-      .dump = empty_dump,
+      .dump = cras_processor_dump,
   };
 }
 
