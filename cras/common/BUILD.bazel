@@ -32,6 +32,7 @@ cc_library(
     hdrs = ["string.h"],
     visibility = [
         "//cras:__subpackages__",
+        "//third_party/superfasthash:__pkg__",
     ],
     deps = [":check"],
 )

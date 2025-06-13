@@ -1,6 +1,9 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 cc_library(
     name = "superfasthash",
     srcs = ["sfh.c"],
     hdrs = ["sfh.h"],
     visibility = ["//:__subpackages__"],
+    deps = ["//cras/common:string"],
 )

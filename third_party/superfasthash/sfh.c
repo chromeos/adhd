@@ -26,8 +26,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sfh.h"
+
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <syslog.h>
+
+#include "cras/common/string.h"
 
 #undef get16bits
 #if (defined(__GNUC__) && defined(__i386__)) || defined(__WATCOMC__) || \
@@ -41,7 +49,9 @@
    (uint32_t)(((const uint8_t*)(d))[0]))
 #endif
 
-uint32_t SuperFastHash(const char* data, int len, uint32_t hash) {
+static inline uint32_t SuperFastHash_impl(const char* data,
+                                          int len,
+                                          uint32_t hash) {
   uint32_t tmp;
   int rem;
 
@@ -89,4 +99,24 @@ uint32_t SuperFastHash(const char* data, int len, uint32_t hash) {
   hash += hash >> 6;
 
   return hash;
+}
+
+static inline uint32_t SuperFastHash_debug(const char* data,
+                                           int len,
+                                           uint32_t hash) {
+  uint32_t out = SuperFastHash_impl(data, len, hash);
+
+  char* escaped_data = escape_string(data, len);
+  syslog(LOG_INFO, "SuperFastHash(\"%s\", 0x%08" PRIx32 ") = 0x%08" PRIx32,
+         escaped_data, hash, out);
+  free(escaped_data);
+  return out;
+}
+
+uint32_t SuperFastHash(const char* data, int len, uint32_t hash) {
+#define SUPER_FAST_HASH_DEBUG false
+  if (SUPER_FAST_HASH_DEBUG) {
+    return SuperFastHash_debug(data, len, hash);
+  }
+  return SuperFastHash_impl(data, len, hash);
 }
