@@ -26,6 +26,26 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "string",
+    srcs = ["string.c"],
+    hdrs = ["string.h"],
+    visibility = [
+        "//cras:__subpackages__",
+    ],
+    deps = [":check"],
+)
+
+cc_test(
+    name = "string_test",
+    srcs = ["string_test.cc"],
+    deps = [
+        ":string",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
 cras_rust_library(
     name = "rust_common",
     srcs = glob(
