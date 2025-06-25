@@ -243,7 +243,6 @@ impl Amp for Max98390 {
             }
         }
         for (ch, &calib_data) in calib.iter().enumerate() {
-            dsm.update_datastore(ch, calib_data)?;
             dsm.update_vpd(ch, calib_data)?;
         }
 
