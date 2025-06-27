@@ -60,6 +60,7 @@ set_robust_list: 1
 socket: arg0 == AF_UNIX || arg0 == AF_BLUETOOTH || arg0 == AF_NETLINK
 socketpair: 1
 clone: 1
+clone3: 1
 setsockopt: 1
 geteuid32: 1
 ugetrlimit: 1

@@ -8,6 +8,7 @@ rseq: 1
 brk: 1
 clock_nanosleep: 1
 clone: 1
+clone3: 1
 close: 1
 connect: 1
 epoll_create1: 1
