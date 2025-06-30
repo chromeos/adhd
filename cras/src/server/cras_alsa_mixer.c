@@ -793,8 +793,8 @@ static const char* const main_capture_names[] = {
     "Digital Capture",
 };
 // Names of controls for individual inputs.
-static const char* const input_names[] = {"Mic", "Microphone", "Headset",
-                                          "Mic Volume"};
+static const char* const input_names[] = {"Mic", "Microphone", "Mic Volume",
+                                          "Headset", "Headset Microphone"};
 
 int cras_alsa_mixer_add_controls_by_name_matching_usb(
     struct cras_alsa_mixer* cmix) {
