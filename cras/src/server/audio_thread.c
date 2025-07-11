@@ -602,6 +602,11 @@ static void append_stream_dump_info(struct audio_debug_info* info,
   si->webrtc_apm_reverse_blocks_processed =
       apm_state.webrtc_apm_reverse_blocks_processed;
 
+  if (stream->iodev) {
+    si->cras_dsp_active_ap_effects =
+        cras_dsp_get_active_ap_effects(stream->iodev->dsp_context);
+  }
+
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
   subtract_timespecs(&now, &stream->stream->start_ts, &time_since);
   si->runtime_sec = time_since.tv_sec;

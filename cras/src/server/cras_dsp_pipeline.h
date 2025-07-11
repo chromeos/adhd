@@ -12,6 +12,7 @@ extern "C" {
 
 #include <stdint.h>
 
+#include "cras/src/common/cras_types_internal.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
@@ -198,6 +199,11 @@ int cras_dsp_pipeline_validate(const struct pipeline* pipeline,
 
 // Dumps the current state of the pipeline. For debugging only
 void cras_dsp_pipeline_dump(struct dumper* d, struct pipeline* pipeline);
+
+// Returns the active AP effects in the pipeline modules, and returns 0 if none
+// or pipeline is NULL.
+CRAS_STREAM_ACTIVE_AP_EFFECT cras_dsp_pipeline_get_active_ap_effects(
+    const struct pipeline* pipeline);
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -106,6 +106,11 @@ void cras_dsp_reload_ini();
 // Dump current dsp information to syslog.
 void cras_dsp_dump_info();
 
+// Returns the active AP effects in the pipeline modules of the ctx, and returns
+// 0 if none or ctx is NULL.
+CRAS_STREAM_ACTIVE_AP_EFFECT cras_dsp_get_active_ap_effects(
+    struct cras_dsp_context* ctx);
+
 // Number of channels output.
 unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context* ctx);
 

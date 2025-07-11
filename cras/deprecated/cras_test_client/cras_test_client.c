@@ -1211,6 +1211,11 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
                                         info->streams[i].active_ap_effects);
     printf("\n");
 
+    printf("cras_dsp_active_ap_effects: ");
+    print_cras_stream_active_ap_effects(
+        stdout, info->streams[i].cras_dsp_active_ap_effects);
+    printf("\n");
+
     printf(
         "frame_rate: %u\n"
         "num_channels: %u\n"

@@ -1165,6 +1165,31 @@ void cras_dsp_pipeline_dump(struct dumper* d, struct pipeline* pipeline) {
   dumpf(d, "---- pipeline dump end ----\n");
 }
 
+CRAS_STREAM_ACTIVE_AP_EFFECT cras_dsp_pipeline_get_active_ap_effects(
+    const struct pipeline* pipeline) {
+  if (!pipeline) {
+    return 0;
+  }
+
+  int i;
+  struct instance* instance;
+  CRAS_STREAM_ACTIVE_AP_EFFECT effects = 0;
+  ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
+    struct dsp_module* module = instance->module;
+    if (module) {
+      if (str_equals(instance->plugin->label, CRAS_DSP_MOD_LABEL_GEN_ECHO) ||
+          str_equals(instance->plugin->label,
+                     CRAS_DSP_MOD_LABEL_SPEAKER_PLUGIN) ||
+          str_equals(instance->plugin->label,
+                     CRAS_DSP_MOD_LABEL_HEADPHONE_PLUGIN)) {
+        effects |= cras_processor_effect_to_active_ap_effects(
+            module->get_properties(module));
+      }
+    }
+  }
+  return effects;
+}
+
 int cras_dsp_pipeline_validate(const struct pipeline* pipeline,
                                const struct cras_audio_format* format) {
   if (!pipeline) {

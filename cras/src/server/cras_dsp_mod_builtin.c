@@ -808,6 +808,7 @@ struct cras_processor_data {
   // Parameters set in init.
   int channels;
   enum CrasProcessorEffect effect;
+  enum CrasProcessorEffect instantiated_effect;
 
   // input channels, then output channels.
   float* ports[2 * MULTI_SLICE_MAX_CH];
@@ -833,6 +834,7 @@ static int cras_processor_instantiate(struct dsp_module* module,
   struct CrasProcessorCreateResult result = cras_processor_create(&cfg, NULL);
 
   data->processor = result.plugin_processor;
+  data->instantiated_effect = result.effect;
   return 0;
 }
 
@@ -880,11 +882,16 @@ static void cras_processor_free_module(struct dsp_module* module) {
   free(module);
 }
 
+static int cras_processor_get_properties(struct dsp_module* module) {
+  return ((struct cras_processor_data*)module->data)->instantiated_effect;
+}
+
 static void cras_processor_dump(struct dsp_module* module, struct dumper* d) {
   struct cras_processor_data* data = module->data;
   dumpf(d, "CRAS DSP plugin processor module\n");
-  dumpf(d, "Channels: %d, Effect: %s\n", data->channels,
-        cras_processor_effect_to_str(data->effect));
+  dumpf(d, "Channels: %d, Target effect: %s, Instantiated effect: %s\n",
+        data->channels, cras_processor_effect_to_str(data->effect),
+        cras_processor_effect_to_str(data->instantiated_effect));
 }
 
 static void cras_processor_init_module(struct dsp_module* module,
@@ -908,7 +915,7 @@ static void cras_processor_init_module(struct dsp_module* module,
       .run = cras_processor_run,
       .deinstantiate = cras_processor_deinstantiate,
       .free_module = cras_processor_free_module,
-      .get_properties = empty_get_properties,
+      .get_properties = cras_processor_get_properties,
       .dump = cras_processor_dump,
   };
 }
@@ -1031,11 +1038,11 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
     swap_lr_init_module(module);
   } else if (strcmp(plugin->label, "quad_rotation") == 0) {
     quad_rotation_init_module(module);
-  } else if (strcmp(plugin->label, "gen_echo2") == 0) {
+  } else if (strcmp(plugin->label, CRAS_DSP_MOD_LABEL_GEN_ECHO) == 0) {
     cras_processor_init_module(module, 2, GenerateEcho);
-  } else if (strcmp(plugin->label, "speaker_plugin_effect") == 0) {
+  } else if (strcmp(plugin->label, CRAS_DSP_MOD_LABEL_SPEAKER_PLUGIN) == 0) {
     cras_processor_init_module(module, 2, SpeakerPlugin);
-  } else if (strcmp(plugin->label, "headphone_plugin_effect") == 0) {
+  } else if (strcmp(plugin->label, CRAS_DSP_MOD_LABEL_HEADPHONE_PLUGIN) == 0) {
     cras_processor_init_module(module, 2, HeadphonePlugin);
   } else if (strcmp(plugin->label, "sink") == 0) {
     sink_init_module(module);

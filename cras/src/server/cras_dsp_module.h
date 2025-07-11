@@ -18,6 +18,11 @@ extern "C" {
 // TODO: Study feasibility of increasing this limit.
 #define MAX_EXT_DSP_PORTS 8
 
+static const char CRAS_DSP_MOD_LABEL_GEN_ECHO[] = "gen_echo2";
+static const char CRAS_DSP_MOD_LABEL_SPEAKER_PLUGIN[] = "speaker_plugin_effect";
+static const char CRAS_DSP_MOD_LABEL_HEADPHONE_PLUGIN[] =
+    "headphone_plugin_effect";
+
 // Holds the functions we can use on a dsp module.
 struct dsp_module {
   // Opaque data used by the implementation of this module

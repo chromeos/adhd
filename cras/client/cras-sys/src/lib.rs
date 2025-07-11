@@ -614,6 +614,7 @@ impl Default for audio_stream_debug_info {
             cb_threshold: 0,
             effects: 0,
             active_ap_effects: 0,
+            cras_dsp_active_ap_effects: 0,
             flags: 0,
             frame_rate: 0,
             num_channels: 0,
@@ -676,6 +677,8 @@ pub struct AudioStreamDebugInfo {
     pub effects: u64,
     #[serde(serialize_with = "serialize_active_ap_effects")]
     pub active_ap_effects: u64,
+    #[serde(serialize_with = "serialize_active_ap_effects")]
+    pub cras_dsp_active_ap_effects: u64,
     pub flags: u32,
     pub frame_rate: u32,
     pub num_channels: u32,
@@ -722,6 +725,7 @@ impl TryFrom<audio_stream_debug_info> for AudioStreamDebugInfo {
             cb_threshold: info.cb_threshold,
             effects: info.effects,
             active_ap_effects: info.active_ap_effects,
+            cras_dsp_active_ap_effects: info.cras_dsp_active_ap_effects,
             flags: info.flags,
             frame_rate: info.frame_rate,
             num_channels: info.num_channels,
@@ -761,6 +765,12 @@ impl fmt::Display for AudioStreamDebugInfo {
             f,
             "  Active AP effects: {}",
             CRAS_STREAM_ACTIVE_AP_EFFECT::from_bits_truncate(self.active_ap_effects).joined_name()
+        )?;
+        writeln!(
+            f,
+            "  Active AP effects in CRAS DSP: {}",
+            CRAS_STREAM_ACTIVE_AP_EFFECT::from_bits_truncate(self.cras_dsp_active_ap_effects)
+                .joined_name()
         )?;
         writeln!(f, "  Frame rate: {}", self.frame_rate)?;
         writeln!(f, "  Number of channels: {}", self.num_channels)?;

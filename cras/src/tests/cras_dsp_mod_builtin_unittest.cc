@@ -4,6 +4,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <string>
 
 #include "cras/common/rust_common.h"
 #include "cras/server/s2/s2.h"
@@ -31,6 +32,15 @@ class DspModBuiltinTestSuite : public testing::Test {
     module = NULL;
   }
 
+  std::string GetDumpedString() {
+    char* buf;
+    int size;
+    mem_dumper_get(d, &buf, &size);
+    std::string str(buf, size);
+    mem_dumper_consume(d, size);
+    return str;
+  }
+
   struct dumper* d;
 };
 
@@ -51,30 +61,23 @@ TEST_F(DspModBuiltinTestSuite, DspCrasProcessorPlugin) {
   module = cras_dsp_module_load_builtin(&plugin);
   cras_s2_set_reload_output_plugin_processor(reload_module);
 
-  char* buf;
-  int size;
   module->dump(module, d);
-  mem_dumper_get(d, &buf, &size);
-  EXPECT_THAT(buf,
+  EXPECT_THAT(GetDumpedString(),
               testing::HasSubstr(cras_processor_effect_to_str(SpeakerPlugin)));
-
-  mem_dumper_consume(d, size);
 
   // Disable the output plugin processor, the module should be reloaded.
   cras_s2_set_output_plugin_processor_enabled(false);
   module->dump(module, d);
-  mem_dumper_get(d, &buf, &size);
-  EXPECT_THAT(buf, testing::HasSubstr(cras_processor_effect_to_str(NoEffects)));
-  mem_dumper_consume(d, size);
+  EXPECT_THAT(GetDumpedString(),
+              testing::HasSubstr(cras_processor_effect_to_str(NoEffects)));
 
   // Enable the output plugin processor, the module should be reloaded.
   plugin.label = "headphone_plugin_effect";
   cras_s2_set_output_plugin_processor_enabled(true);
   module->dump(module, d);
-  mem_dumper_get(d, &buf, &size);
   EXPECT_THAT(
-      buf, testing::HasSubstr(cras_processor_effect_to_str(HeadphonePlugin)));
-  mem_dumper_consume(d, size);
+      GetDumpedString(),
+      testing::HasSubstr(cras_processor_effect_to_str(HeadphonePlugin)));
 }
 
 }  //  namespace

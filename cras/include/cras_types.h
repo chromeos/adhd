@@ -505,6 +505,8 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
   uint64_t effects;
   // Effects applied on the stream that run in the CPU
   uint64_t active_ap_effects;
+  // Effects applied on the stream through CRAS DSP that run in the CPU
+  uint64_t cras_dsp_active_ap_effects;
   uint32_t flags;
   uint32_t frame_rate;
   uint32_t num_channels;

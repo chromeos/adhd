@@ -431,6 +431,11 @@ void cras_dsp_dump_info() {
   }
 }
 
+CRAS_STREAM_ACTIVE_AP_EFFECT cras_dsp_get_active_ap_effects(
+    struct cras_dsp_context* ctx) {
+  return ctx ? cras_dsp_pipeline_get_active_ap_effects(ctx->pipeline) : 0;
+}
+
 unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context* ctx) {
   return cras_dsp_pipeline_get_num_output_channels(ctx->pipeline);
 }
