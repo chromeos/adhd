@@ -82,7 +82,10 @@ static void mem_vprintf(struct dumper* dumper, const char* format, va_list ap) {
   while (1) {
     // try to use the remaining space
     int remaining = data->capacity - data->size;
-    n = vsnprintf(data->buf + data->size, remaining, format, ap);
+    va_list ap_copy;
+    va_copy(ap_copy, ap);  // In case realloc() data->buf and vsnprintf() again
+    n = vsnprintf(data->buf + data->size, remaining, format, ap_copy);
+    va_end(ap_copy);
 
     // enough space?
     if (n > -1 && n < remaining) {

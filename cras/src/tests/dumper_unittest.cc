@@ -43,12 +43,21 @@ TEST(DumperTest, MemDumper) {
   EXPECT_STREQ("", buf);
   EXPECT_EQ(0, size);
 
+  // Test if format string is kept.
+  for (i = 0; i < 10; i++) {
+    dumpf(dumper, "%s", "1234567890");
+  }
+  mem_dumper_get(dumper, &buf, &size);
+  EXPECT_EQ(100, strlen(buf));
+  EXPECT_EQ(100, size);
+  mem_dumper_consume(dumper, size);
+
   for (i = 0; i < 1000; i++) {
     dumpf(dumper, "a");
   }
   mem_dumper_get(dumper, &buf, &size);
   EXPECT_EQ(1000, strlen(buf));
-  EXPECT_EQ(1000, 1000);
+  EXPECT_EQ(1000, size);
 
   mem_dumper_free(dumper);
 }
