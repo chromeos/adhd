@@ -398,6 +398,8 @@ enum MAIN_THREAD_LOG_EVENTS {
   MAIN_THREAD_FORCE_RESPECT_UI_GAINS,
   // When sidetone is enabled/disabled.
   MAIN_THREAD_SIDETONE,
+  // When input mute state is set.
+  MAIN_THREAD_SET_INPUT_MUTE,
 };
 
 // There are 8 bits of space for events.

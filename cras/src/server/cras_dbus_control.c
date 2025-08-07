@@ -125,9 +125,8 @@ static bool get_metadata(DBusMessage* message,
 }
 
 // Helper to send an empty reply.
-static __attribute__((warn_unused_result)) DBusHandlerResult send_empty_reply(
-    DBusConnection* conn,
-    DBusMessage* message) {
+static __attribute__((warn_unused_result)) DBusHandlerResult
+send_empty_reply(DBusConnection* conn, DBusMessage* message) {
   DBusMessage* reply;
   dbus_uint32_t serial = 0;
   DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
@@ -146,10 +145,10 @@ static __attribute__((warn_unused_result)) DBusHandlerResult send_empty_reply(
 }
 
 // Helper to send an int32 reply.
-static __attribute__((warn_unused_result)) DBusHandlerResult send_int32_reply(
-    DBusConnection* conn,
-    DBusMessage* message,
-    dbus_int32_t value) {
+static __attribute__((warn_unused_result)) DBusHandlerResult
+send_int32_reply(DBusConnection* conn,
+                 DBusMessage* message,
+                 dbus_int32_t value) {
   DBusMessage* reply;
   dbus_uint32_t serial = 0;
   DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
@@ -174,10 +173,10 @@ unref_reply:
 }
 
 // Helper to send a string reply.
-static __attribute__((warn_unused_result)) DBusHandlerResult send_string_reply(
-    DBusConnection* conn,
-    DBusMessage* message,
-    const char* value) {
+static __attribute__((warn_unused_result)) DBusHandlerResult
+send_string_reply(DBusConnection* conn,
+                  DBusMessage* message,
+                  const char* value) {
   DBusMessage* reply;
   dbus_uint32_t serial = 0;
   DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
@@ -426,6 +425,7 @@ static DBusHandlerResult handle_set_input_mute(DBusConnection* conn,
   }
 
   cras_system_set_capture_mute(new_mute);
+  MAINLOG(main_log, MAIN_THREAD_SET_INPUT_MUTE, new_mute, 0, 0);
 
   return send_empty_reply(conn, message);
 }

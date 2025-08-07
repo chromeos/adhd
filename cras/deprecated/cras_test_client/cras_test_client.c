@@ -1404,6 +1404,9 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
     case MAIN_THREAD_SIDETONE:
       printf("%-30s %s\n", "SIDETONE", data1 ? "enabled" : "disabled");
       break;
+    case MAIN_THREAD_SET_INPUT_MUTE:
+      printf("%-30s mute %u\n", "SET_INPUT_MUTE", data1);
+      break;
     default:
       printf("%-30s\n", "UNKNOWN");
       break;
