@@ -114,5 +114,5 @@ pub unsafe extern "C" fn eq2_len(eq2: *const EQ2, channel: i32) -> i32 {
 #[no_mangle]
 /// Get the biquad specified by index from the EQ2 channell
 pub unsafe extern "C" fn eq2_get_bq(eq2: *const EQ2, channel: i32, index: i32) -> *const Biquad {
-    &((*eq2).biquads[index as usize][channel as usize])
+    &((&(*eq2).biquads)[index as usize][channel as usize])
 }
