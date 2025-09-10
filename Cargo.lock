@@ -1216,6 +1216,7 @@ dependencies = [
  "anyhow",
  "audio_processor",
  "clap",
+ "float-cmp",
  "hound",
  "rustfft",
 ]

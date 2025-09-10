@@ -4,7 +4,10 @@
 
 mod cosine;
 mod delay;
+mod diff;
 pub(crate) mod wav;
+
+use std::process::ExitCode;
 
 use clap::Parser;
 use clap::Subcommand;
@@ -21,6 +24,8 @@ enum Commands {
     Delay(delay::DelayCommand),
     /// Compute the cosine similarity of two WAVE files
     Cosine(cosine::CosineCommand),
+    /// Compare two WAVE files for content equality, tolerating floating-point inaccuracies
+    Diff(diff::DiffCommand),
 }
 
 impl Cli {
@@ -28,12 +33,15 @@ impl Cli {
         match &self.command {
             Commands::Delay(c) => c.run(),
             Commands::Cosine(c) => c.run(),
+            Commands::Diff(c) => c.run(),
         }
     }
 }
 
-fn main() {
+fn main() -> ExitCode {
     if let Err(e) = Cli::parse().run() {
         eprintln!("{e:?}");
+        return ExitCode::from(1);
     }
+    ExitCode::SUCCESS
 }

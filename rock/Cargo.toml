@@ -8,5 +8,6 @@ authors = ["The ChromiumOS Authors"]
 audio_processor = { workspace = true }
 anyhow = { workspace = true }
 clap = { workspace = true }
+float-cmp = { workspace = true }
 hound = { workspace = true }
 rustfft = { workspace = true }
