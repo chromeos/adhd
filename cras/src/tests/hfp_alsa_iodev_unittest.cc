@@ -48,40 +48,86 @@ static int cras_iodev_sr_bt_adapter_get_buffer_called;
 static int cras_iodev_sr_bt_adapter_put_buffer_called;
 static int cras_iodev_sr_bt_adapter_flush_buffer_called;
 
-#define _FAKE_CALL1(name)             \
-  static size_t fake_##name##_called; \
-  static int fake_##name(void* a) {   \
-    fake_##name##_called++;           \
-    return 0;                         \
-  }
-#define _FAKE_CALL2(name)                    \
-  static size_t fake_##name##_called;        \
-  static int fake_##name(void* a, void* b) { \
-    fake_##name##_called++;                  \
-    return 0;                                \
-  }
-#define _FAKE_CALL3(name)                             \
-  static size_t fake_##name##_called;                 \
-  static int fake_##name(void* a, void* b, void* c) { \
-    fake_##name##_called++;                           \
-    return 0;                                         \
-  }
-
-_FAKE_CALL1(open_dev);
-_FAKE_CALL1(update_supported_formats);
-_FAKE_CALL1(configure_dev);
-_FAKE_CALL1(close_dev);
-_FAKE_CALL1(output_underrun);
-_FAKE_CALL2(frames_queued);
-_FAKE_CALL1(delay_frames);
-_FAKE_CALL3(get_buffer);
-_FAKE_CALL2(put_buffer);
-_FAKE_CALL1(flush_buffer);
-_FAKE_CALL3(update_active_node);
-_FAKE_CALL1(start);
-_FAKE_CALL2(no_stream);
-_FAKE_CALL1(is_free_running);
-_FAKE_CALL2(get_valid_frames);
+static size_t fake_open_dev_called;
+static int fake_open_dev(struct cras_iodev* iodev) {
+  fake_open_dev_called++;
+  return 0;
+}
+static size_t fake_update_supported_formats_called;
+static int fake_update_supported_formats(struct cras_iodev* iodev) {
+  fake_update_supported_formats_called++;
+  return 0;
+}
+static size_t fake_configure_dev_called;
+static int fake_configure_dev(struct cras_iodev* iodev) {
+  fake_configure_dev_called++;
+  return 0;
+}
+static size_t fake_close_dev_called;
+static int fake_close_dev(struct cras_iodev* iodev) {
+  fake_close_dev_called++;
+  return 0;
+}
+static size_t fake_output_underrun_called;
+static int fake_output_underrun(struct cras_iodev* iodev) {
+  fake_output_underrun_called++;
+  return 0;
+}
+static size_t fake_frames_queued_called;
+static int fake_frames_queued(const struct cras_iodev* iodev,
+                              struct timespec* tstamp) {
+  fake_frames_queued_called++;
+  return 0;
+}
+static size_t fake_delay_frames_called;
+static int fake_delay_frames(const struct cras_iodev* iodev) {
+  fake_delay_frames_called++;
+  return 0;
+}
+static size_t fake_get_buffer_called;
+static int fake_get_buffer(struct cras_iodev* iodev,
+                           struct cras_audio_area** area,
+                           unsigned* frames) {
+  fake_get_buffer_called++;
+  return 0;
+}
+static size_t fake_put_buffer_called;
+static int fake_put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
+  fake_put_buffer_called++;
+  return 0;
+}
+static size_t fake_flush_buffer_called;
+static int fake_flush_buffer(struct cras_iodev* iodev) {
+  fake_flush_buffer_called++;
+  return 0;
+}
+static size_t fake_update_active_node_called;
+static void fake_update_active_node(struct cras_iodev* iodev,
+                                    unsigned node_idx,
+                                    unsigned dev_enabled) {
+  fake_update_active_node_called++;
+}
+static size_t fake_start_called;
+static int fake_start(struct cras_iodev* iodev) {
+  fake_start_called++;
+  return 0;
+}
+static size_t fake_no_stream_called;
+static int fake_no_stream(struct cras_iodev* iodev, int enable) {
+  fake_no_stream_called++;
+  return 0;
+}
+static size_t fake_is_free_running_called;
+static int fake_is_free_running(const struct cras_iodev* iodev) {
+  fake_is_free_running_called++;
+  return 0;
+}
+static size_t fake_get_valid_frames_called;
+static int fake_get_valid_frames(struct cras_iodev* odev,
+                                 struct timespec* tstamp) {
+  fake_get_valid_frames_called++;
+  return 0;
+}
 
 static void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -112,64 +158,52 @@ static void ResetStubData() {
 
   memset(&fake_sco_out, 0x00, sizeof(fake_sco_out));
 
-  fake_sco_out.open_dev = fake_sco_in.open_dev =
-      (int (*)(struct cras_iodev*))fake_open_dev;
+  fake_sco_out.open_dev = fake_sco_in.open_dev = fake_open_dev;
   fake_open_dev_called = 0;
 
   fake_sco_out.update_supported_formats = fake_sco_in.update_supported_formats =
-      (int (*)(struct cras_iodev*))fake_update_supported_formats;
+      fake_update_supported_formats;
   fake_update_supported_formats_called = 0;
 
-  fake_sco_out.configure_dev = fake_sco_in.configure_dev =
-      (int (*)(struct cras_iodev*))fake_configure_dev;
+  fake_sco_out.configure_dev = fake_sco_in.configure_dev = fake_configure_dev;
   fake_configure_dev_called = 0;
 
-  fake_sco_out.close_dev = fake_sco_in.close_dev =
-      (int (*)(struct cras_iodev*))fake_close_dev;
+  fake_sco_out.close_dev = fake_sco_in.close_dev = fake_close_dev;
   fake_close_dev_called = 0;
 
-  fake_sco_out.frames_queued = fake_sco_in.frames_queued =
-      (int (*)(const struct cras_iodev*, struct timespec*))fake_frames_queued;
+  fake_sco_out.frames_queued = fake_sco_in.frames_queued = fake_frames_queued;
   fake_frames_queued_called = 0;
 
-  fake_sco_out.delay_frames = fake_sco_in.delay_frames =
-      (int (*)(const struct cras_iodev*))fake_delay_frames;
+  fake_sco_out.delay_frames = fake_sco_in.delay_frames = fake_delay_frames;
   fake_delay_frames_called = 0;
 
-  fake_sco_out.get_buffer = fake_sco_in.get_buffer = (int (*)(
-      struct cras_iodev*, struct cras_audio_area**, unsigned*))fake_get_buffer;
+  fake_sco_out.get_buffer = fake_sco_in.get_buffer = fake_get_buffer;
   fake_get_buffer_called = 0;
 
-  fake_sco_out.put_buffer = fake_sco_in.put_buffer =
-      (int (*)(struct cras_iodev*, unsigned))fake_put_buffer;
+  fake_sco_out.put_buffer = fake_sco_in.put_buffer = fake_put_buffer;
   fake_put_buffer_called = 0;
 
-  fake_sco_out.flush_buffer = fake_sco_in.flush_buffer =
-      (int (*)(struct cras_iodev*))fake_flush_buffer;
+  fake_sco_out.flush_buffer = fake_sco_in.flush_buffer = fake_flush_buffer;
   fake_flush_buffer_called = 0;
 
   fake_sco_out.update_active_node = fake_sco_in.update_active_node =
-      (void (*)(struct cras_iodev*, unsigned, unsigned))fake_update_active_node;
+      fake_update_active_node;
   fake_update_active_node_called = 0;
 
-  fake_sco_out.start = fake_sco_in.start =
-      (int (*)(struct cras_iodev*))fake_start;
+  fake_sco_out.start = fake_sco_in.start = fake_start;
   fake_start_called = 0;
 
-  fake_sco_out.no_stream = fake_sco_in.no_stream =
-      (int (*)(struct cras_iodev*, int))fake_no_stream;
+  fake_sco_out.no_stream = fake_sco_in.no_stream = fake_no_stream;
   fake_no_stream_called = 0;
 
   fake_sco_out.is_free_running = fake_sco_in.is_free_running =
-      (int (*)(const struct cras_iodev*))fake_is_free_running;
+      fake_is_free_running;
   fake_is_free_running_called = 0;
 
-  fake_sco_out.output_underrun =
-      (int (*)(struct cras_iodev*))fake_output_underrun;
+  fake_sco_out.output_underrun = fake_output_underrun;
   fake_output_underrun_called = 0;
 
-  fake_sco_out.get_valid_frames =
-      (int (*)(struct cras_iodev*, struct timespec*))fake_get_valid_frames;
+  fake_sco_out.get_valid_frames = fake_get_valid_frames;
   fake_get_valid_frames_called = 0;
 }
 
