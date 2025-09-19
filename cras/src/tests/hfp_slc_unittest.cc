@@ -4,6 +4,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <poll.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -19,7 +20,7 @@ static int cras_observer_notify_bt_batter_changed_called;
 static int slc_initialized_cb_called;
 static int slc_disconnected_cb_called;
 static int cras_system_add_select_fd_called;
-static void (*slc_cb)(void* data);
+static void (*slc_cb)(void* data, int revents);
 static void* slc_cb_data;
 static int fake_errno;
 static struct cras_bt_device* device =
@@ -67,7 +68,7 @@ TEST(HfpSlc, InitializeSlc) {
 
   err = write(sock[1], "AT+CIND=?\r", 10);
   ASSERT_EQ(10, err);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Assert "\r\n+CIND: ... \r\n" response is received
@@ -86,7 +87,7 @@ TEST(HfpSlc, InitializeSlc) {
 
   err = write(sock[1], "AT+CMER=3,0,0,1\r", 16);
   ASSERT_EQ(16, err);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   ASSERT_EQ(1, slc_initialized_cb_called);
 
@@ -99,7 +100,7 @@ TEST(HfpSlc, InitializeSlc) {
 
   err = write(sock[1], "AT+VGS=13\r", 10);
   ASSERT_EQ(err, 10);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   err = read(sock[1], buf, 256);
 
@@ -125,7 +126,7 @@ TEST(HfpSlc, DisconnectSlc) {
   close(sock[0]);
   close(sock[1]);
   fake_errno = 104;
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   ASSERT_EQ(1, slc_disconnected_cb_called);
 
@@ -148,12 +149,12 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
   // Fake that HF supports HF indicator.
   err = write(sock[1], "AT+BRSF=256\r", 12);
   ASSERT_EQ(err, 12);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   err = write(sock[1], "AT+CIND=?\r", 10);
   ASSERT_EQ(10, err);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Assert "\r\n+CIND: ... \r\n" response is received
@@ -172,7 +173,7 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
 
   err = write(sock[1], "AT+CMER=3,0,0,1\r", 16);
   ASSERT_EQ(16, err);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   ASSERT_NE((void*)NULL, cras_tm_timer_cb);
   ASSERT_EQ(0, slc_initialized_cb_called);
@@ -185,7 +186,7 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
 
   err = write(sock[1], "AT+BIND=2\r", 10);
   ASSERT_EQ(err, 10);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   // Assert "\r\nOK\r\n" response is received
   err = read(sock[1], buf, 256);
@@ -195,7 +196,7 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
 
   err = write(sock[1], "AT+BIND=?\r", 10);
   ASSERT_EQ(err, 10);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   // Assert "\r\n+BIND: (2)\r\n" response is received
   err = read(sock[1], buf, 256);
@@ -207,7 +208,7 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
 
   err = write(sock[1], "AT+BIND?\r", 9);
   ASSERT_EQ(err, 9);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   // Assert "\r\n+BIND: 2,1\r\n" response is received
   err = read(sock[1], buf, 256);
@@ -221,7 +222,7 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
 
   err = write(sock[1], "AT+VGS=13\r", 10);
   ASSERT_EQ(err, 10);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   err = read(sock[1], buf, 256);
 
@@ -254,19 +255,19 @@ TEST(HfpSlc, CodecNegotiation) {
   // Fake that HF supports codec negotiation.
   err = write(sock[1], "AT+BRSF=128\r", 12);
   ASSERT_EQ(err, 12);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Fake that HF supports mSBC codec.
   err = write(sock[1], "AT+BAC=1,2\r", 11);
   ASSERT_EQ(err, 11);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Fake event reporting command to indicate SLC established.
   err = write(sock[1], "AT+CMER=3,0,0,1\r", 16);
   ASSERT_EQ(err, 16);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   // Assert that AG side prefers mSBC codec.
   codec = hfp_slc_get_selected_codec(handle);
@@ -285,7 +286,7 @@ TEST(HfpSlc, CodecNegotiation) {
 
   err = write(sock[1], "AT+VGS=9\r", 9);
   ASSERT_EQ(err, 9);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   hfp_slc_destroy(handle);
   cras_bt_event_log_deinit(btlog);
@@ -311,19 +312,19 @@ TEST(HfpSlc, CodecNegotiationCapabilityChanged) {
   // Fake that HF supports codec negotiation.
   err = write(sock[1], "AT+BRSF=128\r", 12);
   ASSERT_EQ(err, 12);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Fake that HF supports mSBC codec.
   err = write(sock[1], "AT+BAC=1,2\r", 11);
   ASSERT_EQ(err, 11);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Fake event reporting command to indicate SLC established.
   err = write(sock[1], "AT+CMER=3,0,0,1\r", 16);
   ASSERT_EQ(err, 16);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
 
   // Assert that AG side prefers mSBC codec.
   codec = hfp_slc_get_selected_codec(handle);
@@ -343,7 +344,7 @@ TEST(HfpSlc, CodecNegotiationCapabilityChanged) {
   // Fake that HF changes supported codecs.
   err = write(sock[1], "AT+BAC=1\r", 9);
   ASSERT_EQ(err, 9);
-  slc_cb(slc_cb_data);
+  slc_cb(slc_cb_data, POLLIN);
   err = read(sock[1], buf, 256);
 
   // Fake HF selects CVSD codec.
@@ -432,8 +433,9 @@ extern "C" {
 struct cras_bt_event_log* btlog;
 
 int cras_system_add_select_fd(int fd,
-                              void (*callback)(void* data),
-                              void* callback_data) {
+                              void (*callback)(void* data, int revents),
+                              void* callback_data,
+                              int events) {
   cras_system_add_select_fd_called++;
   slc_cb = callback;
   slc_cb_data = callback_data;
@@ -483,7 +485,7 @@ int cras_poll(struct pollfd* fds,
 }
 
 void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {}
-}
+}  // extern "C"
 
 // For telephony
 struct cras_telephony_handle* cras_telephony_get() {
