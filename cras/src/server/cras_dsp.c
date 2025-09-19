@@ -289,6 +289,10 @@ static void cmd_reload_ini() {
   }
 }
 
+static void cmd_reload_ini_cb(struct cras_main_message* msg, void* arg) {
+  cmd_reload_ini();
+}
+
 void notify_reload_cras_dsp() {
   struct cras_main_message msg = {
       .length = sizeof(msg),
@@ -303,7 +307,7 @@ void cras_dsp_init(const char* filename) {
   dsp_enable_flush_denormal_to_zero();
   ini_filename = strdup(filename);
   syslog_dumper = syslog_dumper_create(LOG_WARNING);
-  cras_main_message_add_handler(CRAS_MAIN_RELOAD_DSP, cmd_reload_ini, NULL);
+  cras_main_message_add_handler(CRAS_MAIN_RELOAD_DSP, cmd_reload_ini_cb, NULL);
   cras_s2_set_reload_output_plugin_processor(notify_reload_cras_dsp);
   cmd_reload_ini();
 }
