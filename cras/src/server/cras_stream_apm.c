@@ -1107,7 +1107,7 @@ static int send_apm_message(enum APM_THREAD_CMD cmd) {
 
 /* Triggered in main thread when devices state has changed in APM
  * reverse modules. */
-static void on_output_devices_changed() {
+static void on_output_devices_changed(void) {
   int rc;
   /* Send a message to audio thread because we need to access
    * |active_apms|. */

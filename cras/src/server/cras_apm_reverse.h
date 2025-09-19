@@ -44,7 +44,7 @@ typedef int (*process_reverse_needed_t)(bool default_reverse,
 /* Function to be triggered when the output devices has changed and
  * cause APM reverse modules state changes. Called in main thread.
  */
-typedef void (*output_devices_changed_t)();
+typedef void (*output_devices_changed_t)(void);
 
 /* Initializes APM reverse module with utility functions passed in. Called
  * in main thread.
