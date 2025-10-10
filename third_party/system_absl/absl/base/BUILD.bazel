@@ -48,6 +48,21 @@ alias(
 )
 
 alias(
+    name = "no_destructor",
+    actual = "@pkg_config//absl",
+)
+
+alias(
+    name = "nullability",
+    actual = "@pkg_config//absl",
+)
+
+alias(
+    name = "prefetch",
+    actual = "@pkg_config//absl",
+)
+
+alias(
     name = "spinlock_test_common",
     actual = "@pkg_config//absl",
 )

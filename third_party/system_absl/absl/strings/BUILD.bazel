@@ -3,6 +3,11 @@
 package(default_visibility = ["//visibility:public"])
 
 alias(
+    name = "charset",
+    actual = "@pkg_config//absl",
+)
+
+alias(
     name = "cord",
     actual = "@pkg_config//absl",
 )
@@ -23,12 +28,22 @@ alias(
 )
 
 alias(
+    name = "has_ostream_operator",
+    actual = "@pkg_config//absl",
+)
+
+alias(
     name = "internal",
     actual = "@pkg_config//absl",
 )
 
 alias(
     name = "str_format",
+    actual = "@pkg_config//absl",
+)
+
+alias(
+    name = "string_view",
     actual = "@pkg_config//absl",
 )
 

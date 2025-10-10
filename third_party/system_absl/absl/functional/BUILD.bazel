@@ -16,3 +16,8 @@ alias(
     name = "function_ref",
     actual = "@pkg_config//absl",
 )
+
+alias(
+    name = "overload",
+    actual = "@pkg_config//absl",
+)

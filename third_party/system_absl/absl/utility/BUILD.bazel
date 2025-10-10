@@ -3,6 +3,11 @@
 package(default_visibility = ["//visibility:public"])
 
 alias(
+    name = "if_constexpr",
+    actual = "@pkg_config//absl",
+)
+
+alias(
     name = "utility",
     actual = "@pkg_config//absl",
 )

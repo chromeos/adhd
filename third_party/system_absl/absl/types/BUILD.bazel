@@ -28,11 +28,6 @@ alias(
 )
 
 alias(
-    name = "conformance_testing",
-    actual = "@pkg_config//absl",
-)
-
-alias(
     name = "optional",
     actual = "@pkg_config//absl",
 )
