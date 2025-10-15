@@ -658,6 +658,7 @@ cc_library(
         "//audio_processor/c:plugin_processor",
         "//cras/common:rust_common_cc",
         "//cras/server:cras_thread",
+        "//cras/server:cras_trace",
         "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features",

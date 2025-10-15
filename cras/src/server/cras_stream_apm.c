@@ -6,6 +6,7 @@
 #include "cras/src/server/cras_stream_apm.h"
 
 #include <inttypes.h>
+#include <percetto.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -13,6 +14,7 @@
 #include "cras/common/check.h"
 #include "cras/common/rust_common.h"
 #include "cras/server/cras_thread.h"
+#include "cras/server/cras_trace.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/processor/processor.h"
@@ -212,6 +214,8 @@ static struct cras_apm* get_apm_wrapper_processor(struct plugin_processor* p) {
 static enum status apm_wrapper_processor_run(struct plugin_processor* p,
                                              const struct multi_slice* input,
                                              struct multi_slice* output) {
+  TRACE_EVENT(audio, __func__);
+
   struct cras_apm* apm = get_apm_wrapper_processor(p);
   webrtc_apm_process_stream_f(apm->apm_ptr, input->channels,
                               apm->fmt.frame_rate, input->data);

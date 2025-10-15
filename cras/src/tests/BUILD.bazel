@@ -1910,6 +1910,7 @@ cc_test(
         "//audio_processor/c:plugin_processor",
         "//cras/server:cras_thread",
         "//cras/server:cras_thread_testonly",
+        "//cras/server:cras_trace",
         "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features",
