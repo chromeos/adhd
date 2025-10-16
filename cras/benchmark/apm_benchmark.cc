@@ -31,7 +31,7 @@ class BM_Apm : public benchmark::Fixture {
     const struct WebRtcApmConfig webrtc_apm_config = {
         .enforce_aec_on = true,
         .enforce_ns_on = false,
-        .enforce_agc_on = true,
+        .enforce_agc_on = false,
     };
     apm = webrtc_apm_create_for_testing(
         /*num_channels=*/2, rate, /*aec_ini=*/NULL, /*apm_ini=*/NULL,
