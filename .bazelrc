@@ -27,6 +27,10 @@ build --copt=-Wno-error=unused-function
 
 # Compiler-specific strict configs.
 build:clang-strict --copt=-Werror
+# Need this until we pick up https://github.com/abseil/abseil-cpp/commit/a4950fba03217d0ea102c98ce795c189bba50383
+# In file included from external/com_google_absl/absl/base/internal/nullability_impl.h:22:
+# external/com_google_absl/absl/meta/type_traits.h:511:36: error: builtin __is_trivially_relocatable is deprecated; use __builtin_is_cpp_trivially_relocatable instead [-Werror,-Wdeprecated-builtins]
+build:clang-strict --copt=-Wno-deprecated-builtins
 
 build:gcc-strict --copt=-Werror
 build:gcc-strict --copt=-Wno-sign-compare
