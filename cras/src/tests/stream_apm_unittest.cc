@@ -871,10 +871,7 @@ int webrtc_apm_process_reverse_stream_f(webrtc_apm ptr,
   webrtc_apm_process_reverse_stream_f_called++;
   return 0;
 }
-int webrtc_apm_aec_dump(webrtc_apm ptr,
-                        void** work_queue,
-                        int start,
-                        FILE* handle) {
+int webrtc_apm_aec_dump(webrtc_apm ptr, int start, FILE* handle) {
   return 0;
 }
 void webrtc_apm_enable_effects(webrtc_apm ptr,

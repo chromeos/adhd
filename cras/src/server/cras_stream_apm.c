@@ -89,9 +89,6 @@ struct cras_apm {
   // The cras_audio_area used for copying processed data to client
   // stream.
   struct cras_audio_area* area;
-  // A task queue instance created and destroyed by
-  // libwebrtc_apm.
-  void* work_queue;
   // Flag to indicate whether content has
   // beenobserved in the left or right channel which is not identical.
   bool only_symmetric_content_in_render;
@@ -477,7 +474,7 @@ void possibly_start_apm_aec_dump(struct cras_stream_apm* stream,
   }
 
   // webrtc apm will own the FILE handle and close it.
-  int rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 1, handle);
+  int rc = webrtc_apm_aec_dump(apm->apm_ptr, 1, handle);
   if (rc) {
     syslog(LOG_WARNING, "Start apm aec dump failed, rc %d", rc);
   }
@@ -494,7 +491,7 @@ void possibly_stop_apm_aec_dump(struct cras_stream_apm* stream,
     return;
   }
 
-  int rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 0, NULL);
+  int rc = webrtc_apm_aec_dump(apm->apm_ptr, 0, NULL);
   if (rc) {
     syslog(LOG_WARNING, "Stop apm aec dump failed, rc %d", rc);
   }
@@ -779,7 +776,6 @@ struct cras_apm* cras_stream_apm_add(
   }
 
   apm->idev = idev;
-  apm->work_queue = NULL;
 
   /* WebRTC APM wants 1/100 second equivalence of data(a block) to
    * process. Allocate buffer based on how many frames are in this block.
