@@ -146,7 +146,7 @@ static int pcm_cras_process_cb(struct cras_client* client,
   struct snd_pcm_cras* pcm_cras;
   const snd_pcm_channel_area_t* areas;
   snd_pcm_uframes_t copied_frames;
-  char empty_byte;
+  char empty_byte = 0;
   size_t chan, frame_bytes, sample_bytes;
   int rc;
   uint8_t* samples;
