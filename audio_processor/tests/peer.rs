@@ -3,31 +3,19 @@
 // found in the LICENSE file.
 
 use audio_processor::config;
-use audio_processor::processors::peer::BlockingSeqPacketProcessor;
+use audio_processor::processors::peer::AudioWorkerSubprocessFactory;
+use audio_processor::processors::peer::ManagedBlockingSeqPacketProcessor;
 use audio_processor::AudioProcessor;
 use audio_processor::Format;
 use audio_processor::MultiBuffer;
-use command_fds::CommandFdExt;
-use command_fds::FdMapping;
 
 #[test]
 fn test_peer() {
-    let audio_worker_binary = env!("CARGO_BIN_EXE_audio-worker");
-    dbg!(audio_worker_binary);
-    let (host_fd, peer_fd) =
-        audio_processor::processors::peer::create_socketpair().expect("create socketpair");
-
-    let _child = std::process::Command::new(audio_worker_binary)
-        .fd_mappings(vec![FdMapping {
-            parent_fd: peer_fd,
-            child_fd: 3,
-        }])
-        .expect(".fd_mappings()")
-        .spawn()
-        .expect(".spawn()");
-
-    let mut processor = BlockingSeqPacketProcessor::new(
-        host_fd,
+    let audio_worker_executable = env!("CARGO_BIN_EXE_audio-worker");
+    let factory =
+        AudioWorkerSubprocessFactory::default().with_executable_path(audio_worker_executable);
+    let mut processor = ManagedBlockingSeqPacketProcessor::new(
+        &factory,
         Format {
             channels: 2,
             block_size: 4,

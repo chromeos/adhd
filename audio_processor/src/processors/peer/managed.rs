@@ -91,12 +91,26 @@ impl Drop for ThreadedWorkerHandle {
     }
 }
 
-#[derive(Default)]
 pub struct AudioWorkerSubprocessFactory {
+    audio_worker_executable: &'static str,
     set_thread_priority: bool,
 }
 
+impl Default for AudioWorkerSubprocessFactory {
+    fn default() -> Self {
+        Self {
+            audio_worker_executable: "audio-worker",
+            set_thread_priority: false,
+        }
+    }
+}
+
 impl AudioWorkerSubprocessFactory {
+    pub fn with_executable_path(mut self, executable_path: &'static str) -> Self {
+        self.audio_worker_executable = executable_path;
+        self
+    }
+
     pub fn with_set_thread_priority(mut self) -> Self {
         self.set_thread_priority = true;
         self
@@ -105,7 +119,7 @@ impl AudioWorkerSubprocessFactory {
 
 impl WorkerFactory for AudioWorkerSubprocessFactory {
     fn create(&self, worker_fd: OwnedFd) -> anyhow::Result<Box<dyn WorkerHandle>> {
-        let mut command = std::process::Command::new("audio-worker");
+        let mut command = std::process::Command::new(&self.audio_worker_executable);
         command
             .fd_mappings(vec![FdMapping {
                 parent_fd: worker_fd,
@@ -115,7 +129,9 @@ impl WorkerFactory for AudioWorkerSubprocessFactory {
         if self.set_thread_priority {
             command.env(AUDIO_WORKER_SET_THREAD_PRIORITY, "1");
         }
-        let child = command.spawn().context("spawn audio-worker")?;
+        let child = command
+            .spawn()
+            .with_context(|| format!("spawn {}", self.audio_worker_executable))?;
         Ok(Box::new(AudioWorkerSubprocessHandle { child }))
     }
 }
