@@ -25,6 +25,15 @@ static enum status failing_run(struct plugin_processor* p,
   return ErrOther;
 }
 
+static enum status abort_run(struct plugin_processor* p,
+                             const struct multi_slice* in,
+                             struct multi_slice* out) {
+  (void)p;
+  (void)in;
+  (void)out;
+  abort();
+}
+
 static enum status get_output_frame_rate_48k(struct plugin_processor* p,
                                              size_t* frame_rate) {
   *frame_rate = 48000;
@@ -145,6 +154,33 @@ enum status bad_plugin_failing_get_output_frame_rate_create(
   };
 
   struct plugin_processor* p = calloc(1, sizeof(*p));
+  p->ops = &ops;
+  *out = p;
+  return StatusOk;
+}
+
+enum status bad_plugin_abort_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config) {
+  (void)out;
+  (void)config;
+  abort();
+}
+
+enum status bad_plugin_abort_run_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config) {
+  (void)config;
+  static const struct plugin_processor_ops ops = {
+      .run = abort_run,
+      .destroy = free_destroy,
+      .get_output_frame_rate = get_output_frame_rate_48k,
+  };
+
+  struct plugin_processor* p = calloc(1, sizeof(*p));
+  if (!p) {
+    return ErrOutOfMemory;
+  }
   p->ops = &ops;
   *out = p;
   return StatusOk;

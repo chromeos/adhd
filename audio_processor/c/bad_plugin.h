@@ -42,6 +42,14 @@ enum status bad_plugin_failing_get_output_frame_rate_create(
     struct plugin_processor** out,
     const struct plugin_processor_config* config);
 
+enum status bad_plugin_abort_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config);
+
+enum status bad_plugin_abort_run_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config);
+
 #ifdef __cplusplus
 }
 #endif
