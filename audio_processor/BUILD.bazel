@@ -88,9 +88,14 @@ rust_binary(
 rust_test_suite(
     name = "integration_tests",
     srcs = glob(["tests/*.rs"]),
+    crate_features = ["bazel"],
     data = [
         ":audio-worker",
+        "//audio_processor/c:test_plugins",
     ],
+    env = {
+        "LIBTEST_PLUGINS_SO": "$(rootpath //audio_processor/c:test_plugins)",
+    },
     rustc_env = {
         "CARGO_BIN_EXE_audio-worker": "$(rootpath audio-worker)",
     },
