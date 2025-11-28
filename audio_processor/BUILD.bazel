@@ -13,6 +13,7 @@ rust_library(
         include = ["src/**/*.rs"],
         exclude = ["src/bin/*.rs"],
     ),
+    crate_features = ["bazel"],
     edition = "2021",
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     visibility = ["//visibility:public"],

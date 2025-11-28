@@ -15,3 +15,4 @@ pub use managed::WorkerFactory;
 pub use managed::WorkerHandle;
 pub use messages::create_socketpair;
 pub use worker::Worker;
+pub use worker::AUDIO_WORKER_PIPELINE_TIMEOUT_SEC;

@@ -5,6 +5,7 @@
 #include "bad_plugin.h"
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "audio_processor/c/plugin_processor.h"
 
@@ -32,6 +33,16 @@ static enum status abort_run(struct plugin_processor* p,
   (void)in;
   (void)out;
   abort();
+}
+
+static enum status hanging_run(struct plugin_processor* p,
+                               const struct multi_slice* in,
+                               struct multi_slice* out) {
+  (void)p;
+  (void)in;
+  (void)out;
+  pause();
+  return StatusOk;  // Unreachable
 }
 
 static enum status get_output_frame_rate_48k(struct plugin_processor* p,
@@ -173,6 +184,34 @@ enum status bad_plugin_abort_run_create(
   (void)config;
   static const struct plugin_processor_ops ops = {
       .run = abort_run,
+      .destroy = free_destroy,
+      .get_output_frame_rate = get_output_frame_rate_48k,
+  };
+
+  struct plugin_processor* p = calloc(1, sizeof(*p));
+  if (!p) {
+    return ErrOutOfMemory;
+  }
+  p->ops = &ops;
+  *out = p;
+  return StatusOk;
+}
+
+enum status bad_plugin_hanging_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config) {
+  (void)out;
+  (void)config;
+  pause();
+  return StatusOk;  // Unreachable
+}
+
+enum status bad_plugin_hanging_run_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config) {
+  (void)config;
+  static const struct plugin_processor_ops ops = {
+      .run = hanging_run,
       .destroy = free_destroy,
       .get_output_frame_rate = get_output_frame_rate_48k,
   };

@@ -132,3 +132,4 @@ mkdir: 1
 mkdirat: 1
 sigaltstack: 1
 pselect6: 1
+setitimer: 1

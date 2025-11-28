@@ -10,6 +10,7 @@ use std::os::fd::OwnedFd;
 
 use anyhow::bail;
 use anyhow::Context;
+use nix::unistd::alarm;
 use zerocopy::AsBytes;
 
 use super::messages::multi_slice_from_buf;
@@ -29,6 +30,11 @@ use crate::Pipeline;
 
 pub(super) const AUDIO_WORKER_SET_THREAD_PRIORITY: &'static str =
     "AUDIO_WORKER_SET_THREAD_PRIORITY";
+
+#[cfg(not(feature = "bazel"))]
+pub const AUDIO_WORKER_PIPELINE_TIMEOUT_SEC: u32 = 10;
+#[cfg(feature = "bazel")]
+pub const AUDIO_WORKER_PIPELINE_TIMEOUT_SEC: u32 = 1;
 
 pub struct Worker<'a> {
     fd: BorrowedFd<'a>,
@@ -58,10 +64,13 @@ impl<'a> Worker<'a> {
         let config: Init =
             serde_json::from_slice(&buf[..payload_len]).context("serde_json::from_slice")?;
 
+        // Set an alarm to terminate the worker if the pipeline takes too long to create.
+        alarm::set(AUDIO_WORKER_PIPELINE_TIMEOUT_SEC);
         let pipeline = crate::config::PipelineBuilder::new(config.input_format)
             .build(config.config)
             .context("build_pipeline")?;
         let output_format = pipeline.get_output_format();
+        alarm::cancel();
 
         send_str(
             fd,
@@ -92,7 +101,11 @@ impl<'a> Worker<'a> {
             RequestOp::Init => bail!("unexpected request op {request_op:?} after init"),
             RequestOp::Process => {
                 let input = multi_slice_from_buf(input_buffer, payload_len, input_format.channels)?;
+
+                // Set an alarm to terminate the worker if the pipeline takes too long to process.
+                alarm::set(AUDIO_WORKER_PIPELINE_TIMEOUT_SEC);
                 let output = pipeline.process(input).context("pipeline.process")?;
+                alarm::cancel();
 
                 Ok(Response::AudioOutput(output))
             }

@@ -50,6 +50,14 @@ enum status bad_plugin_abort_run_create(
     struct plugin_processor** out,
     const struct plugin_processor_config* config);
 
+enum status bad_plugin_hanging_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config);
+
+enum status bad_plugin_hanging_run_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config);
+
 #ifdef __cplusplus
 }
 #endif
