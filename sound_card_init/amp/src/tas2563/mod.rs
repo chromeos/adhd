@@ -273,19 +273,17 @@ impl Amp for TAS2563 {
         }
 
         info!("Get applied rdc channel {}", ch);
-        let data = match self.setting.rdc_ranges.len() {
-            2 => {
-                &(self
-                    .card
-                    .control_by_name::<TwoChannelsControl>(&self.setting.cal_data)?
-                    .get()?)[..]
-            }
-            4 => {
-                &(self
-                    .card
-                    .control_by_name::<FourChannelsControl>(&self.setting.cal_data)?
-                    .get()?)[..]
-            }
+        let data: Box<[u8]> = match self.setting.rdc_ranges.len() {
+            2 => self
+                .card
+                .control_by_name::<TwoChannelsControl>(&self.setting.cal_data)?
+                .get()?
+                .into(),
+            4 => self
+                .card
+                .control_by_name::<FourChannelsControl>(&self.setting.cal_data)?
+                .get()?
+                .into(),
             _ => {
                 return Err(Error::InvalidChannelNumber(
                     self.setting.num_channels().try_into().unwrap(),
