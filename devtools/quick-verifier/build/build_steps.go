@@ -210,7 +210,7 @@ func ossFuzzSetupSteps() *buildplan.Sequence {
 				Dir:        "oss-fuzz-setup",
 			},
 			{
-				Name:       "gcr.io/cloud-builders/docker",
+				Name:       archlinuxBuilder,
 				Entrypoint: "python3",
 				Args:       []string{"oss-fuzz/infra/helper.py", "build_image", "--pull", "cras"},
 				Dir:        "oss-fuzz-setup",
@@ -233,7 +233,7 @@ func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
 		}
 	} else {
 		checkStep = &buildplan.Step{
-			Name:       "gcr.io/cloud-builders/docker",
+			Name:       archlinuxBuilder,
 			Entrypoint: "python3",
 			Args:       []string{"oss-fuzz/infra/helper.py", "check_build", "--sanitizer", sanitizer, "--engine", engine, "cras"},
 			Dir:        id,
@@ -243,7 +243,7 @@ func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
 		id,
 		buildplan.Command(archlinuxBuilder, "rsync", "-ah", "oss-fuzz-setup/", id+"/"),
 		&buildplan.Step{
-			Name:       "gcr.io/cloud-builders/docker",
+			Name:       archlinuxBuilder,
 			Entrypoint: "python3",
 			Args:       []string{"oss-fuzz/infra/helper.py", "build_fuzzers", "--sanitizer", sanitizer, "--engine", engine, "cras", "/workspace/" + id + "/adhd"},
 			Dir:        id,

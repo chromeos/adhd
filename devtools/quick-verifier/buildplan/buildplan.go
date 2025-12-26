@@ -86,6 +86,10 @@ func (s *Sequence) AsCloudBuild() []*cloudbuildpb.BuildStep {
 			Name:       step.Name,
 			Entrypoint: step.Entrypoint,
 			Args:       step.Args,
+			Env: []string{
+				// Workaround: Error response from daemon: client version 1.52 is too new. Maximum supported API version is 1.41
+				"DOCKER_API_VERSION=1.41",
+			},
 		}
 		cbStep := cbSteps[i]
 

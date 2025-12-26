@@ -2,6 +2,9 @@
   "steps": [
     {
       "name": "gcr.io/cloud-builders/git",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "adhd"
       ],
@@ -10,6 +13,9 @@
     },
     {
       "name": "gcr.io/cloud-builders/git",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         ".",
         "-mindepth",
@@ -33,6 +39,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -53,6 +62,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "version"
       ],
@@ -71,6 +83,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -91,6 +106,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "--check"
       ],
@@ -109,6 +127,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -129,6 +150,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "dir": "/workspace-rust_generate",
       "id": "rust_generate:1",
       "waitFor": [
@@ -144,6 +168,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "diff",
         "--exit-code"
@@ -163,6 +190,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -183,6 +213,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "test",
         "//...",
@@ -206,6 +239,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -226,6 +262,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "test",
         "//...",
@@ -250,6 +289,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -270,6 +312,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "test",
         "//...",
@@ -294,6 +339,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -314,6 +362,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "test",
         "//...",
@@ -338,6 +389,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -358,6 +412,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "install",
         "dbus-codegen"
@@ -377,6 +434,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "build",
         "--workspace"
@@ -396,6 +456,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "test",
         "--workspace"
@@ -415,6 +478,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "test",
         "//...",
@@ -441,6 +507,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -461,6 +530,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "devtools/kythe/build_kzip.bash",
         "."
@@ -480,6 +552,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz-setup"
       ],
@@ -491,6 +566,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -505,6 +583,9 @@
     },
     {
       "name": "gcr.io/cloud-builders/git",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "clone",
         "--depth=1",
@@ -518,7 +599,10 @@
       "entrypoint": "git"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "build_image",
@@ -534,6 +618,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "oss-fuzz-setup/",
@@ -546,7 +633,10 @@
       "entrypoint": "rsync"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "build_fuzzers",
@@ -565,7 +655,10 @@
       "entrypoint": "python3"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "check_build",
@@ -584,6 +677,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "oss-fuzz-setup/",
@@ -596,7 +692,10 @@
       "entrypoint": "rsync"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "build_fuzzers",
@@ -615,7 +714,10 @@
       "entrypoint": "python3"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "check_build",
@@ -634,6 +736,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "oss-fuzz-setup/",
@@ -646,7 +751,10 @@
       "entrypoint": "rsync"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "build_fuzzers",
@@ -665,7 +773,10 @@
       "entrypoint": "python3"
     },
     {
-      "name": "gcr.io/cloud-builders/docker",
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "oss-fuzz/infra/helper.py",
         "check_build",
@@ -684,6 +795,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "-ah",
         "/workspace/adhd/",
@@ -704,6 +818,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "build",
         "//...",
@@ -725,6 +842,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "run",
         "//:compdb"
@@ -744,6 +864,9 @@
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
       "args": [
         "devtools/cppcheck.sh",
         "/workspace-cppcheck/compile_commands.json"
