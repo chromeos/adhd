@@ -57,6 +57,21 @@
 
 static struct fl_media* active_fm = NULL;
 
+// Helper to send an empty reply.
+static void send_empty_reply(DBusConnection* conn, DBusMessage* message) {
+  DBusMessage* reply;
+  dbus_uint32_t serial = 0;
+
+  reply = dbus_message_new_method_return(message);
+  if (!reply) {
+    return;
+  }
+
+  dbus_connection_send(conn, reply, &serial);
+
+  dbus_message_unref(reply);
+}
+
 struct fl_media* floss_media_get_active_fm() {
   return active_fm;
 }
@@ -1318,6 +1333,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     if (!active_fm) {
       syslog(LOG_WARNING, "Floss media object not ready");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -1333,6 +1349,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       free(codec);
     }
 
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnBluetoothAudioDeviceRemoved")) {
@@ -1346,6 +1363,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -1353,6 +1371,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occurred in removing bluetooth device %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnAbsoluteVolumeSupportedChanged")) {
@@ -1364,6 +1383,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -1375,6 +1395,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
              "Error occurred in setting absolute volume supported change %d",
              rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnAbsoluteVolumeChanged")) {
@@ -1386,6 +1407,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %u", volume);
@@ -1394,6 +1416,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occurred in updating hardware volume %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnHfpVolumeChanged")) {
@@ -1404,11 +1427,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
              "Failed to get volume and address from OnHfpVolumeChanged: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnHfpVolumeChanged %u", volume);
@@ -1417,6 +1442,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occurred in updating hfp volume %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnHfpAudioDisconnected")) {
@@ -1426,11 +1452,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get address from OnHfpAudioDisconnected: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnHfpAudioDisconnected");
@@ -1440,6 +1468,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Error occurred in handling hfp audio disconnection %d",
              rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message,
                                          BT_TELEPHONY_CALLBACK_INTERFACE,
@@ -1451,10 +1480,12 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get args from OnTelephonyEvent: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnTelephonyEvent: event: %u state: %u", telephony_event,
@@ -1465,6 +1496,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR,
              "Error occurred in handling handle_on_hfp_telephony_event %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaGroupConnected")) {
@@ -1475,6 +1507,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
              "Failed to get group_id and name from OnLeaGroupConnected: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -1482,6 +1515,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     if (!active_fm) {
       syslog(LOG_WARNING, "Floss media object not ready");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -1490,6 +1524,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Error occured in adding LEA group %d", rc);
     }
 
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaGroupDisconnected")) {
@@ -1503,6 +1538,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
@@ -1510,6 +1546,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occured in removing LEA group %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaGroupStatus")) {
@@ -1520,11 +1557,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get args from OnLeaGroupStatus: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnLeaGroupStatus %d, %d", group_id, status);
@@ -1533,6 +1572,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occured in updating group status %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaGroupNodeStatus")) {
@@ -1544,11 +1584,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get args from OnLeaGroupNodeStatus: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnLeaGroupNodeStatus %s, %d, %d", addr, group_id,
@@ -1558,6 +1600,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occured in updating group node status %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaAudioConf")) {
@@ -1576,11 +1619,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get args from OnLeaAudioConf: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnLeaAudioConf %u, %d, %u, %u, %u", direction, group_id,
@@ -1592,6 +1637,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occured in updating audio conf %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaVcConnected")) {
@@ -1601,11 +1647,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get args from OnLeaVcConnected: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnLeaVcConnected %s, %d", addr, group_id);
@@ -1614,6 +1662,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occured in handling vc connection update %d", rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaGroupVolumeChanged")) {
@@ -1623,11 +1672,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Failed to get args from OnLeaGroupVolumeChanged: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      send_empty_reply(conn, message);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
     syslog(LOG_DEBUG, "OnLeaGroupVolumeChanged %d, %u", group_id, volume);
@@ -1637,6 +1688,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Error occured in handling vc group volume update %d",
              rc);
     }
+    send_empty_reply(conn, message);
     return DBUS_HANDLER_RESULT_HANDLED;
   }
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
