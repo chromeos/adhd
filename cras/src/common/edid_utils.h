@@ -55,7 +55,7 @@ extern "C" {
 #define EEXT_REV 1
 #define EEXT_SIZE 0x80
 
-#define EEDID_SIZE (EDID_SIZE + EEXT_SIZE)
+#define MAX_EEDID_SIZE (EDID_SIZE + EEXT_SIZE * 255)
 
 // 2 byte standard timing structure
 #define STDTIME_HBASE 248
@@ -165,9 +165,9 @@ extern "C" {
 #define VCDB_TAG 0
 #define VCDB_ETAG 1
 #define VCDB_FLAGS 2
-#define VCDB_S_PT(x) (((x)&0x30) >> 4)
-#define VCDB_S_IT(x) (((x)&0x0C) >> 2)
-#define VCDB_S_CE(x) (((x)&0x03))
+#define VCDB_S_PT(x) (((x) & 0x30) >> 4)
+#define VCDB_S_IT(x) (((x) & 0x0C) >> 2)
+#define VCDB_S_CE(x) (((x) & 0x03))
 
 #define COL_TAG 0
 #define COL_ETAG 1

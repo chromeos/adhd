@@ -27,7 +27,7 @@ namespace {
 
 #define BITS_PER_BYTE (8)
 #define BITS_PER_LONG (sizeof(long) * BITS_PER_BYTE)
-#define NBITS(x) ((((x)-1) / BITS_PER_LONG) + 1)
+#define NBITS(x) ((((x) - 1) / BITS_PER_LONG) + 1)
 #define OFF(x) ((x) % BITS_PER_LONG)
 #define BIT(x) (1UL << OFF(x))
 #define LONG(x) ((x) / BITS_PER_LONG)
@@ -173,7 +173,7 @@ class FakeEDIDFile {
   void init(uint16_t mfg_id, uint16_t prod_id, uint32_t serial) {
     int fd = mkstemp(filename_.data());
     ASSERT_NE(0, fd);
-    ASSERT_EQ(0, ftruncate(fd, EEDID_SIZE));
+    ASSERT_EQ(0, ftruncate(fd, EDID_SIZE + EEXT_SIZE));
     uint8_t header[8] = {0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0};
     ASSERT_EQ(8, write(fd, header, 8));
     ASSERT_EQ(2, write(fd, &mfg_id, sizeof(mfg_id)));

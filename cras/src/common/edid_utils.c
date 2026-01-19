@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "third_party/strlcpy/strlcpy.h"
 
@@ -367,51 +368,62 @@ int edid_valid(const unsigned char* edid_data) {
 }
 
 int edid_lpcm_support(const unsigned char* edid_data, int ext) {
-  const unsigned char* edid_ext = edid_data + EDID_SIZE;
-  int dbc;
-  int off_dtd = edid_ext[CEA_DTD_OFFSET];
+  const unsigned char* edid_ext;
+  int i;
 
   // No if no extension, which can happen for two reasons
   // a) ext < 1 indicates no data was read into the extension area
   // b) edid_data[126] < 1 indicates EDID does not use extension area
-  if ((ext < 1) || (edid_data[EDID_EXT_FLAG] < 1)) {
+  if (ext < 1 || edid_data[EDID_EXT_FLAG] < 1) {
     return 0;
   }
 
-  // No if extension is not CEA rev 3
-  if (!((edid_ext[EEXT_TAG] == 0x02) && (edid_ext[EEXT_REV] == 0x03))) {
-    return 0;
-  }
+  // Check all extension blocks
+  // In the specification, there is no specific order if there are
+  // multiple extension blocks, and block maps are optional in EDID
+  // Version 1 Revision 4
+  for (i = 0; i < edid_data[EDID_EXT_FLAG]; i++) {
+    edid_ext = edid_data + EDID_SIZE * (i + 1);
 
-  // If DBC block is not empty look for audio info
-  if (off_dtd <= CEA_DBC_START) {
-    goto done_dtd;
-  }
-
-  // Between offset 4 and off_dtd is the Data Block Collection
-  // There may be none, in which case off_dtd == 4
-  dbc = CEA_DBC_START;
-  while (dbc < off_dtd) {
-    int db_len = edid_ext[dbc + DBC_TAG_LENGTH] & DBC_LEN_MASK;
-    int dbp = dbc + 1;
-    unsigned char dbc_type;
-
-    // Audio Data Block, type LPCM, return bitmap of frequencies
-    dbc_type = edid_ext[dbc + DBC_TAG_LENGTH] >> DBC_TAG_SHIFT;
-    if ((dbc_type == DBC_TAG_AUDIO) &&
-        (((edid_ext[dbp + DBCA_FORMAT] >> 3) & 0xF) == DBCA_FMT_LPCM)) {
-      return edid_ext[dbp + DBCA_RATE];
+    // Skip if extension is not CEA rev 3
+    if (!((edid_ext[EEXT_TAG] == 0x02) && (edid_ext[EEXT_REV] == 0x03))) {
+      // syslog
+      syslog(LOG_DEBUG, "EDID extension tag 0x%x rev 0x%x skipped",
+             edid_ext[EEXT_TAG], edid_ext[EEXT_REV]);
+      continue;
     }
 
-    dbc += db_len + 1;
-  }
-  // Get here if failed to find LPCM info in DBC block
+    int off_dtd = edid_ext[CEA_DTD_OFFSET];
+    // If DBC block is not empty look for audio info
+    if (off_dtd <= CEA_DBC_START) {
+      goto done_dtd;
+    }
 
-done_dtd:
-  /* Last chance is to look for Basic Audio support. Return bitmap for 32,
-   * 44.1, 48 */
-  if (edid_ext[CEA_SUPPORT] & 0x40) {
-    return 0x7;
+    // Between offset 4 and off_dtd is the Data Block Collection
+    // There may be none, in which case off_dtd == 4
+    int dbc = CEA_DBC_START;
+    while (dbc < off_dtd) {
+      int db_len = edid_ext[dbc + DBC_TAG_LENGTH] & DBC_LEN_MASK;
+      int dbp = dbc + 1;
+      unsigned char dbc_type;
+
+      // Audio Data Block, type LPCM, return bitmap of frequencies
+      dbc_type = edid_ext[dbc + DBC_TAG_LENGTH] >> DBC_TAG_SHIFT;
+      if ((dbc_type == DBC_TAG_AUDIO) &&
+          (((edid_ext[dbp + DBCA_FORMAT] >> 3) & 0xF) == DBCA_FMT_LPCM)) {
+        return edid_ext[dbp + DBCA_RATE];
+      }
+
+      dbc += db_len + 1;
+    }
+    // Get here if failed to find LPCM info in DBC block
+
+  done_dtd:
+    /* Last chance is to look for Basic Audio support. Return bitmap for 32,
+     * 44.1, 48 */
+    if (edid_ext[CEA_SUPPORT] & 0x40) {
+      return 0x7;
+    }
   }
 
   return 0;

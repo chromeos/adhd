@@ -92,7 +92,7 @@ struct gpio_switch_list_data {
 
 #define BITS_PER_BYTE (8)
 #define BITS_PER_LONG (sizeof(long) * BITS_PER_BYTE)
-#define NBITS(x) ((((x)-1) / BITS_PER_LONG) + 1)
+#define NBITS(x) ((((x) - 1) / BITS_PER_LONG) + 1)
 #define OFF(x) ((x) % BITS_PER_LONG)
 #define BIT(x) (1UL << OFF(x))
 #define LONG(x) ((x) / BITS_PER_LONG)
@@ -175,24 +175,36 @@ static int get_jack_current_state(struct cras_alsa_jack* jack) {
 }
 
 static int read_jack_edid(const struct cras_alsa_jack* jack, uint8_t* edid) {
-  int fd, nread;
+  int fd, nread, total_ext_blocks;
 
   fd = open(jack->edid_file, O_RDONLY);
   if (fd < 0) {
     return -errno;
   }
 
-  nread = read(fd, edid, EEDID_SIZE);
+  nread = read(fd, edid, MAX_EEDID_SIZE);
   close(fd);
 
   if (nread < EDID_SIZE || !edid_valid(edid)) {
+    return -EINVAL;
+  }
+
+  // Verify the read byte count matches the actual byte count in EDID
+  total_ext_blocks = edid[EDID_EXT_FLAG];
+
+  if (nread < EDID_SIZE + EEXT_SIZE * total_ext_blocks) {
+    syslog(LOG_WARNING,
+           "EDID read size mismatch. Expected %d, got %d. "
+           "EDID_EXT_FLAG: %d",
+           EDID_SIZE + EEXT_SIZE * total_ext_blocks, nread,
+           edid[EDID_EXT_FLAG]);
     return -EINVAL;
   }
   return 0;
 }
 
 static int check_jack_edid(struct cras_alsa_jack* jack) {
-  uint8_t edid[EEDID_SIZE];
+  uint8_t edid[MAX_EEDID_SIZE];
   int ret = read_jack_edid(jack, edid);
 
   if (ret < 0) {
@@ -211,7 +223,7 @@ static int check_jack_edid(struct cras_alsa_jack* jack) {
 static int get_jack_edid_monitor_name(const struct cras_alsa_jack* jack,
                                       char* buf,
                                       unsigned int buf_size) {
-  uint8_t edid[EEDID_SIZE];
+  uint8_t edid[MAX_EEDID_SIZE];
   int ret = read_jack_edid(jack, edid);
 
   if (ret < 0) {
@@ -223,7 +235,7 @@ static int get_jack_edid_monitor_name(const struct cras_alsa_jack* jack,
 
 static int get_jack_edid_device_id(const struct cras_alsa_jack* jack,
                                    struct edid_device_id* device_id) {
-  uint8_t edid[EEDID_SIZE];
+  uint8_t edid[MAX_EEDID_SIZE];
   int ret = read_jack_edid(jack, edid);
 
   if (ret < 0) {
