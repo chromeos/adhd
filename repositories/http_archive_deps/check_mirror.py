@@ -81,7 +81,7 @@ def main(deps_sha256_json, json_bazel_external_uris_exclude):
                             'storage',
                             'cp',
                             '--no-clobber',
-                            '--predefined-acl=public-read',
+                            '--predefined-acl=publicRead',
                             cached_download_file,
                             'gs://chromeos-localmirror/distfiles/' + canonical_name,
                         ]
