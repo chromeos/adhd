@@ -50,7 +50,7 @@ static struct cras_bt_adapter* adapters;
 static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter* adapter) {
   static const char* hci_str = "hci";
   struct hci_dev_info dev_info;
-  char* pos;
+  const char* pos;
   int ctl, err;
 
   // Object path [variable prefix]/{hci0,hci1,...}

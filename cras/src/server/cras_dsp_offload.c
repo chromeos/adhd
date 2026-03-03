@@ -356,7 +356,7 @@ int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
 
   // strstr(A,B) returns the substring of A started from the first occurrence
   // of B, or NULL if B is not present in A.
-  char* node_str = strstr(map_str, node->name);
+  const char* node_str = strstr(map_str, node->name);
   if (!node_str) {
     *offload_map = NULL;
     return 0;
