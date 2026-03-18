@@ -1,5 +1,5 @@
 {
-  "checksum": "72e67e81beb1ec28ee229f2c8e08592a6ee4025aa5254a45e76a59e4115d0dc6",
+  "checksum": "74ee7ca3ba3cf620f9ccc939d0c029dd424acaaffa754f16f1d389ecca76943d",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -721,7 +721,7 @@
         "deps": {
           "common": [
             {
-              "id": "bindgen 0.63.0",
+              "id": "bindgen 0.70.1",
               "target": "bindgen"
             },
             {
@@ -881,14 +881,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "bindgen 0.63.0": {
+    "bindgen 0.70.1": {
       "name": "bindgen",
-      "version": "0.63.0",
+      "version": "0.70.1",
       "package_url": "https://github.com/rust-lang/rust-bindgen",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/bindgen/0.63.0/download",
-          "sha256": "36d860121800b2a9a94f9b5604b332d5cffb234ce17609ea479d723dbc9d3885"
+          "url": "https://static.crates.io/crates/bindgen/0.70.1/download",
+          "sha256": "f49d8fed880d473ea71efb9bf597651e77201bdd4893efe54c9e5d65ae04ce6f"
         }
       },
       "targets": [
@@ -925,22 +925,20 @@
         "crate_features": {
           "common": [
             "default",
-            "log",
             "logging",
-            "runtime",
-            "which",
-            "which-rustfmt"
+            "prettyplease",
+            "runtime"
           ],
           "selects": {}
         },
         "deps": {
           "common": [
             {
-              "id": "bindgen 0.63.0",
+              "id": "bindgen 0.70.1",
               "target": "build_script_build"
             },
             {
-              "id": "bitflags 1.3.2",
+              "id": "bitflags 2.4.0",
               "target": "bitflags"
             },
             {
@@ -952,23 +950,19 @@
               "target": "clang_sys"
             },
             {
-              "id": "lazy_static 1.4.0",
-              "target": "lazy_static"
-            },
-            {
-              "id": "lazycell 1.3.0",
-              "target": "lazycell"
+              "id": "itertools 0.11.0",
+              "target": "itertools"
             },
             {
               "id": "log 0.4.20",
               "target": "log"
             },
             {
-              "id": "peeking_take_while 0.1.2",
-              "target": "peeking_take_while"
+              "id": "prettyplease 0.2.37",
+              "target": "prettyplease"
             },
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -988,18 +982,14 @@
               "target": "shlex"
             },
             {
-              "id": "syn 1.0.107",
+              "id": "syn 2.0.117",
               "target": "syn"
-            },
-            {
-              "id": "which 4.3.0",
-              "target": "which"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.63.0"
+        "version": "0.70.1"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -1010,6 +1000,10 @@
             {
               "id": "clang-sys 1.6.1",
               "target": "clang_sys"
+            },
+            {
+              "id": "prettyplease 0.2.37",
+              "target": "prettyplease"
             }
           ],
           "selects": {}
@@ -1230,7 +1224,7 @@
               "target": "log"
             },
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -1246,7 +1240,7 @@
               "target": "serde_json"
             },
             {
-              "id": "syn 2.0.77",
+              "id": "syn 2.0.117",
               "target": "syn"
             },
             {
@@ -1733,7 +1727,7 @@
               "target": "heck"
             },
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -1741,7 +1735,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.77",
+              "id": "syn 2.0.117",
               "target": "syn"
             }
           ],
@@ -2292,7 +2286,7 @@
         "deps": {
           "common": [
             {
-              "id": "bindgen 0.63.0",
+              "id": "bindgen 0.70.1",
               "target": "bindgen"
             },
             {
@@ -3846,7 +3840,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -3854,7 +3848,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.77",
+              "id": "syn 2.0.117",
               "target": "syn"
             }
           ],
@@ -5025,84 +5019,6 @@
         "version": "1.0.9"
       },
       "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "lazy_static 1.4.0": {
-      "name": "lazy_static",
-      "version": "1.4.0",
-      "package_url": "https://github.com/rust-lang-nursery/lazy-static.rs",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/lazy_static/1.4.0/download",
-          "sha256": "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "lazy_static",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "lazy_static",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.4.0"
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "lazycell 1.3.0": {
-      "name": "lazycell",
-      "version": "1.3.0",
-      "package_url": "https://github.com/indiv0/lazycell",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/lazycell/1.3.0/download",
-          "sha256": "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "lazycell",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "lazycell",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.3.0"
-      },
-      "license": "MIT/Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -6542,7 +6458,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -6651,45 +6567,6 @@
         "MIT"
       ],
       "license_file": "LICENSE-MIT"
-    },
-    "peeking_take_while 0.1.2": {
-      "name": "peeking_take_while",
-      "version": "0.1.2",
-      "package_url": "https://github.com/fitzgen/peeking_take_while",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/peeking_take_while/0.1.2/download",
-          "sha256": "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "peeking_take_while",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "peeking_take_while",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "0.1.2"
-      },
-      "license": "Apache-2.0/MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
     },
     "pin-project-lite 0.2.9": {
       "name": "pin-project-lite",
@@ -6808,6 +6685,86 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "prettyplease 0.2.37": {
+      "name": "prettyplease",
+      "version": "0.2.37",
+      "package_url": "https://github.com/dtolnay/prettyplease",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/prettyplease/0.2.37/download",
+          "sha256": "479ca8adacdd7ce8f1fb39ce9ecccbfe93a3f1344b3d0d97f20bc0196208f62b"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "prettyplease",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "prettyplease",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "verbatim"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "prettyplease 0.2.37",
+              "target": "build_script_build"
+            },
+            {
+              "id": "proc-macro2 1.0.106",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "syn 2.0.117",
+              "target": "syn"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.2.37"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "links": "prettyplease02"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "primal-check 0.3.3": {
       "name": "primal-check",
       "version": "0.3.3",
@@ -6856,14 +6813,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "proc-macro2 1.0.86": {
+    "proc-macro2 1.0.106": {
       "name": "proc-macro2",
-      "version": "1.0.86",
+      "version": "1.0.106",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/proc-macro2/1.0.86/download",
-          "sha256": "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
+          "url": "https://static.crates.io/crates/proc-macro2/1.0.106/download",
+          "sha256": "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
         }
       },
       "targets": [
@@ -6907,7 +6864,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "build_script_build"
             },
             {
@@ -6918,7 +6875,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.86"
+        "version": "1.0.106"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -7246,7 +7203,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             }
           ],
@@ -8079,7 +8036,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -8643,20 +8600,18 @@
             "clone-impls",
             "default",
             "derive",
-            "extra-traits",
             "full",
             "parsing",
             "printing",
             "proc-macro",
-            "quote",
-            "visit-mut"
+            "quote"
           ],
           "selects": {}
         },
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -8689,14 +8644,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "syn 2.0.77": {
+    "syn 2.0.117": {
       "name": "syn",
-      "version": "2.0.77",
+      "version": "2.0.117",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/syn/2.0.77/download",
-          "sha256": "9f35bcdf61fd8e7be6caf75f429fdca8beb3ed76584befb503b1569faee373ed"
+          "url": "https://static.crates.io/crates/syn/2.0.117/download",
+          "sha256": "e665b8803e7b1d2a727f4023456bbbbe74da67099c585258af0ad9c5013b9b99"
         }
       },
       "targets": [
@@ -8728,14 +8683,15 @@
             "full",
             "parsing",
             "printing",
-            "proc-macro"
+            "proc-macro",
+            "visit-mut"
           ],
           "selects": {}
         },
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -8750,7 +8706,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "2.0.77"
+        "version": "2.0.117"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -9049,7 +9005,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -9057,7 +9013,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.77",
+              "id": "syn 2.0.117",
               "target": "syn"
             }
           ],
@@ -12069,7 +12025,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.86",
+              "id": "proc-macro2 1.0.106",
               "target": "proc_macro2"
             },
             {
@@ -12077,7 +12033,7 @@
               "target": "quote"
             },
             {
-              "id": "syn 2.0.77",
+              "id": "syn 2.0.117",
               "target": "syn"
             }
           ],
@@ -12502,7 +12458,7 @@
   "direct_deps": [
     "anyhow 1.0.75",
     "assert_matches 1.5.0",
-    "bindgen 0.63.0",
+    "bindgen 0.70.1",
     "bitflags 2.4.0",
     "cbindgen 0.27.0",
     "cc 1.0.83",
