@@ -157,6 +157,11 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_set_krisp_noise_cancellation_enabled(enabled: bool) {
+    state().set_krisp_noise_cancellation_enabled(enabled);
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_output_plugin_processor_enabled(enabled: bool) {
     let mut s2_guard = state();
     if s2_guard.input.output_plugin_processor_enabled != enabled {

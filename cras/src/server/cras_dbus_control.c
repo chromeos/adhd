@@ -1174,6 +1174,23 @@ static DBusHandlerResult handle_set_voice_isolation_ui_preferred_effect(
   return send_empty_reply(conn, message);
 }
 
+static DBusHandlerResult handle_set_krisp_noise_cancellation_enabled(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  int rc;
+  dbus_bool_t enabled;
+
+  rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  cras_s2_set_krisp_noise_cancellation_enabled(enabled);
+
+  return send_empty_reply(conn, message);
+}
+
 // TODO(b/281608407): Remove this function.
 static DBusHandlerResult handle_is_noise_cancellation_supported(
     DBusConnection* conn,
@@ -1753,6 +1770,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
                  message, CRAS_CONTROL_INTERFACE,
                  "SetVoiceIsolationUIPreferredEffect")) {
     return handle_set_voice_isolation_ui_preferred_effect(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetKrispNoiseCancellationEnabled")) {
+    return handle_set_krisp_noise_cancellation_enabled(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetNoiseCancellationEnabled")) {
     return handle_set_voice_isolation_ui_enabled(conn, message, arg);

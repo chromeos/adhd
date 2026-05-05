@@ -49,6 +49,7 @@ struct Input {
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
     voice_isolation_ui_enabled: bool,
     voice_isolation_ui_preferred_effect: EFFECT_TYPE,
+    krisp_noise_cancellation_enabled: bool,
     dsp_nc_supported: bool,
     output_plugin_processor_enabled: bool,
 
@@ -398,6 +399,11 @@ impl S2 {
         self.update();
     }
 
+    fn set_krisp_noise_cancellation_enabled(&mut self, enabled: bool) {
+        self.input.krisp_noise_cancellation_enabled = enabled;
+        self.update();
+    }
+
     fn set_output_plugin_processor_enabled(&mut self, enabled: bool) {
         self.input.output_plugin_processor_enabled = enabled;
         self.update();
@@ -693,6 +699,18 @@ mod tests {
 
         s.set_voice_isolation_ui_enabled(false);
         assert_eq!(s.input.voice_isolation_ui_enabled, false);
+    }
+
+    #[test]
+    fn test_krisp_noise_cancellation_enabled() {
+        let mut s = S2::new();
+        assert_eq!(s.input.krisp_noise_cancellation_enabled, false);
+
+        s.set_krisp_noise_cancellation_enabled(true);
+        assert_eq!(s.input.krisp_noise_cancellation_enabled, true);
+
+        s.set_krisp_noise_cancellation_enabled(false);
+        assert_eq!(s.input.krisp_noise_cancellation_enabled, false);
     }
 
     #[test]
