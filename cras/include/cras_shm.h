@@ -205,7 +205,7 @@ static inline uint8_t* cras_shm_buff_for_idx(const struct cras_audio_shm* shm,
 
   unsigned buffer_offset = cras_shm_get_checked_buffer_offset(shm, idx);
   if (buffer_offset + shm->config.used_size > shm->samples_info.length) {
-    buffer_offset = idx * shm->header->config.used_size;
+    buffer_offset = idx * shm->config.used_size;
   }
 
   return shm->samples + buffer_offset;
