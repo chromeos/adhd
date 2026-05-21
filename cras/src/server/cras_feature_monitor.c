@@ -19,6 +19,8 @@ static void handle_feature_changed() {
       cras_feature_enabled(CrOSLateBootAudioStyleTransfer));
   cras_s2_set_output_plugin_processor_enabled(
       cras_feature_enabled(CrOSLateBootCrasOutputPluginProcessor));
+  cras_s2_set_krisp_featured_allowed(
+      cras_feature_enabled(CrOSLateBootCrasInputKrispProcessing));
   cras_iodev_list_update_device_list();
   cras_iodev_list_notify_nodes_changed();
 }
