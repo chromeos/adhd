@@ -23,6 +23,7 @@
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_player.h"
 #include "cras/src/server/cras_dbus_util.h"
+#include "cras/src/server/cras_dlc_manager.h"
 #include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -1187,6 +1188,9 @@ static DBusHandlerResult handle_set_krisp_noise_cancellation_enabled(
   }
 
   cras_s2_set_krisp_noise_cancellation_enabled(enabled);
+  if (enabled) {
+    cras_dlc_manager_retry_download();
+  }
 
   return send_empty_reply(conn, message);
 }

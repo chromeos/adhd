@@ -329,4 +329,7 @@ void cras_system_set_force_respect_ui_gains_enabled(bool enabled) {
 void cras_iodev_list_update_for_spatial_audio() {
   return;
 }
+void cras_dlc_manager_retry_download() {
+  return;
+}
 }  // extern "C"

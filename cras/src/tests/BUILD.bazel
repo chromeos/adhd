@@ -833,6 +833,7 @@ cc_test(
         ":test_support",
         "//cras/common:rust_common_cc",
         "//cras/dbus_bindings",
+        "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
