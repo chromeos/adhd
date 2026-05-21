@@ -175,6 +175,14 @@ fn get_headphone_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<
     )
 }
 
+fn get_krisp_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
+    cdcfg::parse(
+        context,
+        &cras_s2_get_cras_processor_vars(),
+        Path::new("/etc/cras/processor/krisp_nc.txtpb"),
+    )
+}
+
 impl CrasProcessor {
     fn new(
         mut config: CrasProcessorConfig,
@@ -272,6 +280,18 @@ impl CrasProcessor {
                     get_headphone_pipeline_decl(&resolver_context)
                         .context("failed when creating headphone plugin pipeline")?,
                 );
+            }
+            CrasProcessorEffect::KrispNC => {
+                decl.push(Processor::ShuffleChannels {
+                    channel_indexes: vec![0],
+                });
+                decl.push(
+                    get_krisp_pipeline_decl(&resolver_context)
+                        .context("failed get_krisp_pipeline_decl")?,
+                );
+                decl.push(Processor::ShuffleChannels {
+                    channel_indexes: vec![0; config.channels],
+                });
             }
             CrasProcessorEffect::Overridden => {
                 if override_config.frame_rate != 0 {

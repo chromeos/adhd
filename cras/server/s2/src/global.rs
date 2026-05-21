@@ -157,8 +157,17 @@ pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_set_krisp_featured_allowed(allowed: bool) {
+    state().set_krisp_featured_allowed(allowed);
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_krisp_noise_cancellation_enabled(enabled: bool) {
     state().set_krisp_noise_cancellation_enabled(enabled);
+}
+
+pub extern "C" fn cras_s2_get_krisp_noise_cancellation_enabled() -> bool {
+    state().input.krisp_noise_cancellation_enabled
 }
 
 #[no_mangle]
@@ -318,6 +327,7 @@ pub extern "C" fn cras_s2_get_cras_processor_effect(
         &CRAS_NC_PROVIDER::DSP => CrasProcessorEffect::NoEffects,
         &CRAS_NC_PROVIDER::AST => CrasProcessorEffect::StyleTransfer,
         &CRAS_NC_PROVIDER::BF => CrasProcessorEffect::Beamforming,
+        &CRAS_NC_PROVIDER::KRISP => CrasProcessorEffect::KrispNC,
         _ => CrasProcessorEffect::NoEffects,
     }
 }

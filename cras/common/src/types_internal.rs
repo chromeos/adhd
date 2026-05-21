@@ -11,7 +11,7 @@ use itertools::Itertools;
 use serde::Serialize;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CrasProcessorEffect {
     NoEffects,
     Negate,
@@ -21,6 +21,7 @@ pub enum CrasProcessorEffect {
     GenerateEcho,
     SpeakerPlugin,
     HeadphonePlugin,
+    KrispNC,
     Overridden,
 }
 
@@ -35,6 +36,7 @@ impl CrasProcessorEffect {
             CrasProcessorEffect::GenerateEcho => c"GenerateEcho",
             CrasProcessorEffect::SpeakerPlugin => c"SpeakerPlugin",
             CrasProcessorEffect::HeadphonePlugin => c"HeadphonePlugin",
+            CrasProcessorEffect::KrispNC => c"KrispNC",
             CrasProcessorEffect::Overridden => c"Overridden",
         }
     }
@@ -59,6 +61,7 @@ impl CrasProcessorEffect {
             CrasProcessorEffect::GenerateEcho => CRAS_STREAM_ACTIVE_AP_EFFECT::GENERATE_ECHO,
             CrasProcessorEffect::SpeakerPlugin => CRAS_STREAM_ACTIVE_AP_EFFECT::SPEAKER_PLUGIN,
             CrasProcessorEffect::HeadphonePlugin => CRAS_STREAM_ACTIVE_AP_EFFECT::HEADPHONE_PLUGIN,
+            CrasProcessorEffect::KrispNC => CRAS_STREAM_ACTIVE_AP_EFFECT::KRISP_NC,
             CrasProcessorEffect::Overridden => CRAS_STREAM_ACTIVE_AP_EFFECT::PROCESSOR_OVERRIDDEN,
         }
     }
@@ -92,7 +95,8 @@ bitflags! {
         const GENERATE_ECHO = 1 << 7;
         const SPEAKER_PLUGIN = 1 << 8;
         const HEADPHONE_PLUGIN = 1 << 9;
-        const PROCESSOR_OVERRIDDEN = 1 << 10;
+        const KRISP_NC = 1 << 10;
+        const PROCESSOR_OVERRIDDEN = 1 << 11;
     }
 }
 
@@ -145,19 +149,15 @@ impl EFFECT_TYPE {
 
     /// Return the set of NC providers for this effect type.
     pub fn nc_providers(&self) -> CRAS_NC_PROVIDER {
-        match self {
-            &EFFECT_TYPE::NOISE_CANCELLATION => CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP,
-            &EFFECT_TYPE::STYLE_TRANSFER => {
-                CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP | CRAS_NC_PROVIDER::AST
-            }
-            &EFFECT_TYPE::BEAMFORMING => {
-                CRAS_NC_PROVIDER::AP
-                    | CRAS_NC_PROVIDER::DSP
-                    | CRAS_NC_PROVIDER::AST
-                    | CRAS_NC_PROVIDER::BF
-            }
+        let nc_providers_valid_for_any_effect_type =
+            CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP | CRAS_NC_PROVIDER::KRISP;
+        let nc_providers_valid_for_self = match self {
+            &EFFECT_TYPE::NOISE_CANCELLATION => CRAS_NC_PROVIDER::NONE,
+            &EFFECT_TYPE::STYLE_TRANSFER => CRAS_NC_PROVIDER::AST,
+            &EFFECT_TYPE::BEAMFORMING => CRAS_NC_PROVIDER::AST | CRAS_NC_PROVIDER::BF,
             _ => CRAS_NC_PROVIDER::all(),
-        }
+        };
+        return nc_providers_valid_for_any_effect_type | nc_providers_valid_for_self;
     }
 }
 
@@ -173,11 +173,12 @@ bitflags! {
     #[repr(transparent)]
     #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize, Default)]
     pub struct CRAS_NC_PROVIDER : u32 {
-        const NONE = 0;      // NC is disabled for this ionode.
-        const DSP = 1 << 0;  // NC is supported by DSP.
-        const AP = 1 << 1;   // NC is supported by AP.
-        const AST = 1 << 2;  // NC is supported by Style Transfer.
-        const BF = 1 << 3;   // NC is supported by Beamforming.
+        const NONE = 0;       // NC is disabled for this ionode.
+        const DSP = 1 << 0;   // NC is supported by DSP.
+        const AP = 1 << 1;    // NC is supported by AP.
+        const AST = 1 << 2;   // NC is supported by Style Transfer.
+        const BF = 1 << 3;    // NC is supported by Beamforming.
+        const KRISP = 1 << 4; // NC is supported by Krisp.
     }
 }
 
@@ -189,6 +190,7 @@ impl CRAS_NC_PROVIDER {
             &CRAS_NC_PROVIDER::AP => c"CRAS_NC_PROVIDER_AP",
             &CRAS_NC_PROVIDER::AST => c"CRAS_NC_PROVIDER_AST",
             &CRAS_NC_PROVIDER::BF => c"CRAS_NC_PROVIDER_BF",
+            &CRAS_NC_PROVIDER::KRISP => c"CRAS_NC_PROVIDER_KRISP",
             _ => c"Invalid NC provider",
         }
     }
@@ -203,6 +205,7 @@ impl CRAS_NC_PROVIDER {
 }
 
 pub const CRAS_NC_PROVIDER_PREFERENCE_ORDER: &[CRAS_NC_PROVIDER] = &[
+    CRAS_NC_PROVIDER::KRISP,
     CRAS_NC_PROVIDER::BF,
     CRAS_NC_PROVIDER::AST,
     CRAS_NC_PROVIDER::DSP,
@@ -241,6 +244,7 @@ pub struct CrasEffectUIAppearance {
 
 pub const SR_BT_DLC: &str = "sr-bt-dlc";
 pub const NC_AP_DLC: &str = "nc-ap-dlc";
+pub const KRISP_NC_DLC: &str = "krisp-nc-dlc";
 
 #[cfg(test)]
 mod tests {

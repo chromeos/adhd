@@ -44,6 +44,7 @@ enum CrasProcessorEffect {
   GenerateEcho,
   SpeakerPlugin,
   HeadphonePlugin,
+  KrispNC,
   Overridden,
 };
 
@@ -63,7 +64,8 @@ typedef uint64_t CRAS_STREAM_ACTIVE_AP_EFFECT;
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_GENERATE_ECHO (uint64_t)(1 << 7)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_SPEAKER_PLUGIN (uint64_t)(1 << 8)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_HEADPHONE_PLUGIN (uint64_t)(1 << 9)
-#define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 10)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_KRISP_NC (uint64_t)(1 << 10)
+#define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 11)
 
 typedef uint32_t EFFECT_TYPE;
 #define EFFECT_TYPE_NONE (uint32_t)0
@@ -78,6 +80,7 @@ typedef uint32_t CRAS_NC_PROVIDER;
 #define CRAS_NC_PROVIDER_AP (uint32_t)(1 << 1)
 #define CRAS_NC_PROVIDER_AST (uint32_t)(1 << 2)
 #define CRAS_NC_PROVIDER_BF (uint32_t)(1 << 3)
+#define CRAS_NC_PROVIDER_KRISP (uint32_t)(1 << 4)
 
 struct CrasEffectUIAppearance {
   EFFECT_TYPE toggle_type;

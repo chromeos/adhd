@@ -93,6 +93,7 @@ CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     provider |= CRAS_NC_PROVIDER_DSP;
   }
   provider |= CRAS_NC_PROVIDER_AP;
+  provider |= CRAS_NC_PROVIDER_KRISP;
   return provider;
 }
 

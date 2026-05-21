@@ -66,6 +66,8 @@ void cras_s2_set_voice_isolation_ui_enabled(bool enabled);
 
 bool cras_s2_get_voice_isolation_ui_enabled(void);
 
+void cras_s2_set_krisp_featured_allowed(bool allowed);
+
 void cras_s2_set_krisp_noise_cancellation_enabled(bool enabled);
 
 void cras_s2_set_output_plugin_processor_enabled(bool enabled);

@@ -10,6 +10,7 @@ use cras_common::types_internal::CrasEffectUIAppearance;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
+use cras_common::types_internal::KRISP_NC_DLC;
 use cras_common::types_internal::NC_AP_DLC;
 use cras_common::types_internal::SR_BT_DLC;
 use cras_feature_tier::CrasFeatureTier;
@@ -49,6 +50,7 @@ struct Input {
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
     voice_isolation_ui_enabled: bool,
     voice_isolation_ui_preferred_effect: EFFECT_TYPE,
+    krisp_featured_allowed: bool,
     krisp_noise_cancellation_enabled: bool,
     dsp_nc_supported: bool,
     output_plugin_processor_enabled: bool,
@@ -114,6 +116,7 @@ fn resolve(input: &Input) -> Output {
         }
     };
     let dlc_nc_ap_installed = input.dlcs_installed.contains(NC_AP_DLC);
+    let dlc_krisp_nc_installed = input.dlcs_installed.contains(KRISP_NC_DLC);
     let dsp_input_effects_blocked = if input.bypass_block_dsp_nc {
         false
     } else if input.nc_standalone_mode {
@@ -163,6 +166,18 @@ fn resolve(input: &Input) -> Output {
                 compatible_with_active_input_node: input
                     .active_input_node_compatible_nc_providers
                     .contains(CRAS_NC_PROVIDER::BF),
+            },
+        ),
+        (
+            CRAS_NC_PROVIDER::KRISP,
+            AudioEffectStatus {
+                supported: true,
+                allowed: input.krisp_featured_allowed
+                    && input.krisp_noise_cancellation_enabled
+                    && dlc_krisp_nc_installed,
+                compatible_with_active_input_node: input
+                    .active_input_node_compatible_nc_providers
+                    .contains(CRAS_NC_PROVIDER::KRISP),
             },
         ),
     ]);
@@ -352,6 +367,9 @@ impl S2 {
         if let BeamformingConfig::Supported(properties) = &self.input.beamforming_config {
             out.extend(properties.required_dlcs.iter().cloned());
         }
+        if self.input.krisp_featured_allowed && self.input.krisp_noise_cancellation_enabled {
+            out.push(KRISP_NC_DLC.to_string());
+        }
         out
     }
 
@@ -396,6 +414,11 @@ impl S2 {
 
     fn set_voice_isolation_ui_preferred_effect(&mut self, preferred_effect: EFFECT_TYPE) {
         self.input.voice_isolation_ui_preferred_effect = preferred_effect;
+        self.update();
+    }
+
+    fn set_krisp_featured_allowed(&mut self, allowed: bool) {
+        self.input.krisp_featured_allowed = allowed;
         self.update();
     }
 
@@ -537,7 +560,8 @@ impl S2 {
         enabled: bool,
         client_controlled_voice_isolation: bool,
     ) -> &CRAS_NC_PROVIDER {
-        if !enabled {
+        // Krisp NC enablement is controlled by Admin Console policy, disregarding `enabled` from system UI.
+        if !enabled && !self.input.krisp_noise_cancellation_enabled {
             return &CRAS_NC_PROVIDER::NONE;
         }
         let mut valid_nc_providers =
@@ -623,8 +647,10 @@ mod tests {
     use std::sync::atomic::Ordering;
 
     use cras_common::types_internal::CrasEffectUIAppearance;
+    use cras_common::types_internal::CrasProcessorEffect;
     use cras_common::types_internal::CRAS_NC_PROVIDER;
     use cras_common::types_internal::EFFECT_TYPE;
+    use cras_common::types_internal::KRISP_NC_DLC;
     use cras_common::types_internal::NC_AP_DLC;
 
     use crate::processing::BeamformingConfig;
@@ -1195,5 +1221,71 @@ mod tests {
 
         s.set_spatial_audio_supported(false);
         assert_eq!(s.input.spatial_audio_supported, false);
+    }
+
+    #[test]
+    fn test_krisp_nc_resolution() {
+        // Case 1: All preconditions met (featured allowed, enabled by policy, DLC installed).
+        let mut s = S2::new();
+        s.set_krisp_featured_allowed(true);
+        s.set_krisp_noise_cancellation_enabled(true);
+        s.set_dlc_installed(KRISP_NC_DLC, true);
+        assert_eq!(s.output.system_valid_nc_providers, CRAS_NC_PROVIDER::KRISP);
+
+        // Krisp should be resolved when it is enabled and active node is compatible.
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::KRISP, true),
+            &CRAS_NC_PROVIDER::KRISP
+        );
+
+        // Test resolution with local helper on s
+        assert_eq!(
+            s.resolve_nc_provider_with_client_controlled_voice_isolation(
+                CRAS_NC_PROVIDER::KRISP,
+                false,
+                false,
+            ),
+            &CRAS_NC_PROVIDER::KRISP
+        );
+
+        // Case 2: Disabled by policy (krisp_noise_cancellation_enabled is false).
+        s.set_krisp_noise_cancellation_enabled(false);
+        assert_eq!(s.output.system_valid_nc_providers, CRAS_NC_PROVIDER::NONE);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::KRISP, true),
+            &CRAS_NC_PROVIDER::NONE
+        );
+
+        // Case 3: DLC not installed.
+        s.set_krisp_noise_cancellation_enabled(true);
+        s.set_dlc_installed(KRISP_NC_DLC, false);
+        assert_eq!(s.output.system_valid_nc_providers, CRAS_NC_PROVIDER::NONE);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::KRISP, true),
+            &CRAS_NC_PROVIDER::NONE
+        );
+
+        // Case 4: Feature not allowed (krisp_featured_allowed is false).
+        s.set_dlc_installed(KRISP_NC_DLC, true);
+        s.set_krisp_featured_allowed(false);
+        assert_eq!(s.output.system_valid_nc_providers, CRAS_NC_PROVIDER::NONE);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::KRISP, true),
+            &CRAS_NC_PROVIDER::NONE
+        );
+
+        // Now test the C wrapper on the global S2 state
+        super::global::cras_s2_reset_for_testing();
+        super::global::cras_s2_set_krisp_featured_allowed(true);
+        unsafe {
+            let dlc_name = std::ffi::CString::new(KRISP_NC_DLC).unwrap();
+            super::global::cras_s2_set_dlc_installed_for_test(dlc_name.as_ptr(), true);
+        }
+        super::global::cras_s2_set_krisp_noise_cancellation_enabled(true);
+        assert_eq!(
+            super::global::cras_s2_get_cras_processor_effect(CRAS_NC_PROVIDER::KRISP, false, false),
+            CrasProcessorEffect::KrispNC
+        );
+        super::global::cras_s2_reset_for_testing();
     }
 }

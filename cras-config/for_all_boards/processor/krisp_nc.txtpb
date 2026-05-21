@@ -1,0 +1,21 @@
+pipeline {
+  processors {
+    resample {
+      output_frame_rate: 16000
+    }
+  }
+  processors {
+    check_format {
+      channels: 1
+      block_size: 160
+      frame_rate: 16000
+    }
+  }
+  processors {
+    dlc_plugin {
+      dlc_id: "krisp-nc-dlc"
+      path: "libkr_plugin.so"
+      constructor: "kr_nc_proc_create"
+    }
+  }
+}
