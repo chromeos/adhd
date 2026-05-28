@@ -12,7 +12,7 @@ use cras_common::types_internal::SR_BT_DLC;
 
 use super::get_dlc_state_cached;
 use super::Result;
-use crate::download_dlcs_until_installed;
+use crate::download_dlcs_until_installed_and_wait_for_recalculate;
 use crate::DlcInstallOnFailureCallback;
 use crate::DlcInstallOnSuccessCallback;
 
@@ -78,10 +78,16 @@ pub extern "C" fn download_dlcs_until_installed_with_thread(
     thread::Builder::new()
         .name("cras-dlc".into())
         .spawn(move || {
-            download_dlcs_until_installed(
+            download_dlcs_until_installed_and_wait_for_recalculate(
                 dlc_install_on_success_callback,
                 dlc_install_on_failure_callback,
             )
         })
         .unwrap();
+}
+
+/// Trigger recalculation and retry download of DLCs.
+#[no_mangle]
+pub extern "C" fn cras_dlc_trigger_recalculate() {
+    crate::trigger_recalculate();
 }

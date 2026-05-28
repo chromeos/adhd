@@ -94,16 +94,17 @@ pub extern "C" fn cras_s2_set_reload_output_plugin_processor(
 #[no_mangle]
 pub extern "C" fn cras_s2_get_audio_effect_dlcs() -> *mut c_char {
     // TODO(b/372393426): Consider returning protobuf instead of string.
-    let s = cras_s2_get_dlcs_to_install().join(",");
+    let s = cras_s2_get_dlcs_to_install(false).join(",");
     CString::new(s).expect("CString::new").into_raw()
 }
 
-pub fn cras_s2_get_dlcs_to_install() -> Vec<String> {
-    state()
-        .input
-        .dlcs_to_install_cached
-        .clone()
-        .unwrap_or_default()
+pub fn cras_s2_get_dlcs_to_install(refresh: bool) -> Vec<String> {
+    let mut s = state();
+    if refresh {
+        s.refresh_dlcs_to_install();
+    }
+
+    s.input.dlcs_to_install_cached.clone().unwrap_or_default()
 }
 
 pub fn cras_s2_set_dlc_installed(dlc: &str, installed: bool) {

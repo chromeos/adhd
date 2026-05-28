@@ -63,6 +63,11 @@ void cras_dlc_reset_overrides_for_testing(void);
 void download_dlcs_until_installed_with_thread(DlcInstallOnSuccessCallback dlc_install_on_success_callback,
                                                DlcInstallOnFailureCallback dlc_install_on_failure_callback);
 
+/**
+ * Trigger recalculation and retry download of DLCs.
+ */
+void cras_dlc_trigger_recalculate(void);
+
 #endif  /* CRAS_SERVER_PLATFORM_DLC_DLC_H_ */
 
 #ifdef __cplusplus

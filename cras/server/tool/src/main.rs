@@ -49,7 +49,7 @@ struct InstallDlcsCommand;
 impl Command for InstallDlcsCommand {
     fn run(self) -> anyhow::Result<()> {
         cras_s2_init();
-        download_dlcs_until_installed(dlc_no_op_callback, dlc_no_op_callback);
+        download_dlcs_until_installed(dlc_no_op_callback, dlc_no_op_callback)?;
         Ok(())
     }
 }

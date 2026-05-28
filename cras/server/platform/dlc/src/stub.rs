@@ -25,8 +25,9 @@ impl super::ServiceTrait for Service {
 
     fn handle_one_signal(
         &mut self,
-        _timeout: std::time::Duration,
+        timeout: std::time::Duration,
     ) -> Option<(String, crate::State)> {
+        std::thread::sleep(timeout);
         None
     }
 }

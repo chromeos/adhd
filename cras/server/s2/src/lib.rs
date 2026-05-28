@@ -356,6 +356,11 @@ impl S2 {
         }
     }
 
+    fn refresh_dlcs_to_install(&mut self) {
+        self.input.dlcs_to_install_cached = Some(self.compute_dlcs_to_install());
+        self.update();
+    }
+
     fn compute_dlcs_to_install(&self) -> Vec<String> {
         let mut out = Vec::new();
         if self.input.feature_tier.sr_bt_supported {

@@ -41,3 +41,7 @@ void cras_dlc_manager_init() {
   download_dlcs_until_installed_with_thread(dlc_install_on_success_callback,
                                             dlc_install_on_failure_callback);
 }
+
+void cras_dlc_manager_retry_download(void) {
+  cras_dlc_trigger_recalculate();
+}

@@ -13,6 +13,8 @@ extern "C" {
 
 void cras_dlc_manager_init();
 
+void cras_dlc_manager_retry_download(void);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
