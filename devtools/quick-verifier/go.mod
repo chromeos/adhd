@@ -9,7 +9,7 @@ require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20230313071107-cf782c5377ba
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/go-retryablehttp v0.7.2
+	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
 	golang.org/x/oauth2 v0.6.0
@@ -34,7 +34,7 @@ require (
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230320184635-7606e756e683 // indirect
