@@ -41,7 +41,7 @@ alsa-sys = "0.2.0"
 anyhow = "1.0.75"
 assert_matches = "1.5.0"
 async-trait = "0.1.36"
-bindgen = "0.70.1"
+bindgen = "0.72.1"
 bitflags = { version = "2.4.0", features = ["serde"] }
 cbindgen = "0.27.0"
 cc = "1.0.73"
