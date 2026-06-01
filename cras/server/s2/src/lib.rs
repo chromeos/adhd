@@ -367,7 +367,10 @@ impl S2 {
         if let BeamformingConfig::Supported(properties) = &self.input.beamforming_config {
             out.extend(properties.required_dlcs.iter().cloned());
         }
-        if self.input.krisp_featured_allowed && self.input.krisp_noise_cancellation_enabled {
+        if self.input.krisp_featured_allowed
+            && self.input.krisp_noise_cancellation_enabled
+            && self.input.feature_tier.krisp_nc_supported
+        {
             out.push(KRISP_NC_DLC.to_string());
         }
         out

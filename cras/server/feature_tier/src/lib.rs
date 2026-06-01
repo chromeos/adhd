@@ -11,6 +11,7 @@ pub struct CrasFeatureTier {
     pub is_x86_64_v2: bool,
     pub sr_bt_supported: bool,
     pub ap_nc_supported: bool,
+    pub krisp_nc_supported: bool,
 }
 
 impl CrasFeatureTier {
@@ -27,6 +28,8 @@ impl CrasFeatureTier {
                 _ => false,
             },
             ap_nc_supported: false,
+            // TODO(b/463838572): Support other needed boards for Krisp NC.
+            krisp_nc_supported: board_name == "brya",
             is_x86_64_v2: x86_64_v2,
         }
     }
@@ -70,6 +73,7 @@ mod tests {
     fn random_board() {
         let tier = CrasFeatureTier::new("random-board", "random");
         assert!(!tier.sr_bt_supported);
+        assert!(!tier.krisp_nc_supported);
     }
 
     #[test]
@@ -86,8 +90,8 @@ mod tests {
 
     #[test]
     fn brya_i7() {
-        let tier = CrasFeatureTier::new("nami", "intel Core i7-1260P");
-        assert!(tier.sr_bt_supported);
+        let tier = CrasFeatureTier::new("brya", "intel Core i7-1260P");
+        assert!(tier.krisp_nc_supported);
     }
 
     #[test]
