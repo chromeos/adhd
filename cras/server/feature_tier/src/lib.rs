@@ -28,8 +28,10 @@ impl CrasFeatureTier {
                 _ => false,
             },
             ap_nc_supported: false,
-            // TODO(b/463838572): Support other needed boards for Krisp NC.
-            krisp_nc_supported: board_name == "brya",
+            krisp_nc_supported: matches!(
+                board_name,
+                "brya" | "fizz" | "puff" | "sarien" | "drallion" | "brask"
+            ),
             is_x86_64_v2: x86_64_v2,
         }
     }
@@ -89,9 +91,15 @@ mod tests {
     }
 
     #[test]
-    fn brya_i7() {
-        let tier = CrasFeatureTier::new("brya", "intel Core i7-1260P");
-        assert!(tier.krisp_nc_supported);
+    fn krisp_nc_supported_boards() {
+        for board in &["brya", "fizz", "puff", "sarien", "drallion", "brask"] {
+            let tier = CrasFeatureTier::new(board, "some cpu");
+            assert!(
+                tier.krisp_nc_supported,
+                "Board {} should support Krisp NC",
+                board
+            );
+        }
     }
 
     #[test]
