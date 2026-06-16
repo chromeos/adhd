@@ -60,6 +60,7 @@ pub use self::control::StereoVolumeControl;
 pub use self::control::SwitchControl;
 pub use self::control_primitive::Ctl;
 pub use self::control_primitive::ElemId;
+pub use self::control_primitive::ElemIface;
 pub use self::control_tlv::ControlTLV;
 pub use self::control_tlv::Error as ControlTLVError;
 pub use self::control_tlv::TLV;

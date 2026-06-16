@@ -125,12 +125,19 @@ impl From<NulError> for Error {
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ElemIface {
+    /// Card interface.
     Card = SND_CTL_ELEM_IFACE_CARD as isize,
+    /// Hardware-dependent interface.
     Hwdep = SND_CTL_ELEM_IFACE_HWDEP as isize,
+    /// Mixer interface.
     Mixer = SND_CTL_ELEM_IFACE_MIXER as isize,
+    /// PCM interface.
     PCM = SND_CTL_ELEM_IFACE_PCM as isize,
+    /// Raw MIDI interface.
     Rawmidi = SND_CTL_ELEM_IFACE_RAWMIDI as isize,
+    /// Timer interface.
     Timer = SND_CTL_ELEM_IFACE_TIMER as isize,
+    /// Sequencer interface.
     Sequencer = SND_CTL_ELEM_IFACE_SEQUENCER as isize,
 }
 

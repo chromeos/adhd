@@ -16,9 +16,14 @@ use std::string::String;
 
 use amp::AmpBuilder;
 use argh::FromArgs;
+use cros_alsa::Card;
+use cros_alsa::ElemIface;
+use cros_alsa::SwitchControl;
 use dsm::metrics::log_uma_enum;
 use dsm::metrics::UMASoundCardInitResult;
 use dsm::utils::run_time;
+use dsm::wait_for_speakers_ready;
+use dsm::ZeroPlayer;
 use libchromeos::syslog;
 use log::error;
 use log::info;
@@ -46,6 +51,8 @@ enum Command {
     ReadAppliedRdc(ReadAppliedRdcArgs),
     ReadCurrentRdc(ReadCurrentRdcArgs),
     Channels(ChannelsArgs),
+    /// run model-specific flex workarounds
+    FlexQuirks(FlexQuirksArgs),
 }
 
 /// set the applied rdc of the input channel
@@ -135,6 +142,15 @@ struct BootTimeCalibrationArgs {
     /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf)
     #[argh(option)]
     pub conf: String,
+}
+
+/// run model-specific flex workarounds
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "flex-quirks")]
+struct FlexQuirksArgs {
+    /// the sound card id
+    #[argh(option)]
+    pub id: String,
 }
 
 /// print the Amp debug information.
@@ -235,6 +251,48 @@ struct RMACalibrationArgs {
     pub conf: String,
 }
 
+fn is_gauteng_w3s() -> bool {
+    let vendor = std::fs::read_to_string("/sys/class/dmi/id/sys_vendor")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    let product = std::fs::read_to_string("/sys/class/dmi/id/product_name")
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+
+    vendor == "Gauteng Education Dept." && product == "W3S"
+}
+
+fn run_gauteng_workaround(card_name: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    info!(
+        "Running Gauteng W3S audio workaround for card {}",
+        card_name
+    );
+
+    wait_for_speakers_ready()?;
+
+    let mut zero_player: ZeroPlayer = Default::default();
+    if let Err(e) = zero_player.start(std::time::Duration::from_secs(1)) {
+        error!("Failed to play silent sound: {}", e);
+    } else if let Err(e) = zero_player.stop() {
+        error!("Failed to stop ZeroPlayer: {}", e);
+    }
+
+    let mut card = Card::new(card_name)?;
+    let mut hp_jack: SwitchControl =
+        card.control_by_name_and_iface(ElemIface::Card, "Headphone Jack")?;
+
+    if hp_jack.state()? {
+        info!("Headphones plugged in, toggling speaker switch");
+        let mut speaker_switch: SwitchControl = card.control_by_name("Speaker Switch")?;
+        speaker_switch.on()?;
+        speaker_switch.off()?;
+    } else {
+        info!("Headphones not plugged in, no toggle needed");
+    }
+
+    Ok(())
+}
+
 /// Parses the CONF_DIR/${args.conf}.yaml and starts the boot time calibration.
 fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn error::Error>> {
     match &args.cmd {
@@ -317,6 +375,13 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                         error!("failed to create sound_card_init run time file: {}", e);
                     }
                 }
+            }
+        }
+        Command::FlexQuirks(param) => {
+            if is_gauteng_w3s() {
+                run_gauteng_workaround(&param.id)?;
+            } else {
+                info!("No flex quirks found for this device.");
             }
         }
         Command::RMACalibration(param) => {

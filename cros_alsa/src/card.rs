@@ -108,6 +108,26 @@ impl Card {
         Ok(T::from(&mut self.handle, id)?)
     }
 
+    /// Creates a `Control` from control name and interface.
+    ///
+    /// # Errors
+    ///
+    /// * If control name is an invalid CString.
+    /// * If control does not exist.
+    /// * If `Control` elem_type() mismatches the type of underlying mixer control.
+    /// * If `Control` size() mismatches the number of value entries of underlying mixer control.
+    pub fn control_by_name_and_iface<'a, T: 'a>(
+        &'a mut self,
+        iface: ElemIface,
+        control_name: &str,
+    ) -> Result<T>
+    where
+        T: Control<'a>,
+    {
+        let id = ElemId::new(iface, control_name)?;
+        Ok(T::from(&mut self.handle, id)?)
+    }
+
     /// Creates a `ControlTLV` from control name.
     ///
     /// # Errors
