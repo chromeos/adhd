@@ -279,6 +279,11 @@ int rclient_handle_client_stream_disconnect(
 int rclient_handle_client_set_aec_ref(
     struct cras_rclient* client,
     const struct cras_set_aec_ref_message* msg) {
+  if (!cras_valid_stream_id(msg->stream_id, client->id)) {
+    syslog(LOG_WARNING, "set_aec_ref: invalid stream_id: %x for client: %zx.\n",
+           msg->stream_id, client->id);
+    return -EINVAL;
+  }
   syslog(LOG_DEBUG, "rclient handle set aec ref: stream %.9x dev %u",
          msg->stream_id, msg->iodev_idx);
   cras_iodev_list_set_aec_ref(msg->stream_id, msg->iodev_idx);
