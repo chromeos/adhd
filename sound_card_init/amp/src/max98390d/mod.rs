@@ -147,7 +147,7 @@ impl Amp for Max98390 {
 
         // Needs Rdc updates to be done after internal speaker is ready otherwise
         // it would be overwritten by the DSM blob update.
-        dsm.wait_for_speakers_ready()?;
+        dsm::wait_for_speakers_ready()?;
 
         let calib = if !self.setting.boot_time_calibration_enabled {
             info!("skip boot time calibration and use previous calibration values");
@@ -215,7 +215,7 @@ impl Amp for Max98390 {
 
         // Needs Rdc updates to be done after internal speaker is ready otherwise
         // it would be overwritten by the DSM blob update.
-        dsm.wait_for_speakers_ready()?;
+        dsm::wait_for_speakers_ready()?;
 
         let calib = self.do_calibration()?;
 

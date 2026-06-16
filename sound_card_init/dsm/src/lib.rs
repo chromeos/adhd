@@ -407,37 +407,6 @@ impl DSM {
         }
     }
 
-    /// Blocks until the internal speakers are ready.
-    ///
-    /// # Errors
-    ///
-    /// * Failed to wait the internal speakers to be ready.
-    pub fn wait_for_speakers_ready(&self) -> Result<()> {
-        let find_speaker = || -> Result<()> {
-            let cras_client = CrasClient::new()?;
-            let _node = cras_client
-                .output_nodes()
-                .find(|node| node.node_type == CrasNodeType::CRAS_NODE_TYPE_INTERNAL_SPEAKER)
-                .ok_or(Error::InternalSpeakerNotFound)?;
-            Ok(())
-        };
-        // TODO(b/155007305): Implement cras_client.wait_node_change and use it here.
-        const RETRY: usize = 240;
-        const RETRY_INTERVAL: Duration = Duration::from_millis(500);
-        for _ in 0..RETRY {
-            match find_speaker() {
-                Ok(_) => {
-                    log_uma_enum(UMAWaitForSpeaker::OK);
-                    return Ok(());
-                }
-                Err(e) => error!("retry on finding speaker: {}", e),
-            };
-            thread::sleep(RETRY_INTERVAL);
-        }
-        log_uma_enum(UMAWaitForSpeaker::Error);
-        Err(Error::InternalSpeakerNotFound)
-    }
-
     fn is_first_boot(&self) -> bool {
         !run_time::exists(&self.snd_card)
     }
@@ -471,4 +440,35 @@ impl DSM {
     fn get_vpd_calibration_value<T: CalibData>(&self, channel: usize) -> Result<T> {
         Ok(T::from(T::VPDType::new(channel)?))
     }
+}
+
+/// Blocks until the internal speakers are ready.
+///
+/// # Errors
+///
+/// * Failed to wait the internal speakers to be ready.
+pub fn wait_for_speakers_ready() -> Result<()> {
+    let find_speaker = || -> Result<()> {
+        let cras_client = CrasClient::new()?;
+        let _node = cras_client
+            .output_nodes()
+            .find(|node| node.node_type == CrasNodeType::CRAS_NODE_TYPE_INTERNAL_SPEAKER)
+            .ok_or(Error::InternalSpeakerNotFound)?;
+        Ok(())
+    };
+    // TODO(b/155007305): Implement cras_client.wait_node_change and use it here.
+    const RETRY: usize = 240;
+    const RETRY_INTERVAL: Duration = Duration::from_millis(500);
+    for _ in 0..RETRY {
+        match find_speaker() {
+            Ok(_) => {
+                log_uma_enum(UMAWaitForSpeaker::OK);
+                return Ok(());
+            }
+            Err(e) => error!("retry on finding speaker: {}", e),
+        };
+        thread::sleep(RETRY_INTERVAL);
+    }
+    log_uma_enum(UMAWaitForSpeaker::Error);
+    Err(Error::InternalSpeakerNotFound)
 }

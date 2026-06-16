@@ -105,7 +105,7 @@ impl Amp for ALC1011 {
             Self::TEMP_LOWER_LIMIT_CELSIUS,
         );
         info!("skip boot time calibration and use vpd values");
-        dsm.wait_for_speakers_ready()?;
+        dsm::wait_for_speakers_ready()?;
         let calib = dsm.get_all_vpd_calibration_value()?;
         self.apply_calibration_value(&calib)?;
         info!("applied {:?}", calib);
