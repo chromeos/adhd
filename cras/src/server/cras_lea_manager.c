@@ -437,19 +437,27 @@ void cras_floss_lea_remove_group(struct cras_lea* lea, int group_id) {
   struct lea_group* group;
   DL_FOREACH (lea->connected_groups, group) {
     if (group_id == group->group_id) {
+      if (group == lea->connected_groups && lea->fd >= 0) {
+        audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
+                                      lea->fd);
+      }
+
       if (group->idev) {
         cras_iodev_set_node_plugged(group->idev->active_node, 0);
         lea_iodev_destroy(group->idev);
+        group->idev = NULL;
       }
 
       if (group->odev) {
         cras_iodev_set_node_plugged(group->odev->active_node, 0);
         lea_iodev_destroy(group->odev);
+        group->odev = NULL;
       }
 
       DL_DELETE(lea->connected_groups, group);
       free(group->name);
       free(group);
+      break;
     }
   }
 }
