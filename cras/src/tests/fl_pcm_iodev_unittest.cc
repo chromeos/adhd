@@ -736,6 +736,92 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
              .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC})));
 
+TEST_F(PcmIodev, TestA2dpFlushWrapAround) {
+  int sock[2];
+  struct cras_iodev* odev;
+  struct fl_pcm_io* a2dpio;
+  size_t format_bytes;
+  uint8_t* send_buf;
+  uint8_t recv_buf[4096];
+  int rc;
+
+  // Create socketpair to mock A2DP socket.
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_a2dp_get_fd_ret = sock[1];
+
+  odev = a2dp_pcm_iodev_create(NULL, 0, 0, 0);
+  iodev_set_format(odev, &format);
+  odev->configure_dev(odev);
+  a2dpio = (struct fl_pcm_io*)odev;
+  format_bytes = cras_get_format_bytes(odev->format);
+
+  // Set state to NORMAL_RUN so flush is allowed.
+  odev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  // Force next flush time to be in the past.
+  a2dpio->next_flush_time.tv_sec = 0;
+  a2dpio->next_flush_time.tv_nsec = 0;
+
+  // We want to write a2dpio->write_block frames.
+  unsigned int target_frames = a2dpio->write_block;
+  unsigned int target_bytes = target_frames * format_bytes;
+
+  // Setup pcm_buf to wrap around.
+  struct byte_buffer* buf = a2dpio->pcm_buf;
+  size_t buf_size = buf->used_size;
+
+  ASSERT_GT(buf_size, target_bytes);
+  ASSERT_TRUE(sizeof(recv_buf) >= target_bytes);
+
+  // Set read_idx near the end.
+  // Contiguous readable will be target_bytes / 2.
+  buf->read_idx = buf_size - (target_bytes / 2);
+  buf->write_idx = target_bytes / 2;
+  buf->level = target_bytes;
+
+  // Fill buffer with some recognizable data.
+  send_buf = buf->bytes;
+  for (size_t i = 0; i < buf_size; i++) {
+    send_buf[i] = (uint8_t)(i % 256);
+  }
+
+  rc = flush(odev);
+  EXPECT_EQ(0, rc);
+
+  // Verify data received on the other side of the socket.
+  unsigned int total_received = 0;
+  while (total_received < target_bytes) {
+    rc = recv(sock[0], recv_buf + total_received, target_bytes - total_received,
+              MSG_DONTWAIT);
+    if (rc <= 0) {
+      if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        break;
+      }
+      break;
+    }
+    total_received += rc;
+  }
+
+  EXPECT_EQ(target_bytes, total_received);
+
+  // Verify the content matches.
+  size_t part1_size = target_bytes / 2;
+  size_t part1_offset = buf_size - part1_size;
+  EXPECT_EQ(0, memcmp(recv_buf, send_buf + part1_offset, part1_size));
+
+  size_t part2_size = target_bytes / 2;
+  EXPECT_EQ(0, memcmp(recv_buf + part1_size, send_buf, part2_size));
+
+  // Verify buffer state after flush.
+  EXPECT_EQ(0, buf->level);
+  EXPECT_EQ(target_bytes / 2, buf->read_idx);
+
+  odev->close_dev(odev);
+  a2dp_pcm_iodev_destroy(odev);
+  close(sock[0]);
+  close(sock[1]);
+}
+
 }  // namespace
 
 extern "C" {

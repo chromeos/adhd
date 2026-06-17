@@ -818,9 +818,35 @@ do_flush:
   }
 
   format_bytes = cras_get_format_bytes(iodev->format);
+  written = 0;
   if (bt_local_queued_frames(iodev) >= a2dpio->write_block) {
-    written = send(fd, buf_read_pointer(a2dpio->pcm_buf),
-                   a2dpio->write_block * format_bytes, MSG_DONTWAIT);
+    unsigned int target_bytes = a2dpio->write_block * format_bytes;
+    int i;
+    for (i = 0; i < 2; i++) {
+      unsigned int contig = buf_readable(a2dpio->pcm_buf);
+      unsigned int to_send = MIN(contig, target_bytes);
+      if (to_send == 0) {
+        break;
+      }
+      int rc =
+          send(fd, buf_read_pointer(a2dpio->pcm_buf), to_send, MSG_DONTWAIT);
+      if (rc <= 0) {
+        if (rc < 0) {
+          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (written > 0) {
+              break;
+            }
+          }
+          if (written == 0) {
+            written = rc;
+          }
+        }
+        break;
+      }
+      buf_increment_read(a2dpio->pcm_buf, rc);
+      written += rc;
+      target_bytes -= rc;
+    }
   }
 
   ATLOG(atlog, AUDIO_THREAD_A2DP_WRITE, written / format_bytes,
@@ -859,7 +885,6 @@ do_flush:
     cras_frames_to_time(written / format_bytes, iodev->format->frame_rate,
                         &a2dpio->flush_period);
     add_timespecs(&a2dpio->next_flush_time, &a2dpio->flush_period);
-    buf_increment_read(a2dpio->pcm_buf, written);
     a2dpio->total_written_bytes += written;
     a2dpio->last_write_ts = now;
     // Track success because frames got written.
