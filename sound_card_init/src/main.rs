@@ -19,10 +19,12 @@ use argh::FromArgs;
 use cros_alsa::Card;
 use cros_alsa::ElemIface;
 use cros_alsa::SwitchControl;
+use dsm::get_active_output_node_type;
 use dsm::metrics::log_uma_enum;
 use dsm::metrics::UMASoundCardInitResult;
 use dsm::utils::run_time;
 use dsm::wait_for_speakers_ready;
+use dsm::CrasNodeType;
 use dsm::ZeroPlayer;
 use libchromeos::syslog;
 use log::error;
@@ -281,11 +283,30 @@ fn run_gauteng_workaround(card_name: &str) -> std::result::Result<(), Box<dyn st
     let mut hp_jack: SwitchControl =
         card.control_by_name_and_iface(ElemIface::Card, "Headphone Jack")?;
 
+    let mut preferred_is_speaker = false;
+    match get_active_output_node_type() {
+        Ok(Some(node_type)) => {
+            if node_type == CrasNodeType::CRAS_NODE_TYPE_INTERNAL_SPEAKER {
+                preferred_is_speaker = true;
+            }
+        }
+        Ok(None) => {
+            info!("No active output node found");
+        }
+        Err(e) => {
+            error!("Failed to get active output node: {}", e);
+        }
+    }
+
     if hp_jack.state()? {
-        info!("Headphones plugged in, toggling speaker switch");
-        let mut speaker_switch: SwitchControl = card.control_by_name("Speaker Switch")?;
-        speaker_switch.on()?;
-        speaker_switch.off()?;
+        if preferred_is_speaker {
+            info!("Preferred device is Speaker. Skipping toggle.");
+        } else {
+            info!("Headphones plugged in, toggling speaker switch");
+            let mut speaker_switch: SwitchControl = card.control_by_name("Speaker Switch")?;
+            speaker_switch.on()?;
+            speaker_switch.off()?;
+        }
     } else {
         info!("Headphones not plugged in, no toggle needed");
     }

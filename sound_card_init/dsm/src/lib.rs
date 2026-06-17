@@ -17,7 +17,7 @@ use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use libcras::CrasClient;
-use libcras::CrasNodeType;
+pub use libcras::CrasNodeType;
 use log::error;
 use log::info;
 use serde::Deserialize;
@@ -471,4 +471,18 @@ pub fn wait_for_speakers_ready() -> Result<()> {
     }
     log_uma_enum(UMAWaitForSpeaker::Error);
     Err(Error::InternalSpeakerNotFound)
+}
+
+/// Returns the node type of the currently active output node, if any.
+///
+/// # Errors
+///
+/// * Failed to get active output node.
+pub fn get_active_output_node_type() -> Result<Option<CrasNodeType>> {
+    let cras_client = CrasClient::new()?;
+    let active_node = cras_client
+        .output_nodes()
+        .find(|node| node.active)
+        .map(|node| node.node_type);
+    Ok(active_node)
 }
