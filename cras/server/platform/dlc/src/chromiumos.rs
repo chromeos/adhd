@@ -41,7 +41,8 @@ impl super::ServiceTrait for Service {
 
         let (tx, state_change_rx) = channel();
 
-        let mr = MatchRule::new_signal("org.chromium.DlcServiceInterface", "DlcStateChanged");
+        let mut mr = MatchRule::new_signal("org.chromium.DlcServiceInterface", "DlcStateChanged");
+        mr.sender = Some("org.chromium.DlcService".into());
         connection.add_match(mr, move |(raw_bytes,): (Vec<u8>,), _, _| {
             if let Err(err) = tx.send(raw_bytes) {
                 log::error!("cannot send DLC state change {err:#}");
@@ -105,9 +106,14 @@ impl super::ServiceTrait for Service {
 
 impl From<DlcState> for crate::State {
     fn from(dlc_state: DlcState) -> Self {
+        let valid_path = crate::is_valid_dlc_path(&dlc_state.root_path);
         Self {
-            installed: dlc_state.state.enum_value() == Ok(State::INSTALLED),
-            root_path: dlc_state.root_path,
+            installed: dlc_state.state.enum_value() == Ok(State::INSTALLED) && valid_path,
+            root_path: if valid_path {
+                dlc_state.root_path
+            } else {
+                String::new()
+            },
         }
     }
 }

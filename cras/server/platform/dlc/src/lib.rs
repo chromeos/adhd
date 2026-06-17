@@ -24,6 +24,11 @@ pub struct State {
     pub root_path: String,
 }
 
+/// Checks if a DLC path is valid (starts with "/run/imageloader/" and does not contain "..").
+pub fn is_valid_dlc_path(path: &str) -> bool {
+    path.starts_with("/run/imageloader/") && !path.contains("..")
+}
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("D-Bus failure: {0:#}")]
