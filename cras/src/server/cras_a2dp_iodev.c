@@ -830,6 +830,16 @@ void a2dp_iodev_destroy(struct cras_iodev* iodev) {
   // A2DP does output only
   cras_bt_device_rm_iodev(device, iodev);
 
+  /* If the bt_io HFP-fallback path in bt_io_manager_remove_iodev() failed to
+   * reach our close_dev() (active_profile_dev was already nulled), the
+   * audio-thread fd callback registered in configure_dev() is still live and
+   * points at |a2dpio|. Remove it synchronously before freeing to prevent a
+   * heap-use-after-free in a2dp_socket_write_cb()/encode_and_flush(). */
+  if (a2dpio->transport) {
+    audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
+                                  cras_bt_transport_fd(a2dpio->transport));
+  }
+
   // Free resources when device successfully removed.
   free_resources(a2dpio);
   cras_iodev_free_resources(iodev);
