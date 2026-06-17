@@ -554,11 +554,23 @@ recv_msbc_bytes:
      * transmitting SCO packet.
      * Accept only supported packed sizes or fail.
      */
+    size_t new_buffer_size;
     if (err && (sco->packet_size == sco->mtu) &&
-        err == wbs_get_supported_packet_size(err, NULL)) {
+        err == wbs_get_supported_packet_size(err, &new_buffer_size)) {
       syslog(LOG_NOTICE, "Adjusting mSBC packet size, %d from %d bytes", err,
              sco->packet_size);
       sco->packet_size = err;
+      /* read_buf / write_buf were sized for the *initial* packet_size.
+       * Resize them for the new LCM cycle so read_wp / write_wp never
+       * walk past the allocation. */
+      free(sco->read_buf);
+      free(sco->write_buf);
+      sco->read_buf = (uint8_t*)calloc(new_buffer_size, sizeof(uint8_t));
+      sco->write_buf = (uint8_t*)calloc(new_buffer_size, sizeof(uint8_t));
+      sco->read_rp = sco->read_wp = 0;
+      sco->write_rp = sco->write_wp = 0;
+      sco->read_align_cb = msbc_frame_align;
+      return 0;
     } else {
       syslog(LOG_WARNING, "Partially read %d bytes for mSBC packet", err);
       return -EIO;
