@@ -531,6 +531,10 @@ static int event_reporting(struct hfp_slc_handle* handle, const char* cmd) {
    * established, if HF doesn't support HF indicators.
    */
   if (hfp_slc_get_hf_hf_indicators_supported(handle)) {
+    if (handle->timer) {
+      cras_tm_cancel_timer(cras_system_state_get_tm(), handle->timer);
+      handle->timer = NULL;
+    }
     handle->timer = cras_tm_create_timer(cras_system_state_get_tm(),
                                          HF_INDICATORS_TIMEOUT_MS,
                                          initialize_slc_handle, handle);
