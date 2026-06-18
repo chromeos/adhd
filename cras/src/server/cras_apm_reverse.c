@@ -269,6 +269,17 @@ static void handle_iodev_removed(struct cras_iodev* iodev) {
   struct echo_ref_request* request;
   struct stream_apm_request* stream_apm_req;
 
+  /* If the iodev being removed is the one default_rmod is currently
+   * tracking, drop the reference now and update it by calling
+   * handle_iodev_states_changed()
+   * This may happen because of handle_iodev_states_changed() didn't
+   * get called where it should previously, see b/515865711
+   */
+  if (default_rmod && default_rmod->odev == iodev) {
+    default_rmod->odev = NULL;
+    handle_iodev_states_changed(NULL, NULL);
+  }
+
   request = find_echo_ref_request_for_dev(iodev);
   if (request == NULL) {
     return;
