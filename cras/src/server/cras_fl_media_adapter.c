@@ -128,6 +128,7 @@ int handle_on_lea_group_disconnected(struct fl_media* active_fm, int group_id) {
 
   if (!cras_floss_lea_has_connected_group(active_fm->lea)) {
     cras_floss_lea_destroy(active_fm->lea);
+    active_fm->lea = NULL;
   }
 
   BTLOG(btlog, BT_LEA_GROUP_DISCONNECTED, group_id, 0);
