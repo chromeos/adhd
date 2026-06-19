@@ -22,6 +22,7 @@ struct cras_fmt_conv;
 struct cras_iodev;
 struct cras_rstream;
 struct dev_stream;
+struct cras_loopback;
 
 /* Hold communication pipes and pthread info for the thread used to play or
  * record audio.
@@ -230,6 +231,14 @@ int audio_thread_config_global_remix(struct audio_thread* thread,
 int audio_thread_dev_start_ramp(struct audio_thread* thread,
                                 unsigned int dev_idx,
                                 enum CRAS_IODEV_RAMP_REQUEST request);
+
+int audio_thread_register_loopback(struct audio_thread* thread,
+                                   struct cras_iodev* iodev,
+                                   struct cras_loopback* loopback);
+int audio_thread_unregister_loopback(struct audio_thread* thread,
+                                     struct cras_iodev* iodev,
+                                     enum CRAS_LOOPBACK_TYPE type,
+                                     void* cb_data);
 
 #ifdef __cplusplus
 }  // extern "C"

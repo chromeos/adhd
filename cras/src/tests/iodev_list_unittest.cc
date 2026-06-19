@@ -4176,6 +4176,27 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
   return 0;
 }
 
+int audio_thread_register_loopback(struct audio_thread* thread,
+                                   struct cras_iodev* iodev,
+                                   struct cras_loopback* loopback) {
+  DL_APPEND(iodev->loopbacks, loopback);
+  return 0;
+}
+
+int audio_thread_unregister_loopback(struct audio_thread* thread,
+                                     struct cras_iodev* iodev,
+                                     enum CRAS_LOOPBACK_TYPE type,
+                                     void* cb_data) {
+  struct cras_loopback* loopback;
+  DL_FOREACH (iodev->loopbacks, loopback) {
+    if ((loopback->cb_data == cb_data) && (loopback->type == type)) {
+      DL_DELETE(iodev->loopbacks, loopback);
+      free(loopback);
+    }
+  }
+  return 0;
+}
+
 struct cras_apm* cras_stream_apm_add(
     struct cras_stream_apm* stream,
     struct cras_iodev* idev,

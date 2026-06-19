@@ -69,6 +69,8 @@ enum AUDIO_THREAD_COMMAND {
   AUDIO_THREAD_DEV_START_RAMP,
   AUDIO_THREAD_REMOVE_CALLBACK,
   AUDIO_THREAD_AEC_DUMP,
+  AUDIO_THREAD_REGISTER_LOOPBACK,
+  AUDIO_THREAD_UNREGISTER_LOOPBACK,
 };
 
 struct audio_thread_msg {
@@ -84,6 +86,19 @@ struct audio_thread_config_global_remix {
 struct audio_thread_open_device_msg {
   struct audio_thread_msg header;
   struct cras_iodev* dev;
+};
+
+struct audio_thread_register_loopback_msg {
+  struct audio_thread_msg header;
+  struct cras_iodev* iodev;
+  struct cras_loopback* loopback;
+};
+
+struct audio_thread_unregister_loopback_msg {
+  struct audio_thread_msg header;
+  struct cras_iodev* iodev;
+  enum CRAS_LOOPBACK_TYPE type;
+  void* cb_data;
 };
 
 struct audio_thread_rm_device_msg {
@@ -764,6 +779,27 @@ static int handle_audio_thread_message(struct audio_thread* thread) {
       ret = thread_set_aec_dump(thread, rmsg->stream_id, rmsg->start, rmsg->fd);
       break;
     }
+    case AUDIO_THREAD_REGISTER_LOOPBACK: {
+      struct audio_thread_register_loopback_msg* rmsg;
+      rmsg = (struct audio_thread_register_loopback_msg*)msg;
+      DL_APPEND(rmsg->iodev->loopbacks, rmsg->loopback);
+      ret = 0;
+      break;
+    }
+    case AUDIO_THREAD_UNREGISTER_LOOPBACK: {
+      struct audio_thread_unregister_loopback_msg* rmsg;
+      struct cras_loopback* loopback;
+      rmsg = (struct audio_thread_unregister_loopback_msg*)msg;
+      DL_FOREACH (rmsg->iodev->loopbacks, loopback) {
+        if ((loopback->cb_data == rmsg->cb_data) &&
+            (loopback->type == rmsg->type)) {
+          DL_DELETE(rmsg->iodev->loopbacks, loopback);
+          free(loopback);
+        }
+      }
+      ret = 0;
+      break;
+    }
     default:
       ret = -EINVAL;
       break;
@@ -1404,4 +1440,44 @@ void audio_thread_destroy(struct audio_thread* thread) {
   }
 
   free(thread);
+}
+
+int audio_thread_register_loopback(struct audio_thread* thread,
+                                   struct cras_iodev* iodev,
+                                   struct cras_loopback* loopback) {
+  if (!thread || !thread->started) {
+    DL_APPEND(iodev->loopbacks, loopback);
+    return 0;
+  }
+  struct audio_thread_register_loopback_msg msg;
+  memset(&msg, 0, sizeof(msg));
+  msg.header.id = AUDIO_THREAD_REGISTER_LOOPBACK;
+  msg.header.length = sizeof(msg);
+  msg.iodev = iodev;
+  msg.loopback = loopback;
+  return audio_thread_post_message(thread, &msg.header);
+}
+
+int audio_thread_unregister_loopback(struct audio_thread* thread,
+                                     struct cras_iodev* iodev,
+                                     enum CRAS_LOOPBACK_TYPE type,
+                                     void* cb_data) {
+  if (!thread || !thread->started) {
+    struct cras_loopback* loopback;
+    DL_FOREACH (iodev->loopbacks, loopback) {
+      if ((loopback->cb_data == cb_data) && (loopback->type == type)) {
+        DL_DELETE(iodev->loopbacks, loopback);
+        free(loopback);
+      }
+    }
+    return 0;
+  }
+  struct audio_thread_unregister_loopback_msg msg;
+  memset(&msg, 0, sizeof(msg));
+  msg.header.id = AUDIO_THREAD_UNREGISTER_LOOPBACK;
+  msg.header.length = sizeof(msg);
+  msg.iodev = iodev;
+  msg.type = type;
+  msg.cb_data = cb_data;
+  return audio_thread_post_message(thread, &msg.header);
 }

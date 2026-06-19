@@ -2493,7 +2493,7 @@ void cras_iodev_list_register_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
     loopback->hook_control(true, loopback->cb_data);
   }
 
-  DL_APPEND(iodev->loopbacks, loopback);
+  audio_thread_register_loopback(audio_thread, iodev, loopback);
 }
 
 void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
@@ -2501,7 +2501,6 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
                                          unsigned int loopback_dev_idx) {
   struct cras_iodev* iodev = find_dev(output_dev_idx);
   struct cras_iodev* loopback_dev;
-  struct cras_loopback* loopback;
 
   if (iodev == NULL) {
     return;
@@ -2512,12 +2511,7 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
     return;
   }
 
-  DL_FOREACH (iodev->loopbacks, loopback) {
-    if ((loopback->cb_data == loopback_dev) && (loopback->type == type)) {
-      DL_DELETE(iodev->loopbacks, loopback);
-      free(loopback);
-    }
-  }
+  audio_thread_unregister_loopback(audio_thread, iodev, type, loopback_dev);
 }
 
 void cras_iodev_list_reset_for_noise_cancellation() {
