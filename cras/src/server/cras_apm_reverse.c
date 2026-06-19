@@ -100,6 +100,10 @@ struct echo_ref_request {
 };
 
 // List of client requests to set specific aec ref for APMs.
+// Protects |echo_ref_requests| against concurrent main-thread mutation
+// (link_echo_ref / handle_iodev_removed) and audio-thread iteration
+// (cras_apm_reverse_state_update).
+static pthread_mutex_t echo_ref_requests_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct echo_ref_request* echo_ref_requests;
 
 static bool hw_echo_ref_disabled = 0;
@@ -280,8 +284,10 @@ static void handle_iodev_removed(struct cras_iodev* iodev) {
     handle_iodev_states_changed(NULL, NULL);
   }
 
+  pthread_mutex_lock(&echo_ref_requests_lock);
   request = find_echo_ref_request_for_dev(iodev);
   if (request == NULL) {
+    pthread_mutex_unlock(&echo_ref_requests_lock);
     return;
   }
 
@@ -297,6 +303,7 @@ static void handle_iodev_removed(struct cras_iodev* iodev) {
   }
   DL_DELETE(echo_ref_requests, request);
   destroy_echo_ref_request(request);
+  pthread_mutex_unlock(&echo_ref_requests_lock);
 }
 
 static void reverse_data_run(struct ext_dsp_module* ext, unsigned int nframes) {
@@ -406,10 +413,12 @@ void cras_apm_reverse_state_update() {
   default_rmod->needs_to_process =
       apm_process_reverse_needed(1, default_rmod->odev);
 
+  pthread_mutex_lock(&echo_ref_requests_lock);
   DL_FOREACH (echo_ref_requests, request) {
     request->rmod.needs_to_process =
         apm_process_reverse_needed(0, request->rmod.odev);
   }
+  pthread_mutex_unlock(&echo_ref_requests_lock);
 }
 
 static struct echo_ref_request* create_echo_ref_request(
@@ -498,13 +507,15 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
                                    struct cras_iodev* echo_ref) {
   struct echo_ref_request* request = NULL;
   struct stream_apm_request* stream_apm_req = NULL;
+  int ret = 0;
 
+  pthread_mutex_lock(&echo_ref_requests_lock);
   find_echo_ref_request_for_stream(stream, &request, &stream_apm_req);
 
   if (request && stream_apm_req) {
     // Skip if the request has already been fulfilled.
     if (request->rmod.odev == echo_ref) {
-      return 0;
+      goto out;
     }
     // Remove stream_apm_req from this old echo ref request.
     remove_stream_apm_request(request, stream_apm_req);
@@ -514,13 +525,14 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
     if (stream_apm_req) {
       free(stream_apm_req);
     }
-    return 0;
+    goto out;
   }
   // The first request from |stream|, make a record for it.
   if (stream_apm_req == NULL) {
     stream_apm_req = create_stream_apm_request(stream);
     if (stream_apm_req == NULL) {
-      return -ENOMEM;
+      ret = -ENOMEM;
+      goto out;
     }
   }
 
@@ -530,7 +542,8 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
     request = create_echo_ref_request(echo_ref);
     if (request == NULL) {
       free(stream_apm_req);
-      return -ENOMEM;
+      ret = -ENOMEM;
+      goto out;
     }
 
     /* New request to link |echo_ref|, if it's not what the default
@@ -541,17 +554,25 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
     }
   }
   DL_APPEND(request->stream_apm_reqs, stream_apm_req);
-  return 0;
+
+out:
+  pthread_mutex_unlock(&echo_ref_requests_lock);
+  return ret;
 }
 
 bool cras_apm_reverse_is_aec_use_case(struct cras_iodev* echo_ref) {
   struct echo_ref_request* request;
+  int ret = 0;
 
+  pthread_mutex_lock(&echo_ref_requests_lock);
   DL_FOREACH (echo_ref_requests, request) {
     if (request->rmod.odev == echo_ref) {
-      return cras_iodev_is_tuned_aec_use_case(echo_ref->active_node);
+      ret = cras_iodev_is_tuned_aec_use_case(echo_ref->active_node);
+      pthread_mutex_unlock(&echo_ref_requests_lock);
+      return ret;
     }
   }
+  pthread_mutex_unlock(&echo_ref_requests_lock);
   /* Invalid usage if caller didn't call init first. And we don't care
    * what is returned in that case, so let's give it a false. */
   if (!default_rmod) {
@@ -564,6 +585,7 @@ void cras_apm_reverse_deinit() {
   struct echo_ref_request* request = NULL;
   struct stream_apm_request* stream_apm_req = NULL;
 
+  pthread_mutex_lock(&echo_ref_requests_lock);
   DL_FOREACH (echo_ref_requests, request) {
     DL_FOREACH (request->stream_apm_reqs, stream_apm_req) {
       DL_DELETE(request->stream_apm_reqs, stream_apm_req);
@@ -574,6 +596,7 @@ void cras_apm_reverse_deinit() {
     stop_reverse_process_on_dev(request->rmod.odev);
     destroy_echo_ref_request(request);
   }
+  pthread_mutex_unlock(&echo_ref_requests_lock);
   if (default_rmod) {
     if (default_rmod->odev) {
       stop_reverse_process_on_dev(default_rmod->odev);
