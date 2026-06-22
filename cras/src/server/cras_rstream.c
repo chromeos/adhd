@@ -71,6 +71,17 @@ static inline int setup_shm_area(struct cras_rstream* stream,
   used_size = stream->buffer_frames * frame_bytes;
 
   if (client_shm_stream) {
+    for (int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+      if ((uint64_t)config->buffer_offsets[i] + used_size >
+          config->client_shm_size) {
+        syslog(LOG_WARNING,
+               "rstream: client shm size too small (%zu) for offset %u + used "
+               "%u\n",
+               config->client_shm_size, config->buffer_offsets[i], used_size);
+        cras_shm_info_cleanup(&header_info);
+        return -EINVAL;
+      }
+    }
     rc = cras_shm_info_init_with_fd(config->client_shm_fd,
                                     config->client_shm_size, &samples_info);
   } else {

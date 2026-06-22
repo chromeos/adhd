@@ -431,6 +431,40 @@ TEST_F(RstreamTestSuite, EffectPostProcessingFormat) {
 
   cras_rstream_destroy(s);
 }
+TEST_F(RstreamTestSuite, ClientShmTooSmall) {
+  struct cras_rstream* s;
+  int rc;
+  int shm_fd;
+  FILE* tmp = tmpfile();
+  ASSERT_NE((void*)NULL, tmp);
+  shm_fd = fileno(tmp);
+  ASSERT_GE(shm_fd, 0);
+  rc = ftruncate(shm_fd, 4096);
+  ASSERT_EQ(0, rc);
+
+  config_.client_shm_fd = shm_fd;
+  config_.client_shm_size = 4096;
+  config_.buffer_offsets[0] = 0;
+  config_.buffer_offsets[1] = 2000;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_NE(0, rc);
+
+  // Also test when it is just big enough.
+  rc = ftruncate(shm_fd, 32768);
+  ASSERT_EQ(0, rc);
+  config_.client_shm_size = 32768;
+  config_.buffer_offsets[0] = 0;
+  config_.buffer_offsets[1] = 16384;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+  if (rc == 0) {
+    cras_rstream_destroy(s);
+  }
+
+  fclose(tmp);
+}
 
 }  //  namespace
 
