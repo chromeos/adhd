@@ -745,6 +745,8 @@ static inline void cras_fill_client_num_active_streams_changed(
 
 struct __attribute__((__packed__)) cras_client_request_floop_ready {
   struct cras_client_message header;
+  // Device index of the flexible loopback or a negative error code (e.g.
+  // -EACCES) on failure.
   int32_t dev_idx;
   // message tag of the response. This will be the same value sent with
   // cras_request_floop. Used to distinguish different requests.

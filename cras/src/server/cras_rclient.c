@@ -64,26 +64,36 @@ struct cras_rclient* cras_rclient_create(int fd,
 
   switch (conn_type) {
     case CRAS_CONTROL:
-      return cras_control_rclient_create(fd, id);
+      client = cras_control_rclient_create(fd, id);
+      break;
     case CRAS_PLAYBACK:
-      return cras_playback_rclient_create(fd, id);
+      client = cras_playback_rclient_create(fd, id);
+      break;
     case CRAS_CAPTURE:
-      return cras_capture_rclient_create(fd, id);
+      client = cras_capture_rclient_create(fd, id);
+      break;
     case CRAS_VMS_LEGACY:
-      return cras_playback_rclient_create(fd, id);
+      client = cras_playback_rclient_create(fd, id);
+      break;
     case CRAS_VMS_UNIFIED:
-      return cras_unified_rclient_create(fd, id);
+      client = cras_unified_rclient_create(fd, id);
+      break;
     case CRAS_PLUGIN_PLAYBACK:
       client = cras_playback_rclient_create(fd, id);
       cras_rclient_set_client_type(client, CRAS_CLIENT_TYPE_PLUGIN);
-      return client;
+      break;
     case CRAS_PLUGIN_UNIFIED:
       client = cras_unified_rclient_create(fd, id);
       cras_rclient_set_client_type(client, CRAS_CLIENT_TYPE_PLUGIN);
-      return client;
+      break;
     default:
       goto error;
   }
+
+  if (client) {
+    client->conn_type = conn_type;
+  }
+  return client;
 
 error:
   syslog(LOG_WARNING, "unsupported connection type");

@@ -34,6 +34,8 @@ struct cras_rclient {
   // than CRAS_CLIENT_TYPE_UNKNOWN, rclient will overwrite incoming
   // messages' client type.
   enum CRAS_CLIENT_TYPE client_type;
+  // Connection type of this client.
+  enum CRAS_CONNECTION_TYPE conn_type;
 };
 
 // Operations for cras_rclient.

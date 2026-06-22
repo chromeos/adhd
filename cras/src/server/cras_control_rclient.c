@@ -92,7 +92,16 @@ static void handle_request_floop(struct cras_rclient* client,
                                  const struct cras_floop_params* params,
                                  uint64_t tag) {
   struct cras_client_request_floop_ready msg;
-  int32_t dev_idx = cras_iodev_list_request_floop(params);
+  int32_t dev_idx;
+
+  if (client->conn_type != CRAS_CONTROL) {
+    syslog(LOG_WARNING,
+           "Unauthorized floop request from non-control connection.");
+    dev_idx = -EACCES;
+  } else {
+    dev_idx = cras_iodev_list_request_floop(params);
+  }
+
   cras_fill_client_request_floop_ready(&msg, dev_idx, tag);
   client->ops->send_message_to_client(client, &msg.header, NULL, 0);
 }
