@@ -92,6 +92,17 @@ static int rclient_validate_stream_connect_message(
            "client: %zx.\n",
            msg->client_type, client->id);
   }
+
+  if (client->conn_type != CRAS_CONTROL && client->conn_type != CRAS_PLAYBACK &&
+      client->conn_type != CRAS_CAPTURE) {
+    if (msg->dev_idx != NO_DEVICE) {
+      syslog(LOG_WARNING,
+             "stream_connect: client unauthorized to pin to device: %u\n",
+             msg->dev_idx);
+      return -EACCES;
+    }
+  }
+
   return 0;
 }
 
