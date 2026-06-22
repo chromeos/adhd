@@ -204,7 +204,8 @@ static inline uint8_t* cras_shm_buff_for_idx(const struct cras_audio_shm* shm,
   idx = idx & CRAS_SHM_BUFFERS_MASK;
 
   unsigned buffer_offset = cras_shm_get_checked_buffer_offset(shm, idx);
-  if (buffer_offset + shm->config.used_size > shm->samples_info.length) {
+  if ((uint64_t)buffer_offset + shm->config.used_size >
+      shm->samples_info.length) {
     buffer_offset = idx * shm->config.used_size;
   }
 
@@ -225,7 +226,7 @@ static inline unsigned cras_shm_get_checked_read_offset(
   if (read_offset > shm->config.used_size) {
     return 0;
   }
-  if (buffer_offset + read_offset > shm->samples_info.length) {
+  if ((uint64_t)buffer_offset + read_offset > shm->samples_info.length) {
     return 0;
   }
   return read_offset;
@@ -246,7 +247,7 @@ static inline unsigned cras_shm_get_checked_write_offset(
 
   /* If the buffer offset plus the write offset overruns the samples area,
    * return the longest valid write_offset */
-  if (buffer_offset + write_offset > shm->samples_info.length) {
+  if ((uint64_t)buffer_offset + write_offset > shm->samples_info.length) {
     return shm->samples_info.length - buffer_offset;
   }
   return write_offset;
