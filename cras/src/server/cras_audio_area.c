@@ -34,6 +34,13 @@ unsigned int cras_audio_area_copy(const struct cras_audio_area* dst,
   unsigned int ncopy;
   uint8_t *schan, *dchan;
 
+  // Guard against unsigned wrap when offsets exceed available frames
+  // (can happen when the client races shm header fields against the
+  // audio thread's per-device offset accumulator).
+  if (dst_offset >= dst->frames || src_offset >= src->frames) {
+    return 0;
+  }
+
   ncopy = MIN(src->frames - src_offset, dst->frames - dst_offset);
 
   // TODO(dgreid) - this replaces a memcpy, it needs to be way faster.
