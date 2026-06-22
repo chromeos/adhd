@@ -509,6 +509,12 @@ static int ccr_handle_message_from_client(struct cras_rclient* client,
       if (!MSG_LEN_VALID(msg, struct cras_set_aec_dump)) {
         return -EINVAL;
       }
+      if (client->conn_type != CRAS_CONTROL) {
+        syslog(
+            LOG_WARNING,
+            "Unauthorized set_aec_dump request from non-control connection.");
+        return -EACCES;
+      }
       audio_thread_set_aec_dump(cras_iodev_list_get_audio_thread(),
                                 m->stream_id, m->start, fd);
       break;
