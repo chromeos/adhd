@@ -167,11 +167,25 @@ static int hfp_send_calling_line_identification(struct hfp_slc_handle* handle,
                                                 const char* number,
                                                 int type) {
   char cmd[64];
+  char safe[33];
+  size_t i, j = 0;
+
+  /* `number` arrives from a chronos-reachable D-Bus method
+   * (org.chromium.cras.Telephony.IncomingCall) and is embedded into a
+   * CR/LF-framed AT result code. Restrict to the 3GPP TS 27.007 phone
+   * number alphabet to prevent AT result-code injection. */
+  for (i = 0; number[i] != '\0' && j + 1 < sizeof(safe); i++) {
+    char c = number[i];
+    if ((c >= '0' && c <= '9') || c == '+' || c == '*' || c == '#') {
+      safe[j++] = c;
+    }
+  }
+  safe[j] = '\0';
 
   if (handle->telephony->call) {
-    snprintf(cmd, 64, AT_CMD("+CCWA: \"%s\",%d"), number, type);
+    snprintf(cmd, 64, AT_CMD("+CCWA: \"%s\",%d"), safe, type);
   } else {
-    snprintf(cmd, 64, AT_CMD("+CLIP: \"%s\",%d"), number, type);
+    snprintf(cmd, 64, AT_CMD("+CLIP: \"%s\",%d"), safe, type);
   }
   return hfp_send(handle, cmd);
 }
