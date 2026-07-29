@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/andygrunwald/go-gerrit v0.0.0-20220921161059-41749a628092
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.1
 )
 
 require github.com/spf13/pflag v1.0.5
