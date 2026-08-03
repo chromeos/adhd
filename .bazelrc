@@ -7,7 +7,9 @@ build --experimental_cc_shared_library
 build --define VCSID=vcsid-unspecified
 
 build --conlyopt=-std=gnu11
-build --cxxopt=-std=gnu++20
+
+# adhd transitively includes libchrome headers that use C++23.
+build --cxxopt=-std=gnu++23
 
 build --copt=-Wall --copt=-Wimplicit-fallthrough
 
