@@ -435,7 +435,9 @@ static int start(struct cras_iodev* iodev) {
       return rc;
     }
     cras_iodev_reset_rate_estimator(iodev);
-  } else {
+  }
+
+  if (snd_pcm_state(handle) != SND_PCM_STATE_RUNNING) {
     rc = cras_alsa_pcm_start(handle);
     if (rc < 0) {
       syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));

@@ -787,6 +787,7 @@ TEST(AlsaIoInit, ResumeDevice) {
   rc = iodev->start(iodev);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_attempt_resume_called);
+  EXPECT_EQ(1, cras_alsa_start_called);
 
   alsa_iodev_destroy(iodev);
 }

@@ -714,10 +714,9 @@ int cras_alsa_get_delay_frames(snd_pcm_t* handle,
 
 /*
  * Attempts to resume a PCM.
- * Note that this path does not get executed for default playback/capture
- * stream. Default playback/capture stream are removed from the device
- * upon suspend, and re-attached to the device after resume.
- * The only stream that lives across suspend resume is hotword stream.
+ * For playback streams, prepare the PCM so it is ready for subsequent
+ * writes/commits; starting playback waits until audio samples are in the
+ * buffer. For capture streams (e.g. hotword), start the PCM after preparing it.
  */
 int cras_alsa_attempt_resume(snd_pcm_t* handle) {
   int rc;
@@ -737,17 +736,22 @@ int cras_alsa_attempt_resume(snd_pcm_t* handle) {
     if (rc < 0) {
       syslog(LOG_WARNING, "Suspended, failed to prepare: %s.",
              snd_strerror(rc));
+      return rc;
     }
     /*
      * CRAS does not use auto-start (start_threshold = 0), so start
-     * PCM after it is prepared. This is only for hotword stream.
+     * PCM after it is prepared. This is only for capture/hotword stream.
      */
-    rc = snd_pcm_start(handle);
-    if (rc < 0) {
-      syslog(LOG_WARNING, "Suspended, failed to start: %s.", snd_strerror(rc));
+    if (snd_pcm_stream(handle) == SND_PCM_STREAM_CAPTURE) {
+      rc = snd_pcm_start(handle);
+      if (rc < 0) {
+        syslog(LOG_WARNING, "Suspended, failed to start: %s.",
+               snd_strerror(rc));
+        return rc;
+      }
     }
   }
-  return rc;
+  return 0;
 }
 
 int cras_alsa_mmap_get_whole_buffer(snd_pcm_t* handle, uint8_t** dst) {
@@ -779,7 +783,14 @@ int cras_alsa_mmap_begin(snd_pcm_t* handle,
      * frame count.
      */
     rc = snd_pcm_avail_update(handle);
-    if (rc < 0) {
+    if (rc == -ESTRPIPE) {
+      // Handle suspend/resume.
+      rc = cras_alsa_attempt_resume(handle);
+      if (rc < 0) {
+        return rc;
+      }
+      continue;  // Recovered from suspend, try again.
+    } else if (rc < 0) {
       return rc;
     }
     rc = snd_pcm_mmap_begin(handle, &my_areas, offset, frames);

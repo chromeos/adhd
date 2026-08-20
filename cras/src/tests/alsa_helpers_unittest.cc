@@ -15,6 +15,13 @@ static int snd_pcm_sw_params_set_tstamp_mode_called;
 static snd_pcm_uframes_t snd_pcm_htimestamp_avail_ret_val;
 static timespec snd_pcm_htimestamp_tstamp_ret_val;
 static std::vector<int> snd_pcm_sw_params_ret_vals;
+static int snd_pcm_resume_called;
+static int snd_pcm_resume_ret_val;
+static int snd_pcm_prepare_called;
+static int snd_pcm_prepare_ret_val;
+static int snd_pcm_start_called;
+static int snd_pcm_start_ret_val;
+static snd_pcm_stream_t snd_pcm_stream_ret_val;
 
 static void ResetStubData() {
   snd_pcm_sw_params_set_tstamp_type_called = 0;
@@ -23,6 +30,13 @@ static void ResetStubData() {
   snd_pcm_htimestamp_tstamp_ret_val.tv_sec = 0;
   snd_pcm_htimestamp_tstamp_ret_val.tv_nsec = 0;
   snd_pcm_sw_params_ret_vals.clear();
+  snd_pcm_resume_called = 0;
+  snd_pcm_resume_ret_val = 0;
+  snd_pcm_prepare_called = 0;
+  snd_pcm_prepare_ret_val = 0;
+  snd_pcm_start_called = 0;
+  snd_pcm_start_ret_val = 0;
+  snd_pcm_stream_ret_val = SND_PCM_STREAM_PLAYBACK;
 }
 
 namespace {
@@ -30,7 +44,8 @@ namespace {
 static snd_pcm_chmap_query_t* create_chmap_cap(snd_pcm_chmap_type type,
                                                size_t channels) {
   snd_pcm_chmap_query_t* c;
-  c = (snd_pcm_chmap_query_t*)calloc(channels + 2, sizeof(int));
+  c = reinterpret_cast<snd_pcm_chmap_query_t*>(
+      calloc(channels + 2, sizeof(int)));
   c->type = type;
   c->map.channels = channels;
   return c;
@@ -41,7 +56,7 @@ TEST(AlsaHelper, MatchChannelMapCapabilityStereo) {
   snd_pcm_chmap_query_t* c;
   struct cras_audio_format* fmt;
 
-  caps = (snd_pcm_chmap_query_t**)calloc(4, sizeof(*caps));
+  caps = reinterpret_cast<snd_pcm_chmap_query_t**>(calloc(4, sizeof(*caps)));
 
   /* Layout (CRAS_CH_RL, CRAS_CH_RR) corresponds to
    * ALSA channel map (5, 6)
@@ -94,7 +109,7 @@ TEST(AlsaHelper, MatchChannelMapCapability51) {
   snd_pcm_chmap_query_t* c = NULL;
   struct cras_audio_format* fmt;
 
-  caps = (snd_pcm_chmap_query_t**)calloc(4, sizeof(*caps));
+  caps = reinterpret_cast<snd_pcm_chmap_query_t**>(calloc(4, sizeof(*caps)));
 
   /* Layout (CRAS_CH_FL, CRAS_CH_FR, CRAS_CH_RL, CRAS_CH_RR, CRAS_CH_FC)
    * corresponds to ALSA channel map (3, 4, 5, 6, 7)
@@ -218,6 +233,71 @@ TEST(AlsaHelper, GetAvailFramesSevereUnderrun) {
   EXPECT_EQ(avail, buffer_size - 1);
   EXPECT_EQ(rc, 0);
 }
+
+TEST(AlsaHelper, AttemptResumeSuccess) {
+  snd_pcm_t* mock_handle = reinterpret_cast<snd_pcm_t*>(0x1);
+  int rc;
+
+  ResetStubData();
+  snd_pcm_resume_ret_val = 0;
+
+  rc = cras_alsa_attempt_resume(mock_handle);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(snd_pcm_resume_called, 1);
+  EXPECT_EQ(snd_pcm_prepare_called, 0);
+  EXPECT_EQ(snd_pcm_start_called, 0);
+}
+
+TEST(AlsaHelper, AttemptResumePlaybackResumeUnsupportedPrepareSucceeds) {
+  snd_pcm_t* mock_handle = reinterpret_cast<snd_pcm_t*>(0x1);
+  int rc;
+
+  ResetStubData();
+  snd_pcm_resume_ret_val = -ENOSYS;
+  snd_pcm_prepare_ret_val = 0;
+  snd_pcm_stream_ret_val = SND_PCM_STREAM_PLAYBACK;
+
+  rc = cras_alsa_attempt_resume(mock_handle);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(snd_pcm_resume_called, 1);
+  EXPECT_EQ(snd_pcm_prepare_called, 1);
+  // Playback stream must NOT call snd_pcm_start before audio samples are
+  // committed.
+  EXPECT_EQ(snd_pcm_start_called, 0);
+}
+
+TEST(AlsaHelper, AttemptResumeCaptureResumeUnsupportedStartSucceeds) {
+  snd_pcm_t* mock_handle = reinterpret_cast<snd_pcm_t*>(0x1);
+  int rc;
+
+  ResetStubData();
+  snd_pcm_resume_ret_val = -ENOSYS;
+  snd_pcm_prepare_ret_val = 0;
+  snd_pcm_stream_ret_val = SND_PCM_STREAM_CAPTURE;
+  snd_pcm_start_ret_val = 0;
+
+  rc = cras_alsa_attempt_resume(mock_handle);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(snd_pcm_resume_called, 1);
+  EXPECT_EQ(snd_pcm_prepare_called, 1);
+  // Capture stream MUST call snd_pcm_start after prepare.
+  EXPECT_EQ(snd_pcm_start_called, 1);
+}
+
+TEST(AlsaHelper, AttemptResumePrepareFails) {
+  snd_pcm_t* mock_handle = reinterpret_cast<snd_pcm_t*>(0x1);
+  int rc;
+
+  ResetStubData();
+  snd_pcm_resume_ret_val = -ENOSYS;
+  snd_pcm_prepare_ret_val = -EIO;
+
+  rc = cras_alsa_attempt_resume(mock_handle);
+  EXPECT_EQ(rc, -EIO);
+  EXPECT_EQ(snd_pcm_resume_called, 1);
+  EXPECT_EQ(snd_pcm_prepare_called, 1);
+  EXPECT_EQ(snd_pcm_start_called, 0);
+}
 }  // namespace
 
 extern "C" {
@@ -284,5 +364,24 @@ int snd_pcm_htimestamp(snd_pcm_t* pcm,
   *avail = snd_pcm_htimestamp_avail_ret_val;
   *tstamp = snd_pcm_htimestamp_tstamp_ret_val;
   return 0;
+}
+
+int snd_pcm_resume(snd_pcm_t* pcm) {
+  snd_pcm_resume_called++;
+  return snd_pcm_resume_ret_val;
+}
+
+int snd_pcm_prepare(snd_pcm_t* pcm) {
+  snd_pcm_prepare_called++;
+  return snd_pcm_prepare_ret_val;
+}
+
+int snd_pcm_start(snd_pcm_t* pcm) {
+  snd_pcm_start_called++;
+  return snd_pcm_start_ret_val;
+}
+
+snd_pcm_stream_t snd_pcm_stream(snd_pcm_t* pcm) {
+  return snd_pcm_stream_ret_val;
 }
 }

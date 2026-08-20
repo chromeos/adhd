@@ -372,6 +372,38 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   free(fake_format);
 }
 
+TEST(AlsaUsbIoInit, StartAndResumeDevice) {
+  struct cras_iodev* iodev;
+  int rc;
+
+  ResetStubData();
+  iodev = cras_alsa_usb_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_USB, 1, NULL, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init(iodev));
+
+  // Return right away if it is already running.
+  snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
+  rc = iodev->start(iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, cras_alsa_start_called);
+
+  // Start the device when in setup state.
+  snd_pcm_state_ret = SND_PCM_STATE_SETUP;
+  rc = iodev->start(iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_start_called);
+
+  // Attempt to resume and start if the device is suspended.
+  snd_pcm_state_ret = SND_PCM_STATE_SUSPENDED;
+  rc = iodev->start(iodev);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_alsa_attempt_resume_called);
+  EXPECT_EQ(2, cras_alsa_start_called);
+
+  cras_alsa_usb_iodev_destroy(iodev);
+}
+
 TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
   struct cras_iodev* iodev;
   struct cras_audio_format format;
