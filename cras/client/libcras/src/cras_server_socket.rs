@@ -22,7 +22,7 @@ use super::Error;
 use crate::scm_socket::ScmSocket;
 
 /// Server socket type to connect.
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CrasSocketType {
     /// A server socket type supports only playback function.
