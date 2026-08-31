@@ -77,11 +77,11 @@ def main(deps_sha256_json, json_bazel_external_uris_exclude):
                 print(
                     shlex.join(
                         [
-                            'gsutil',
+                            'gcloud',
+                            'storage',
                             'cp',
-                            '-n',
-                            '-a',
-                            'public-read',
+                            '--no-clobber',
+                            '--predefined-acl=publicRead',
                             cached_download_file,
                             'gs://chromeos-localmirror/distfiles/' + canonical_name,
                         ]
