@@ -23,7 +23,7 @@ Example output:
 
 ```
 # ⚠️  bazelbuild-bazel-skylib-1.0.3.tar.gz is not uploaded yet. Upload with:
-gsutil cp -n -a public-read /usr/local/google/home/aaronyu/.cache/bazel/_bazel_aaronyu/cache/repos/v1/content_addressable/sha256/1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c/file gs://chromeos-localmirror/distfiles/bazelbuild-bazel-skylib-1.0.3.tar.gz
+gcloud storage cp --no-clobber --predefined-acl=public-read /usr/local/google/home/aaronyu/.cache/bazel/_bazel_aaronyu/cache/repos/v1/content_addressable/sha256/1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c/file gs://chromeos-localmirror/distfiles/bazelbuild-bazel-skylib-1.0.3.tar.gz
 # ✅  google-benchmark-v1.5.5.tar.gz already exist at: https://storage.googleapis.com/chromeos-localmirror/distfiles/google-benchmark-v1.5.5.tar.gz
 ```
 
