@@ -343,6 +343,12 @@ impl CS35L41 {
     }
 
     fn load_firmware(card: &mut Card, setting: &AmpCalibCtrl) -> Result<()> {
+        if card
+            .control_by_name::<SwitchControl>(&setting.preload_switch)?
+            .state()?
+        {
+            return Ok(());
+        }
         card.control_by_name::<SwitchControl>(&setting.preload_switch)?
             .off()?;
         card.control_by_name::<SimpleEnumControl>(&setting.firmware_type)?
@@ -360,6 +366,8 @@ impl CS35L41 {
 
     //Verifies calibration values are correctly applied.
     fn verify_calibration_applied(&mut self) -> Result<()> {
+        let mut zero_player: ZeroPlayer = Default::default();
+        zero_player.start(Self::CALIB_APPLY_TIME)?;
         for setting in &self.setting.controls {
             let status: i32 = self
                 .card
@@ -372,6 +380,7 @@ impl CS35L41 {
                 }
             }
         }
+        zero_player.stop()?;
         Ok(())
     }
 }
