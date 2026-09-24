@@ -53,6 +53,26 @@ TEST(FlexibleLoopback, CreateDestroy) {
   EXPECT_EQ(2, cras_iodev_free_resources_called);
 }
 
+static size_t cras_iodev_free_format_called;
+static size_t cras_iodev_free_audio_area_called;
+
+TEST(FlexibleLoopback, CloseDevFreesFormatAndAudioArea) {
+  struct cras_floop_params params = {.client_types_mask = 0};
+  struct cras_floop_pair* floop = cras_floop_pair_create(&params);
+  cras_iodev_free_format_called = 0;
+  cras_iodev_free_audio_area_called = 0;
+
+  floop->input.close_dev(&floop->input);
+  EXPECT_EQ(1, cras_iodev_free_format_called);
+  EXPECT_EQ(1, cras_iodev_free_audio_area_called);
+
+  floop->output.close_dev(&floop->output);
+  EXPECT_EQ(2, cras_iodev_free_format_called);
+  EXPECT_EQ(2, cras_iodev_free_audio_area_called);
+
+  cras_floop_pair_destroy(floop);
+}
+
 // Stubs
 extern "C" {
 void cras_iodev_set_active_node(struct cras_iodev* iodev,
@@ -66,7 +86,13 @@ void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
 
 void cras_iodev_init_audio_area(struct cras_iodev* iodev) {}
 
-void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
+void cras_iodev_free_audio_area(struct cras_iodev* iodev) {
+  cras_iodev_free_audio_area_called++;
+}
+
+void cras_iodev_free_format(struct cras_iodev* iodev) {
+  cras_iodev_free_format_called++;
+}
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,

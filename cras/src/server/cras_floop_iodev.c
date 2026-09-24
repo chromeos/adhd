@@ -141,6 +141,7 @@ static int input_close_dev(struct cras_iodev* iodev) {
   struct flexible_loopback* floop = input_to_floop(iodev);
   floop->input_active = false;
   cras_iodev_list_disable_floop_pair(&floop->pair);
+  cras_iodev_free_format(iodev);
   cras_iodev_free_audio_area(iodev);
   buf_reset(floop->buffer);
   return 0;
@@ -222,6 +223,8 @@ static int output_no_stream_playback(struct cras_iodev* odev, int enable) {
 }
 
 static int output_close_dev(struct cras_iodev* iodev) {
+  cras_iodev_free_format(iodev);
+  cras_iodev_free_audio_area(iodev);
   return 0;
 }
 
