@@ -86,6 +86,7 @@ test --test_summary=terse
 
 # CI flags
 build:ci --show_progress_rate_limit=10
+build:ci --disk_cache=/builder/home/.cache/bazel-disk-cache
 
 # b/316075428: Disable bzlmod for now, to avoid generating MODULE.bazel files.
 common --noexperimental_enable_bzlmod

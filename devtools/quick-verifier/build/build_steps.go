@@ -110,6 +110,19 @@ func ensureBazelSteps() *buildplan.Sequence {
 		// Run bazel once to ensure bazel is available and to avoid
 		// races between bazelisk downloading bazel from multiple invocations.
 		buildplan.Command(archlinuxBuilder, "bazel", "version"),
+		// Pre-build host tools (cbindgen, cargo build scripts, and proc-macros)
+		// in the exec configuration to populate the shared Bazel disk cache
+		// before parallel build steps run.
+		buildplan.Command(
+			archlinuxBuilder,
+			"bazel", "build",
+			"--config=ci", "--config=local-clang",
+			"--output_groups=+out_dir",
+			"//build/write_source_files",
+			"//audio_processor:build_script",
+			"//cras/server/platform/features:build_script",
+			"//cras/server/processor:build_script",
+		),
 	).WithVolume()
 }
 

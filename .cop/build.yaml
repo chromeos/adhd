@@ -87,6 +87,34 @@
         "DOCKER_API_VERSION=1.41"
       ],
       "args": [
+        "build",
+        "--config=ci",
+        "--config=local-clang",
+        "--output_groups=+out_dir",
+        "//build/write_source_files",
+        "//audio_processor:build_script",
+        "//cras/server/platform/features:build_script",
+        "//cras/server/processor:build_script"
+      ],
+      "dir": "/workspace-ensure-bazel",
+      "id": "ensure-bazel:2",
+      "waitFor": [
+        "ensure-bazel:1"
+      ],
+      "entrypoint": "bazel",
+      "volumes": [
+        {
+          "name": "workspace-ensure-bazel",
+          "path": "/workspace-ensure-bazel"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "env": [
+        "DOCKER_API_VERSION=1.41"
+      ],
+      "args": [
         "-ah",
         "/workspace/adhd/",
         "./"
@@ -94,7 +122,7 @@
       "dir": "/workspace-copgen-check",
       "id": "copgen-check:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -138,7 +166,7 @@
       "dir": "/workspace-rust_generate",
       "id": "rust_generate:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -201,7 +229,7 @@
       "dir": "/workspace-archlinux-clang",
       "id": "archlinux-clang:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -250,7 +278,7 @@
       "dir": "/workspace-archlinux-clang-asan",
       "id": "archlinux-clang-asan:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -300,7 +328,7 @@
       "dir": "/workspace-archlinux-clang-ubsan",
       "id": "archlinux-clang-ubsan:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -350,7 +378,7 @@
       "dir": "/workspace-archlinux-gcc",
       "id": "archlinux-gcc:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -400,7 +428,7 @@
       "dir": "/workspace-archlinux-system-cras-rust",
       "id": "archlinux-system-cras-rust:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -518,7 +546,7 @@
       "dir": "/workspace-kythe",
       "id": "kythe:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -560,7 +588,7 @@
       ],
       "id": "oss-fuzz-setup:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "mkdir"
     },
@@ -806,7 +834,7 @@
       "dir": "/workspace-cppcheck",
       "id": "cppcheck:0",
       "waitFor": [
-        "ensure-bazel:1"
+        "ensure-bazel:2"
       ],
       "entrypoint": "rsync",
       "volumes": [
