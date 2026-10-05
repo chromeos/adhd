@@ -30,13 +30,6 @@ static size_t add_task_stub_called;
 static size_t callback_stub_called;
 static void* select_data_value;
 static void* task_data_value;
-static size_t add_callback_called;
-static cras_alert_cb add_callback_cb;
-static void* add_callback_arg;
-static size_t rm_callback_called;
-static cras_alert_cb rm_callback_cb;
-static void* rm_callback_arg;
-static size_t alert_pending_called;
 static char* device_config_dir;
 static const char* cras_alsa_card_config_dir;
 static size_t cras_observer_notify_output_volume_called;
@@ -50,7 +43,6 @@ static size_t cras_observer_notify_num_arc_streams_called;
 static size_t cras_observer_notify_nodes_called;
 static struct cras_board_config fake_board_config;
 static size_t cras_alert_process_all_pending_alerts_called;
-static size_t cras_alsa_card_get_type_called;
 std::unordered_map<const cras_alsa_card*, enum CRAS_ALSA_CARD_TYPE>
     card_type_map;
 std::unordered_map<const cras_alsa_card*, int> card_index_map;
@@ -65,9 +57,6 @@ static void ResetStubData() {
   rm_stub_called = 0;
   add_task_stub_called = 0;
   callback_stub_called = 0;
-  add_callback_called = 0;
-  rm_callback_called = 0;
-  alert_pending_called = 0;
   device_config_dir = NULL;
   cras_alsa_card_config_dir = NULL;
   cras_observer_notify_output_volume_called = 0;
@@ -80,7 +69,6 @@ static void ResetStubData() {
   cras_observer_notify_num_arc_streams_called = 0;
   cras_alert_process_all_pending_alerts_called = 0;
   cras_observer_notify_nodes_called = 0;
-  cras_alsa_card_get_type_called = 0;
   card_type_map.clear();
   card_index_map.clear();
   memset(&fake_board_config, 0, sizeof(fake_board_config));
@@ -731,24 +719,16 @@ void cras_alert_destroy(struct cras_alert* alert) {}
 int cras_alert_add_callback(struct cras_alert* alert,
                             cras_alert_cb cb,
                             void* arg) {
-  add_callback_called++;
-  add_callback_cb = cb;
-  add_callback_arg = arg;
   return 0;
 }
 
 int cras_alert_rm_callback(struct cras_alert* alert,
                            cras_alert_cb cb,
                            void* arg) {
-  rm_callback_called++;
-  rm_callback_cb = cb;
-  rm_callback_arg = arg;
   return 0;
 }
 
-void cras_alert_pending(struct cras_alert* alert) {
-  alert_pending_called++;
-}
+void cras_alert_pending(struct cras_alert* alert) {}
 
 cras_tm* cras_tm_init() {
   return static_cast<cras_tm*>(malloc(sizeof(unsigned int)));

@@ -16,15 +16,12 @@
 static struct cras_a2dp* a2dp_pcm_iodev_create_a2dp_val;
 static struct cras_iodev* a2dp_pcm_iodev_create_ret;
 static struct cras_iodev* a2dp_pcm_iodev_destroy_iodev_val;
-static int a2dp_pcm_update_bt_stack_delay_called;
 static cras_main_message* cras_main_message_send_msg;
 static cras_message_callback cras_main_message_add_handler_callback;
-static void* cras_main_message_add_handler_callback_data;
 static int cras_tm_create_timer_called;
 static int cras_tm_cancel_timer_called;
 static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
 static void* cras_tm_create_timer_cb_data;
-static struct cras_timer* cras_tm_cancel_timer_arg;
 static struct cras_timer* cras_tm_create_timer_ret;
 static const int fake_skt = 456;
 static int floss_media_a2dp_set_active_device_called;
@@ -43,7 +40,6 @@ static bool cras_system_get_force_a2dp_advanced_codecs_enabled_return_value =
     false;
 
 void ResetStubData() {
-  a2dp_pcm_update_bt_stack_delay_called = 0;
   floss_media_a2dp_set_active_device_called = 0;
   floss_media_a2dp_set_audio_config_called = 0;
   floss_media_a2dp_set_audio_config_rate = 0;
@@ -379,7 +375,6 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev* iodev,
                                     uint64_t total_bytes_read,
                                     uint64_t remote_delay_report_ns,
                                     struct timespec* data_position_ts) {
-  a2dp_pcm_update_bt_stack_delay_called++;
   return;
 }
 
@@ -399,7 +394,6 @@ int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
                                   cras_message_callback callback,
                                   void* callback_data) {
   cras_main_message_add_handler_callback = callback;
-  cras_main_message_add_handler_callback_data = callback_data;
   return 0;
 }
 
@@ -433,7 +427,6 @@ struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
 
 void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   cras_tm_cancel_timer_called++;
-  cras_tm_cancel_timer_arg = t;
 }
 
 // From fl_media

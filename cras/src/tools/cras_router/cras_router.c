@@ -25,12 +25,10 @@
 
 #define BUF_SIZE 32768
 
-static int keep_looping = 1;
 static int pipefd[2];
 struct cras_audio_format* aud_format;
 
 static int terminate_stream_loop(void) {
-  keep_looping = 0;
   return write(pipefd[1], "1", 1);
 }
 

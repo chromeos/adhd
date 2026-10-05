@@ -38,9 +38,6 @@ static const unsigned MAX_IODEV_RESET_TRIES = 5;
 static const double IODEV_RESET_TIMEWINDOW_SECS = 5.0;
 
 static int cras_iodev_list_disable_and_close_dev_group_called;
-static int select_node_called;
-static enum CRAS_STREAM_DIRECTION select_node_direction;
-static cras_node_id_t select_node_id;
 static struct cras_ionode* node_selected;
 static size_t update_device_list_called;
 static size_t notify_nodes_changed_called;
@@ -50,19 +47,13 @@ static const char* dsp_context_new_purpose;
 static int dsp_context_free_called;
 static int display_rotation;
 static enum CRAS_SCREEN_ROTATION system_state_display_rotation;
-static int update_channel_layout_called;
 static int update_channel_layout_return_val;
-static int cras_audio_format_set_channel_layout_called;
 static unsigned int cras_system_get_volume_return;
 static int cras_dsp_get_pipeline_called;
 static int cras_dsp_get_pipeline_ret;
 static int cras_dsp_put_pipeline_called;
-static int cras_dsp_pipeline_get_source_buffer_called;
-static int cras_dsp_pipeline_get_sink_buffer_called;
 static float cras_dsp_pipeline_source_buffer[2][DSP_BUFFER_SIZE];
 static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
-static int cras_dsp_pipeline_get_delay_called;
-static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_set_sink_ext_module_called;
 static int cras_dsp_pipeline_set_sink_lr_swapped_called;
 static int cras_dsp_pipeline_apply_sample_count;
@@ -80,7 +71,6 @@ static unsigned int pre_dsp_hook_called;
 static const uint8_t* pre_dsp_hook_frames;
 static void* pre_dsp_hook_cb_data;
 static unsigned int post_dsp_hook_called;
-static const uint8_t* post_dsp_hook_frames;
 static void* post_dsp_hook_cb_data;
 static int iodev_buffer_size;
 static uint8_t audio_buffer[BUFFER_SIZE];
@@ -94,7 +84,6 @@ static int configure_dev_ret;
 // This will be used extensively in cras_iodev.
 struct audio_thread_event_log* atlog;
 static unsigned int simple_no_stream_called;
-static int simple_no_stream_enable;
 static int dev_stream_playback_frames_ret;
 static int device_monitor_reset_device_called;
 static int output_underrun_called;
@@ -104,7 +93,6 @@ static float cras_ramp_start_from;
 static float cras_ramp_start_to;
 static int cras_ramp_start_duration_frames;
 static int cras_ramp_start_is_called;
-static int cras_ramp_reset_is_called;
 static struct cras_ramp_action cras_ramp_get_current_action_ret;
 static int cras_ramp_update_ramped_frames_num_frames;
 static cras_ramp_cb cras_ramp_start_cb;
@@ -130,7 +118,6 @@ static struct timespec time_now;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev* iodev) {
-  update_channel_layout_called = 1;
   return update_channel_layout_return_val;
 }
 
@@ -152,7 +139,6 @@ void SetupShm(struct cras_audio_shm** shm_out) {
 
 void ResetStubData() {
   cras_iodev_list_disable_and_close_dev_group_called = 0;
-  select_node_called = 0;
   update_device_list_called = 0;
   notify_nodes_changed_called = 0;
   notify_active_node_changed_called = 0;
@@ -161,18 +147,13 @@ void ResetStubData() {
   dsp_context_free_called = 0;
   display_rotation = ROTATE_0;
   system_state_display_rotation = ROTATE_0;
-  cras_audio_format_set_channel_layout_called = 0;
   cras_dsp_get_pipeline_called = 0;
   cras_dsp_get_pipeline_ret = 0;
   cras_dsp_put_pipeline_called = 0;
-  cras_dsp_pipeline_get_source_buffer_called = 0;
-  cras_dsp_pipeline_get_sink_buffer_called = 0;
   memset(&cras_dsp_pipeline_source_buffer, 0,
          sizeof(cras_dsp_pipeline_source_buffer));
   memset(&cras_dsp_pipeline_sink_buffer, 0,
          sizeof(cras_dsp_pipeline_sink_buffer));
-  cras_dsp_pipeline_get_delay_called = 0;
-  cras_dsp_pipeline_apply_called = 0;
   cras_dsp_pipeline_set_sink_ext_module_called = 0;
   cras_dsp_pipeline_set_sink_lr_swapped_called = 0;
   cras_dsp_pipeline_apply_sample_count = 0;
@@ -187,7 +168,6 @@ void ResetStubData() {
   pre_dsp_hook_called = 0;
   pre_dsp_hook_frames = NULL;
   post_dsp_hook_called = 0;
-  post_dsp_hook_frames = NULL;
   iodev_buffer_size = 0;
   // Assume there is some data in audio buffer.
   memset(audio_buffer, 0xff, sizeof(audio_buffer));
@@ -202,7 +182,6 @@ void ResetStubData() {
   can_start_ret = 1;
   configure_dev_ret = 0;
   simple_no_stream_called = 0;
-  simple_no_stream_enable = 0;
   dev_stream_playback_frames_ret = 0;
   if (!atlog) {
     if (asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0) {
@@ -222,7 +201,6 @@ void ResetStubData() {
   cras_ramp_start_cb = NULL;
   cras_ramp_start_cb_data = NULL;
   cras_ramp_start_is_called = 0;
-  cras_ramp_reset_is_called = 0;
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
   cras_ramp_update_ramped_frames_num_frames = 0;
   cras_device_monitor_set_device_mute_state_called = 0;
@@ -300,7 +278,6 @@ class IoDevSetFormatTestSuite : public testing::Test {
     pcm_formats_[1] = SND_PCM_FORMAT_S32_LE;
     pcm_formats_[2] = static_cast<snd_pcm_format_t>(0);
 
-    update_channel_layout_called = 0;
     update_channel_layout_return_val = 0;
 
     memset(&iodev_, 0, sizeof(iodev_));
@@ -311,8 +288,6 @@ class IoDevSetFormatTestSuite : public testing::Test {
     iodev_.dsp_context = NULL;
 
     memset(&node_, 0, sizeof(node_));
-
-    cras_audio_format_set_channel_layout_called = 0;
 
     main_log = main_thread_event_log_init();
   }
@@ -608,7 +583,6 @@ static int post_dsp_hook(const uint8_t* frames,
                          const struct cras_audio_format* fmt,
                          void* cb_data) {
   post_dsp_hook_called++;
-  post_dsp_hook_frames = frames;
   post_dsp_hook_cb_data = cb_data;
   return 0;
 }
@@ -1543,7 +1517,6 @@ TEST(IoDev, OpenInputDeviceWithLowRateFmt) {
 }
 
 static int simple_no_stream(struct cras_iodev* dev, int enable) {
-  simple_no_stream_enable = enable;
   simple_no_stream_called++;
   return 0;
 }
@@ -2970,17 +2943,14 @@ void cras_dsp_put_pipeline(struct cras_dsp_context* ctx) {
 
 float* cras_dsp_pipeline_get_source_buffer(struct pipeline* pipeline,
                                            int index) {
-  cras_dsp_pipeline_get_source_buffer_called++;
   return cras_dsp_pipeline_source_buffer[index];
 }
 
 float* cras_dsp_pipeline_get_sink_buffer(struct pipeline* pipeline, int index) {
-  cras_dsp_pipeline_get_sink_buffer_called++;
   return cras_dsp_pipeline_sink_buffer[index];
 }
 
 int cras_dsp_pipeline_get_delay(struct pipeline* pipeline) {
-  cras_dsp_pipeline_get_delay_called++;
   return 0;
 }
 
@@ -2988,7 +2958,6 @@ int cras_dsp_pipeline_apply(struct pipeline* pipeline,
                             uint8_t* buf,
                             snd_pcm_format_t format,
                             unsigned int frames) {
-  cras_dsp_pipeline_apply_called++;
   cras_dsp_pipeline_apply_sample_count = frames;
   return 0;
 }
@@ -3021,11 +2990,7 @@ int audio_thread_post_message(struct audio_thread* thread,
 }
 
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
-                                 cras_node_id_t node_id) {
-  select_node_called++;
-  select_node_direction = direction;
-  select_node_id = node_id;
-}
+                                 cras_node_id_t node_id) {}
 
 int cras_iodev_list_node_selected(struct cras_ionode* node) {
   return node == node_selected;
@@ -3060,7 +3025,6 @@ void cras_audio_area_config_channels(struct cras_audio_area* area,
 int cras_audio_format_set_channel_layout(struct cras_audio_format* format,
                                          const int8_t layout[CRAS_CH_MAX]) {
   int i;
-  cras_audio_format_set_channel_layout_called++;
   for (i = 0; i < CRAS_CH_MAX; i++) {
     format->channel_layout[i] = layout[i];
   }
@@ -3163,7 +3127,6 @@ int cras_ramp_start(struct cras_ramp* ramp,
 }
 
 int cras_ramp_reset(struct cras_ramp* ramp) {
-  cras_ramp_reset_is_called++;
   return 0;
 }
 
@@ -3213,17 +3176,17 @@ int cras_audio_thread_event_dev_overrun() {
 
 void ewma_power_init(struct ewma_power* ewma,
                      snd_pcm_format_t fmt,
-                     unsigned int rate){};
+                     unsigned int rate) {};
 
 void ewma_power_calculate(struct ewma_power* ewma,
                           const int16_t* buf,
                           unsigned int channels,
-                          unsigned int size){};
+                          unsigned int size) {};
 
 void ewma_power_calculate_area(struct ewma_power* ewma,
                                const int16_t* buf,
                                struct cras_audio_area* area,
-                               unsigned int size){};
+                               unsigned int size) {};
 
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   *tp = time_now;

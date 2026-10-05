@@ -10,8 +10,6 @@ extern "C" {
 #include "cras/src/server/cras_alsa_helpers.c"
 }
 
-static int snd_pcm_sw_params_set_tstamp_type_called;
-static int snd_pcm_sw_params_set_tstamp_mode_called;
 static snd_pcm_uframes_t snd_pcm_htimestamp_avail_ret_val;
 static timespec snd_pcm_htimestamp_tstamp_ret_val;
 static std::vector<int> snd_pcm_sw_params_ret_vals;
@@ -24,8 +22,6 @@ static int snd_pcm_start_ret_val;
 static snd_pcm_stream_t snd_pcm_stream_ret_val;
 
 static void ResetStubData() {
-  snd_pcm_sw_params_set_tstamp_type_called = 0;
-  snd_pcm_sw_params_set_tstamp_mode_called = 0;
   snd_pcm_htimestamp_avail_ret_val = 0;
   snd_pcm_htimestamp_tstamp_ret_val.tv_sec = 0;
   snd_pcm_htimestamp_tstamp_ret_val.tv_nsec = 0;
@@ -332,14 +328,12 @@ int snd_pcm_sw_params_set_period_event(snd_pcm_t* pcm,
 int snd_pcm_sw_params_set_tstamp_mode(snd_pcm_t* pcm,
                                       snd_pcm_sw_params_t* params,
                                       snd_pcm_tstamp_t val) {
-  snd_pcm_sw_params_set_tstamp_mode_called++;
   return 0;
 }
 
 int snd_pcm_sw_params_set_tstamp_type(snd_pcm_t* pcm,
                                       snd_pcm_sw_params_t* params,
                                       snd_pcm_tstamp_type_t val) {
-  snd_pcm_sw_params_set_tstamp_type_called++;
   return 0;
 }
 

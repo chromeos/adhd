@@ -49,9 +49,7 @@ static size_t cras_alsa_usb_iodev_create_return_size;
 static size_t cras_alsa_iodev_legacy_complete_init_called;
 static size_t cras_alsa_usb_iodev_legacy_complete_init_called;
 static size_t cras_alsa_iodev_ucm_add_nodes_and_jacks_called;
-static size_t cras_alsa_usb_iodev_ucm_add_nodes_and_jacks_called;
 static size_t cras_alsa_iodev_ucm_complete_init_called;
-static size_t cras_alsa_usb_iodev_ucm_complete_init_called;
 static size_t cras_alsa_iodev_destroy_called;
 static size_t cras_alsa_usb_iodev_destroy_called;
 static struct cras_iodev* cras_alsa_iodev_destroy_arg;
@@ -80,19 +78,16 @@ static size_t snd_ctl_card_info_called;
 static int snd_ctl_card_info_ret;
 static size_t snd_hctl_open_called;
 static int snd_hctl_open_return_value;
-static int snd_hctl_close_called;
 static size_t snd_hctl_nonblock_called;
 static snd_hctl_t* snd_hctl_open_pointer_val;
 static size_t snd_hctl_load_called;
 static int snd_hctl_load_return_value;
 static struct pollfd* snd_hctl_poll_descriptors_fds;
 static size_t snd_hctl_poll_descriptors_num_fds;
-static size_t snd_hctl_poll_descriptors_called;
 static size_t cras_system_add_select_fd_called;
 static std::vector<int> cras_system_add_select_fd_values;
 static size_t cras_system_rm_select_fd_called;
 static std::vector<int> cras_system_rm_select_fd_values;
-static size_t snd_hctl_handle_events_called;
 static size_t iniparser_freedict_called;
 static size_t iniparser_load_called;
 static int ucm_conf_exists_retval;
@@ -138,9 +133,7 @@ static void ResetStubData() {
   cras_alsa_iodev_legacy_complete_init_called = 0;
   cras_alsa_usb_iodev_legacy_complete_init_called = 0;
   cras_alsa_iodev_ucm_add_nodes_and_jacks_called = 0;
-  cras_alsa_usb_iodev_ucm_add_nodes_and_jacks_called = 0;
   cras_alsa_iodev_ucm_complete_init_called = 0;
-  cras_alsa_usb_iodev_ucm_complete_init_called = 0;
   cras_alsa_iodev_destroy_called = 0;
   cras_alsa_usb_iodev_destroy_called = 0;
   cras_alsa_iodev_index_called = 0;
@@ -167,13 +160,9 @@ static void ResetStubData() {
   snd_hctl_open_pointer_val = reinterpret_cast<snd_hctl_t*>(0x4323);
   snd_hctl_load_called = 0;
   snd_hctl_load_return_value = 0;
-  snd_hctl_close_called = 0;
   snd_hctl_nonblock_called = 0;
   snd_hctl_poll_descriptors_num_fds = 0;
-  snd_hctl_poll_descriptors_called = 0;
-  snd_hctl_handle_events_called = 0;
   snd_hctl_poll_descriptors_num_fds = 0;
-  snd_hctl_poll_descriptors_called = 0;
   cras_system_add_select_fd_called = 0;
   cras_system_add_select_fd_values.clear();
   cras_system_rm_select_fd_called = 0;
@@ -1189,13 +1178,10 @@ int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
 
 int cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
                                                 struct ucm_section* section) {
-  cras_alsa_usb_iodev_ucm_add_nodes_and_jacks_called++;
   return 0;
 }
 
-void cras_alsa_usb_iodev_ucm_complete_init(struct cras_iodev* iodev) {
-  cras_alsa_usb_iodev_ucm_complete_init_called++;
-}
+void cras_alsa_usb_iodev_ucm_complete_init(struct cras_iodev* iodev) {}
 
 void cras_alsa_usb_iodev_destroy(struct cras_iodev* iodev) {
   cras_alsa_usb_iodev_destroy_called++;
@@ -1294,7 +1280,6 @@ int snd_hctl_load(snd_hctl_t* hctl) {
   return snd_hctl_load_return_value;
 }
 int snd_hctl_close(snd_hctl_t* hctl) {
-  snd_hctl_close_called++;
   return 0;
 }
 int snd_hctl_poll_descriptors_count(snd_hctl_t* hctl) {
@@ -1305,11 +1290,9 @@ int snd_hctl_poll_descriptors(snd_hctl_t* hctl,
                               unsigned int space) {
   unsigned int num = MIN(space, snd_hctl_poll_descriptors_num_fds);
   memcpy(pfds, snd_hctl_poll_descriptors_fds, num * sizeof(*pfds));
-  snd_hctl_poll_descriptors_called++;
   return num;
 }
 int snd_hctl_handle_events(snd_hctl_t* hctl) {
-  snd_hctl_handle_events_called++;
   return 0;
 }
 

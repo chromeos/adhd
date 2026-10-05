@@ -31,7 +31,6 @@ static alert_flags_map cras_alert_create_flags_map;
 static struct cras_alert* cras_alert_pending_alert_value;
 static void* cras_alert_pending_data_value = NULL;
 static size_t cras_alert_pending_data_size_value;
-static size_t cras_iodev_list_update_device_list_called;
 static std::vector<void*> cb_context;
 static size_t cb_output_volume_changed_called;
 static std::vector<int32_t> cb_output_volume_changed_volume;
@@ -93,7 +92,6 @@ static void ResetStubData() {
     free(cras_alert_pending_data_value);
     cras_alert_pending_data_value = NULL;
   }
-  cras_iodev_list_update_device_list_called = 0;
   cb_context.clear();
   cb_output_volume_changed_called = 0;
   cb_output_volume_changed_volume.clear();
@@ -894,11 +892,10 @@ TEST_F(ObserverTest, SidetoneSupportedChanged) {
 }
 
 TEST_F(ObserverTest, AudioEffectUIAppearanceChanged) {
-  struct CrasEffectUIAppearance appearance {
-    .toggle_type = EFFECT_TYPE_STYLE_TRANSFER,
-    .effect_mode_options = EFFECT_TYPE_STYLE_TRANSFER,
-    .show_effect_fallback_message = true
-  };
+  struct CrasEffectUIAppearance appearance{
+      .toggle_type = EFFECT_TYPE_STYLE_TRANSFER,
+      .effect_mode_options = EFFECT_TYPE_STYLE_TRANSFER,
+      .show_effect_fallback_message = true};
   cras_observer_notify_audio_effect_ui_appearance_changed(appearance);
   EXPECT_EQ(cras_alert_pending_alert_value,
             g_observer->alerts.audio_effect_ui_appearance_changed);
@@ -983,9 +980,7 @@ void cras_alert_pending_data(struct cras_alert* alert,
   }
 }
 
-void cras_iodev_list_update_device_list() {
-  cras_iodev_list_update_device_list_called++;
-}
+void cras_iodev_list_update_device_list() {}
 
 }  // extern "C"
 

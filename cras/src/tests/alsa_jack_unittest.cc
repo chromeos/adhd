@@ -37,7 +37,6 @@ static int fake_jack_cb_plugged;
 static void* fake_jack_cb_data;
 static size_t fake_jack_cb_called;
 unsigned int snd_hctl_elem_get_device_return_val;
-unsigned int snd_hctl_elem_get_device_called;
 static size_t snd_hctl_first_elem_called;
 static snd_hctl_elem_t* snd_hctl_first_elem_return_val;
 static size_t snd_hctl_elem_next_called;
@@ -54,11 +53,8 @@ static size_t cras_system_add_select_fd_called;
 static std::vector<int> cras_system_add_select_fd_values;
 static size_t cras_system_rm_select_fd_called;
 static std::vector<int> cras_system_rm_select_fd_values;
-static size_t snd_hctl_elem_set_callback_private_called;
 static void* snd_hctl_elem_set_callback_private_value;
-static size_t snd_hctl_elem_get_hctl_called;
 static snd_hctl_t* snd_hctl_elem_get_hctl_return_value;
-static size_t snd_ctl_elem_value_get_boolean_called;
 static int snd_ctl_elem_value_get_boolean_return_value;
 static void* fake_jack_cb_arg;
 static void* fake_jack_found_cb_data;
@@ -100,7 +96,6 @@ static void ResetStubData() {
   gpio_switch_eviocgsw_called = 0;
   gpio_switch_eviocgbit_called = 0;
   snd_hctl_elem_get_device_return_val = 0;
-  snd_hctl_elem_get_device_called = 0;
   snd_hctl_first_elem_called = 0;
   snd_hctl_first_elem_return_val = reinterpret_cast<snd_hctl_elem_t*>(0x87);
   snd_hctl_elem_next_called = 0;
@@ -117,9 +112,6 @@ static void ResetStubData() {
   cras_system_add_select_fd_values.clear();
   cras_system_rm_select_fd_called = 0;
   cras_system_rm_select_fd_values.clear();
-  snd_hctl_elem_set_callback_private_called = 0;
-  snd_hctl_elem_get_hctl_called = 0;
-  snd_ctl_elem_value_get_boolean_called = 0;
   fake_jack_cb_called = 0;
   fake_jack_cb_plugged = 0;
   fake_jack_cb_arg = reinterpret_cast<void*>(0x987);
@@ -973,7 +965,6 @@ void cras_system_rm_select_fd(int fd) {
 
 // From alsa-lib hcontrol.c
 unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t* obj) {
-  snd_hctl_elem_get_device_called = 1;
   return snd_hctl_elem_get_device_return_val;
 }
 snd_hctl_elem_t* snd_hctl_first_elem(snd_hctl_t* hctl) {
@@ -1012,14 +1003,12 @@ void snd_hctl_elem_set_callback(snd_hctl_elem_t* obj,
   snd_hctl_elem_set_callback_value = val;
 }
 void snd_hctl_elem_set_callback_private(snd_hctl_elem_t* obj, void* val) {
-  snd_hctl_elem_set_callback_private_called++;
   snd_hctl_elem_set_callback_private_value = val;
 }
 void* snd_hctl_elem_get_callback_private(const snd_hctl_elem_t* obj) {
   return snd_hctl_elem_set_callback_private_value;
 }
 snd_hctl_t* snd_hctl_elem_get_hctl(snd_hctl_elem_t* elem) {
-  snd_hctl_elem_get_hctl_called++;
   return snd_hctl_elem_get_hctl_return_value;
 }
 int snd_hctl_elem_read(snd_hctl_elem_t* elem, snd_ctl_elem_value_t* value) {
@@ -1051,7 +1040,6 @@ void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t* obj, const char* val) {
 // From alsa-lib control.c
 int snd_ctl_elem_value_get_boolean(const snd_ctl_elem_value_t* obj,
                                    unsigned int idx) {
-  snd_ctl_elem_value_get_boolean_called++;
   return snd_ctl_elem_value_get_boolean_return_value;
 }
 

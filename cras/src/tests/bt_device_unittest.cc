@@ -15,19 +15,13 @@
 
 static unsigned int bt_io_manager_append_iodev_called;
 static unsigned int bt_io_manager_remove_iodev_called;
-static int cras_a2dp_start_called;
 static int cras_a2dp_suspend_connected_device_called;
 static int cras_hfp_ag_remove_conflict_called;
-static int cras_hfp_ag_start_called;
-static int cras_hfp_ag_suspend_connected_device_called;
-static int dbus_message_new_method_call_called;
-static const char* dbus_message_new_method_call_method;
 static struct cras_bt_device* cras_a2dp_connected_device_ret;
 static struct cras_bt_device* cras_a2dp_suspend_connected_device_dev;
 static int cras_bt_policy_schedule_suspend_called;
 static int cras_bt_policy_cancel_suspend_called;
 static int cras_bt_policy_start_connection_watch_called;
-static int cras_bt_policy_stop_connection_watch_called;
 
 struct MockDBusMessage {
   int type;
@@ -37,18 +31,12 @@ struct MockDBusMessage {
 };
 
 void ResetStubData() {
-  cras_a2dp_start_called = 0;
   cras_a2dp_suspend_connected_device_called = 0;
   cras_hfp_ag_remove_conflict_called = 0;
-  cras_hfp_ag_start_called = 0;
-  cras_hfp_ag_suspend_connected_device_called = 0;
-  dbus_message_new_method_call_method = NULL;
-  dbus_message_new_method_call_called = 0;
   cras_a2dp_connected_device_ret = NULL;
   cras_bt_policy_schedule_suspend_called = 0;
   cras_bt_policy_cancel_suspend_called = 0;
   cras_bt_policy_start_connection_watch_called = 0;
-  cras_bt_policy_stop_connection_watch_called = 0;
 }
 
 static void FreeMockDBusMessage(MockDBusMessage* head) {
@@ -360,18 +348,14 @@ struct hfp_slc_handle* cras_hfp_ag_get_slc(struct cras_bt_device* device) {
   return NULL;
 }
 
-void cras_hfp_ag_suspend_connected_device(struct cras_bt_device* device) {
-  cras_hfp_ag_suspend_connected_device_called++;
-}
+void cras_hfp_ag_suspend_connected_device(struct cras_bt_device* device) {}
 
 void cras_a2dp_suspend_connected_device(struct cras_bt_device* device) {
   cras_a2dp_suspend_connected_device_called++;
   cras_a2dp_suspend_connected_device_dev = device;
 }
 
-void cras_a2dp_start(struct cras_bt_device* device) {
-  cras_a2dp_start_called++;
-}
+void cras_a2dp_start(struct cras_bt_device* device) {}
 
 struct cras_bt_device* cras_a2dp_connected_device() {
   return cras_a2dp_connected_device_ret;
@@ -383,7 +367,6 @@ int cras_hfp_ag_remove_conflict(struct cras_bt_device* device) {
 }
 
 int cras_hfp_ag_start(struct cras_bt_device* device) {
-  cras_hfp_ag_start_called++;
   return 0;
 }
 
@@ -441,7 +424,6 @@ int cras_bt_policy_start_connection_watch(struct cras_bt_device* device) {
   return 0;
 }
 int cras_bt_policy_stop_connection_watch(struct cras_bt_device* device) {
-  cras_bt_policy_stop_connection_watch_called++;
   return 0;
 }
 
@@ -449,8 +431,6 @@ DBusMessage* dbus_message_new_method_call(const char* destination,
                                           const char* path,
                                           const char* iface,
                                           const char* method) {
-  dbus_message_new_method_call_called++;
-  dbus_message_new_method_call_method = method;
   return reinterpret_cast<DBusMessage*>(0x456);
 }
 

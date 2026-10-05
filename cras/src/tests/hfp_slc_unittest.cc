@@ -16,7 +16,6 @@
 static struct hfp_slc_handle* handle;
 static struct cras_telephony_handle fake_telephony;
 static int cras_bt_device_update_hardware_volume_called;
-static int cras_observer_notify_bt_batter_changed_called;
 static int slc_initialized_cb_called;
 static int slc_disconnected_cb_called;
 static int cras_system_add_select_fd_called;
@@ -26,7 +25,6 @@ static int fake_errno;
 static struct cras_bt_device* device =
     reinterpret_cast<struct cras_bt_device*>(2);
 static void (*cras_tm_timer_cb)(struct cras_timer* t, void* data);
-static void* cras_tm_timer_cb_data;
 
 int slc_initialized_cb(struct hfp_slc_handle* handle);
 int slc_disconnected_cb(struct hfp_slc_handle* handle);
@@ -35,7 +33,6 @@ void ResetStubData() {
   slc_initialized_cb_called = 0;
   cras_system_add_select_fd_called = 0;
   cras_bt_device_update_hardware_volume_called = 0;
-  cras_observer_notify_bt_batter_changed_called = 0;
   slc_cb = NULL;
   slc_cb_data = NULL;
 }
@@ -454,9 +451,7 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
 }
 
 void cras_observer_notify_bt_battery_changed(const char* address,
-                                             uint32_t level) {
-  cras_observer_notify_bt_batter_changed_called++;
-}
+                                             uint32_t level) {}
 
 // To return fake errno
 int* __errno_location() {
@@ -473,7 +468,6 @@ struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                                    void* data),
                                         void* cb_data) {
   cras_tm_timer_cb = cb;
-  cras_tm_timer_cb_data = cb_data;
   return reinterpret_cast<struct cras_timer*>(0x404);
 }
 

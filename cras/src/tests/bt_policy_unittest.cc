@@ -19,7 +19,6 @@ static int cras_tm_create_timer_called;
 static int cras_tm_cancel_timer_called;
 static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
 static void* cras_tm_create_timer_cb_data;
-static struct cras_timer* cras_tm_cancel_timer_arg;
 static struct cras_timer* cras_tm_create_timer_ret;
 static int cras_hfp_ag_start_called;
 static int cras_hfp_ag_suspend_connected_device_called;
@@ -34,8 +33,6 @@ static bool bt_io_manager_exists_ret;
 static bool cras_floss_lea_is_context_switching_ret;
 static cras_iodev* cras_floss_lea_get_primary_idev_ret;
 static cras_iodev* cras_floss_lea_get_primary_odev_ret;
-static int update_active_node_enable_called;
-static int update_active_node_disable_called;
 
 void ResetStubData() {
   cras_tm_create_timer_called = 0;
@@ -56,20 +53,12 @@ void ResetStubData() {
   cras_floss_lea_is_context_switching_ret = false;
   cras_floss_lea_get_primary_idev_ret = NULL;
   cras_floss_lea_get_primary_odev_ret = NULL;
-  update_active_node_enable_called = 0;
-  update_active_node_disable_called = 0;
 }
 
 // Iodev callback
 void update_active_node(struct cras_iodev* iodev,
                         unsigned node_idx,
-                        unsigned dev_enabled) {
-  if (dev_enabled) {
-    ++update_active_node_enable_called;
-  } else {
-    ++update_active_node_disable_called;
-  }
-}
+                        unsigned dev_enabled) {}
 
 namespace {
 class BtPolicyTestSuite : public testing::Test {
@@ -448,7 +437,6 @@ struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
 void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   ASSERT_NE(t, (void*)NULL);
   cras_tm_cancel_timer_called++;
-  cras_tm_cancel_timer_arg = t;
 }
 
 // From cras_iodev_list

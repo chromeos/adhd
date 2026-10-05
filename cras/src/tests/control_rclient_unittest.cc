@@ -24,7 +24,6 @@ extern "C" {
 //  Stub data.
 static int cras_rstream_create_return;
 static struct cras_rstream* cras_rstream_create_stream_out;
-static int cras_iodev_attach_stream_retval;
 static size_t cras_system_set_volume_value;
 static int cras_system_set_volume_called;
 static size_t cras_system_set_mute_value;
@@ -61,7 +60,6 @@ static struct packet_status_logger wbs_logger;
 void ResetStubData() {
   cras_rstream_create_return = 0;
   cras_rstream_create_stream_out = (struct cras_rstream*)NULL;
-  cras_iodev_attach_stream_retval = 0;
   cras_system_set_volume_value = 0;
   cras_system_set_volume_called = 0;
   cras_system_set_mute_value = 0;
@@ -227,7 +225,6 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageValidDirection) {
     }
     called++;
     cras_rstream_create_stream_out = rstream_;
-    cras_iodev_attach_stream_retval = 0;
 
     fd_ = 100;
     rc = rclient_->ops->handle_message_from_client(
@@ -250,7 +247,6 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageInvalidDirection) {
 
   connect_msg_.direction = CRAS_STREAM_UNDEFINED;
   cras_rstream_create_stream_out = rstream_;
-  cras_iodev_attach_stream_retval = 0;
 
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
@@ -291,7 +287,6 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   int rc;
 
   cras_rstream_create_stream_out = rstream_;
-  cras_iodev_attach_stream_retval = 0;
 
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
@@ -312,7 +307,6 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   int rc;
 
   cras_rstream_create_stream_out = rstream_;
-  cras_iodev_attach_stream_retval = 0;
 
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,

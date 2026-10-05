@@ -32,7 +32,6 @@ static unsigned cras_iodev_rm_node_called;
 static unsigned cras_iodev_set_active_node_called;
 static unsigned cras_iodev_free_format_called;
 static unsigned cras_iodev_free_resources_called;
-static unsigned cras_iodev_list_add_called;
 static unsigned cras_iodev_list_rm_called;
 static cras_audio_area* mock_audio_area;
 static unsigned cras_iodev_init_audio_area_called;
@@ -40,13 +39,10 @@ static unsigned cras_iodev_free_audio_area_called;
 static unsigned cras_floss_a2dp_start_called;
 static unsigned cras_floss_a2dp_stop_called;
 static int cras_floss_a2dp_get_fd_ret;
-static unsigned cras_floss_hfp_start_called;
-static unsigned cras_floss_hfp_stop_called;
 static int cras_floss_hfp_get_fd_ret;
 static cras_iodev* cras_floss_hfp_get_input_iodev_ret;
 static cras_iodev* cras_floss_hfp_get_output_iodev_ret;
 static unsigned cras_floss_a2dp_cancel_suspend_called;
-static unsigned cras_floss_a2dp_schedule_suspend_called;
 static thread_callback write_callback;
 static void* write_callback_data;
 static int audio_thread_config_events_callback_called;
@@ -63,20 +59,16 @@ void ResetStubData() {
   cras_iodev_set_active_node_called = 0;
   cras_iodev_free_format_called = 0;
   cras_iodev_free_resources_called = 0;
-  cras_iodev_list_add_called = 0;
   cras_iodev_list_rm_called = 0;
   cras_iodev_init_audio_area_called = 0;
   cras_iodev_free_audio_area_called = 0;
   cras_floss_a2dp_start_called = 0;
   cras_floss_a2dp_stop_called = 0;
   cras_floss_a2dp_get_fd_ret = FAKE_SOCKET_FD;
-  cras_floss_hfp_start_called = 0;
-  cras_floss_hfp_stop_called = 0;
   cras_floss_hfp_get_fd_ret = FAKE_SOCKET_FD;
   cras_floss_hfp_get_input_iodev_ret = NULL;
   cras_floss_hfp_get_output_iodev_ret = NULL;
   cras_floss_a2dp_cancel_suspend_called = 0;
-  cras_floss_a2dp_schedule_suspend_called = 0;
   write_callback = NULL;
   audio_thread_config_events_callback_called = 0;
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
@@ -873,7 +865,6 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
 
 // Cras iodev list
 int cras_iodev_list_add(struct cras_iodev* iodev) {
-  cras_iodev_list_add_called++;
   return 0;
 }
 
@@ -974,12 +965,10 @@ void cras_floss_a2dp_set_active(struct cras_a2dp* a2dp, unsigned enabled) {
 int cras_floss_hfp_start(struct cras_hfp* hfp,
                          thread_callback cb,
                          enum CRAS_STREAM_DIRECTION dir) {
-  cras_floss_hfp_start_called++;
   return 0;
 }
 
 int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
-  cras_floss_hfp_stop_called++;
   return 0;
 }
 
@@ -1070,9 +1059,7 @@ void cras_floss_a2dp_cancel_suspend(struct cras_a2dp* a2dp) {
 
 void cras_floss_a2dp_schedule_suspend(struct cras_a2dp* a2dp,
                                       unsigned int msec,
-                                      enum A2DP_EXIT_CODE) {
-  cras_floss_a2dp_schedule_suspend_called++;
-}
+                                      enum A2DP_EXIT_CODE) {}
 
 void cras_floss_a2dp_update_write_status(struct cras_a2dp* a2dp,
                                          bool write_success) {

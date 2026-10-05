@@ -31,11 +31,7 @@ static unsigned int floss_media_hfp_set_volume_volume_val;
 static int socket_ret;
 static int audio_thread_add_events_callback_called;
 static int audio_thread_add_events_callback_fd;
-static thread_callback audio_thread_add_events_callback_cb;
 static void* audio_thread_add_events_callback_data;
-static int audio_thread_config_events_callback_called;
-static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
-    audio_thread_config_events_callback_trigger;
 static int floss_media_hfp_start_sco_call_ret;
 static bool cras_system_get_force_hfp_swb_enabled_ret = false;
 
@@ -60,9 +56,7 @@ void ResetStubData() {
   floss_media_hfp_set_volume_volume_val = 0;
   audio_thread_add_events_callback_called = 0;
   audio_thread_add_events_callback_fd = 0;
-  audio_thread_add_events_callback_cb = NULL;
   audio_thread_add_events_callback_data = NULL;
-  audio_thread_config_events_callback_called = 0;
   socket_ret = 456;
   cras_system_get_force_hfp_swb_enabled_ret = false;
   btlog = cras_bt_event_log_init();
@@ -256,16 +250,12 @@ void audio_thread_add_events_callback(int fd,
                                       int events) {
   audio_thread_add_events_callback_called++;
   audio_thread_add_events_callback_fd = fd;
-  audio_thread_add_events_callback_cb = cb;
   audio_thread_add_events_callback_data = data;
 }
 
 void audio_thread_config_events_callback(
     int fd,
-    enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger) {
-  audio_thread_config_events_callback_called++;
-  audio_thread_config_events_callback_trigger = trigger;
-}
+    enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger) {}
 
 int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
   return 0;

@@ -11,24 +11,17 @@ extern "C" {
 #include "cras/src/server/cras_bt_io.c"
 }
 
-static unsigned int cras_iodev_add_node_called;
-static unsigned int cras_iodev_rm_node_called;
 static unsigned int cras_iodev_free_format_called;
 static unsigned int cras_iodev_free_resources_called;
-static unsigned int cras_iodev_set_active_node_called;
 static unsigned int cras_iodev_list_add_called;
 static unsigned int cras_iodev_list_rm_called;
 static int cras_bt_policy_switch_profile_called;
 static int is_utf8_string_ret_value;
 static size_t cras_iodev_set_node_plugged_called;
-static int cras_iodev_set_node_plugged_value;
 
 void ResetStubData() {
-  cras_iodev_add_node_called = 0;
-  cras_iodev_rm_node_called = 0;
   cras_iodev_free_format_called = 0;
   cras_iodev_free_resources_called = 0;
-  cras_iodev_set_active_node_called = 0;
   cras_iodev_set_node_plugged_called = 0;
   cras_iodev_list_add_called = 0;
   cras_iodev_list_rm_called = 0;
@@ -51,7 +44,6 @@ class BtIoBasicSuite : public testing::Test {
 
     update_supported_formats_called_ = 0;
     frames_queued_called_ = 0;
-    delay_frames_called_ = 0;
     get_buffer_called_ = 0;
     put_buffer_called_ = 0;
     configure_dev_called_ = 0;
@@ -98,10 +90,7 @@ class BtIoBasicSuite : public testing::Test {
     frames_queued_called_++;
     return 0;
   }
-  static int delay_frames(const cras_iodev* iodev) {
-    delay_frames_called_++;
-    return 0;
-  }
+  static int delay_frames(const cras_iodev* iodev) { return 0; }
   static int get_buffer(cras_iodev* iodev,
                         struct cras_audio_area** area,
                         unsigned int* num) {
@@ -136,7 +125,6 @@ class BtIoBasicSuite : public testing::Test {
   static struct cras_ionode node3_;
   static unsigned int update_supported_formats_called_;
   static unsigned int frames_queued_called_;
-  static unsigned int delay_frames_called_;
   static unsigned int get_buffer_called_;
   static unsigned int put_buffer_called_;
   static unsigned int configure_dev_called_;
@@ -155,7 +143,6 @@ struct cras_ionode BtIoBasicSuite::node2_;
 struct cras_ionode BtIoBasicSuite::node3_;
 unsigned int BtIoBasicSuite::update_supported_formats_called_;
 unsigned int BtIoBasicSuite::frames_queued_called_;
-unsigned int BtIoBasicSuite::delay_frames_called_;
 unsigned int BtIoBasicSuite::get_buffer_called_;
 unsigned int BtIoBasicSuite::put_buffer_called_;
 unsigned int BtIoBasicSuite::configure_dev_called_;
@@ -511,12 +498,10 @@ extern "C" {
 
 // Cras iodev
 void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
-  cras_iodev_add_node_called++;
   DL_APPEND(iodev->nodes, node);
 }
 
 void cras_iodev_rm_node(struct cras_iodev* iodev, struct cras_ionode* node) {
-  cras_iodev_rm_node_called++;
   DL_DELETE(iodev->nodes, node);
 }
 
@@ -526,7 +511,6 @@ void cras_iodev_free_format(struct cras_iodev* iodev) {
 
 void cras_iodev_set_active_node(struct cras_iodev* iodev,
                                 struct cras_ionode* node) {
-  cras_iodev_set_active_node_called++;
   iodev->active_node = node;
 }
 
@@ -583,7 +567,6 @@ unsigned int cras_iodev_default_frames_to_play_in_sleep(
 
 void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
   cras_iodev_set_node_plugged_called++;
-  cras_iodev_set_node_plugged_value = plugged;
 }
 
 bool cras_system_get_ap_nc_supported_on_bluetooth() {

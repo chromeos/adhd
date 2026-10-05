@@ -32,9 +32,6 @@ static unsigned int cras_rstream_dev_offset_update_dev_id_val[MAX_CALLS];
 static int cras_rstream_is_pending_reply_ret;
 static int cras_iodev_all_streams_written_ret;
 static struct cras_audio_area* cras_iodev_get_output_buffer_area;
-static int cras_iodev_put_output_buffer_called;
-static unsigned int cras_iodev_put_output_buffer_nframes;
-static unsigned int cras_iodev_fill_odev_zeros_frames;
 static int dev_stream_playback_frames_ret;
 static int dev_stream_mix_called;
 static unsigned int dev_stream_update_next_wake_time_called;
@@ -50,8 +47,6 @@ static struct cras_iodev* cras_iodev_reset_request_iodev;
 static int cras_iodev_get_valid_frames_ret;
 static int cras_iodev_output_underrun_called;
 static int cras_iodev_start_stream_called;
-static int cras_device_monitor_reset_device_called;
-static struct cras_iodev* cras_device_monitor_reset_device_iodev;
 static struct cras_iodev* cras_iodev_start_ramp_odev;
 static enum CRAS_IODEV_RAMP_REQUEST cras_iodev_start_ramp_request;
 static struct timespec clock_gettime_retspec;
@@ -80,9 +75,6 @@ void ResetGlobalStubData() {
     free(cras_iodev_get_output_buffer_area);
     cras_iodev_get_output_buffer_area = NULL;
   }
-  cras_iodev_put_output_buffer_called = 0;
-  cras_iodev_put_output_buffer_nframes = 0;
-  cras_iodev_fill_odev_zeros_frames = 0;
   cras_iodev_frames_to_play_in_sleep_called = 0;
   dev_stream_playback_frames_ret = 0;
   dev_stream_mix_called = 0;
@@ -97,8 +89,6 @@ void ResetGlobalStubData() {
   cras_iodev_get_valid_frames_ret = 0;
   cras_iodev_output_underrun_called = 0;
   cras_iodev_start_stream_called = 0;
-  cras_device_monitor_reset_device_called = 0;
-  cras_device_monitor_reset_device_iodev = NULL;
   cras_iodev_start_ramp_odev = NULL;
   cras_iodev_start_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   cras_device_monitor_set_device_mute_state_called = 0;
@@ -1135,8 +1125,6 @@ int cras_iodev_put_output_buffer(struct cras_iodev* iodev,
                                  unsigned int nframes,
                                  int* non_empty,
                                  struct cras_fmt_conv* output_converter) {
-  cras_iodev_put_output_buffer_called++;
-  cras_iodev_put_output_buffer_nframes = nframes;
   return 0;
 }
 
@@ -1339,7 +1327,6 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
 int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
                                unsigned int frames,
                                bool processing) {
-  cras_iodev_fill_odev_zeros_frames = frames;
   return (int)frames;
 }
 

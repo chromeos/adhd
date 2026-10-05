@@ -28,13 +28,9 @@ static cras_audio_format format;
 static unsigned cras_iodev_add_node_called;
 static unsigned cras_iodev_rm_node_called;
 static unsigned cras_iodev_set_active_node_called;
-static unsigned cras_iodev_free_format_called;
 static unsigned cras_iodev_free_resources_called;
-static unsigned cras_iodev_list_add_called;
 static unsigned cras_iodev_list_rm_called;
 static cras_audio_area* mock_audio_area;
-static unsigned cras_iodev_init_audio_area_called;
-static unsigned cras_iodev_free_audio_area_called;
 static unsigned cras_floss_lea_start_called;
 static unsigned cras_floss_lea_stop_called;
 static int cras_floss_lea_get_fd_ret;
@@ -42,14 +38,9 @@ static cras_iodev* cras_floss_lea_get_primary_idev_ret;
 static cras_iodev* cras_floss_lea_get_primary_odev_ret;
 static thread_callback write_callback;
 static void* write_callback_data;
-static int audio_thread_config_events_callback_called;
-static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
-    audio_thread_config_events_callback_trigger;
-static int cras_floss_lea_fill_format_called;
 static int is_utf8_string_ret_value;
 static int cras_floss_lea_is_idev_started_ret;
 static int cras_floss_lea_is_odev_started_ret;
-static int cras_floss_lea_set_active_called;
 static bool cras_floss_lea_has_connected_group_ret;
 static bool cras_floss_lea_is_context_switching_ret;
 static enum LEA_AUDIO_CONTEXT_TYPE cras_floss_lea_current_context;
@@ -59,25 +50,17 @@ void ResetStubData() {
   cras_iodev_add_node_called = 0;
   cras_iodev_rm_node_called = 0;
   cras_iodev_set_active_node_called = 0;
-  cras_iodev_free_format_called = 0;
   cras_iodev_free_resources_called = 0;
-  cras_iodev_list_add_called = 0;
   cras_iodev_list_rm_called = 0;
-  cras_iodev_init_audio_area_called = 0;
-  cras_iodev_free_audio_area_called = 0;
   cras_floss_lea_start_called = 0;
   cras_floss_lea_stop_called = 0;
   cras_floss_lea_get_fd_ret = FAKE_SOCKET_FD;
   cras_floss_lea_get_primary_idev_ret = NULL;
   cras_floss_lea_get_primary_odev_ret = NULL;
   write_callback = NULL;
-  audio_thread_config_events_callback_called = 0;
-  audio_thread_config_events_callback_trigger = TRIGGER_NONE;
-  cras_floss_lea_fill_format_called = 0;
   is_utf8_string_ret_value = 1;
   cras_floss_lea_is_idev_started_ret = 0;
   cras_floss_lea_is_odev_started_ret = 0;
-  cras_floss_lea_set_active_called = 0;
   cras_floss_lea_has_connected_group_ret = false;
   cras_floss_lea_is_context_switching_ret = false;
   cras_floss_lea_current_context = LEA_AUDIO_CONTEXT_UNINITIALIZED;
@@ -496,22 +479,17 @@ void cras_iodev_set_active_node(struct cras_iodev* iodev,
   iodev->active_node = node;
 }
 
-void cras_iodev_free_format(struct cras_iodev* iodev) {
-  cras_iodev_free_format_called++;
-}
+void cras_iodev_free_format(struct cras_iodev* iodev) {}
 
 void cras_iodev_free_resources(struct cras_iodev* iodev) {
   cras_iodev_free_resources_called++;
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
-  cras_iodev_init_audio_area_called++;
   iodev->area = mock_audio_area;
 }
 
-void cras_iodev_free_audio_area(struct cras_iodev* iodev) {
-  cras_iodev_free_audio_area_called++;
-}
+void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
@@ -527,7 +505,6 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
 
 // Cras iodev list
 int cras_iodev_list_add(struct cras_iodev* iodev) {
-  cras_iodev_list_add_called++;
   return 0;
 }
 
@@ -563,10 +540,7 @@ void audio_thread_add_events_callback(int fd,
 
 void audio_thread_config_events_callback(
     int fd,
-    enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger) {
-  audio_thread_config_events_callback_called++;
-  audio_thread_config_events_callback_trigger = trigger;
-}
+    enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger) {}
 
 int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
   return 0;
@@ -593,7 +567,6 @@ int cras_floss_lea_stop(struct cras_lea* lea, enum CRAS_STREAM_DIRECTION dir) {
 void cras_floss_lea_set_active(struct cras_lea* lea,
                                int group_id,
                                unsigned enabled) {
-  cras_floss_lea_set_active_called++;
   return;
 }
 
@@ -613,8 +586,6 @@ int cras_floss_lea_fill_format(struct cras_lea* lea,
                                size_t** rates,
                                snd_pcm_format_t** formats,
                                size_t** channel_counts) {
-  cras_floss_lea_fill_format_called++;
-
   free(*rates);
   free(*formats);
   free(*channel_counts);

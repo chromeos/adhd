@@ -26,8 +26,6 @@ extern "C" {
 #define BUFFER_SIZE 8192
 
 //  Data for simulating functions stubbed below.
-static int cras_alsa_open_called;
-static int cras_iodev_append_stream_ret;
 static int cras_alsa_get_avail_frames_ret;
 static int cras_alsa_get_avail_frames_avail;
 static int cras_alsa_start_called;
@@ -35,33 +33,16 @@ static uint8_t* cras_alsa_mmap_begin_buffer;
 static size_t cras_alsa_mmap_begin_frames;
 static size_t cras_alsa_fill_properties_called;
 static bool cras_alsa_support_8_channels;
-static size_t alsa_mixer_set_dBFS_called;
-static int alsa_mixer_set_dBFS_value;
-static const struct mixer_control* alsa_mixer_set_dBFS_output;
 static size_t alsa_mixer_set_capture_dBFS_called;
-static int alsa_mixer_set_capture_dBFS_value;
-static const struct mixer_control* alsa_mixer_set_capture_dBFS_input;
-static const struct mixer_control*
-    cras_alsa_mixer_get_minimum_capture_gain_mixer_input;
-static const struct mixer_control*
-    cras_alsa_mixer_get_maximum_capture_gain_mixer_input;
-static size_t cras_alsa_mixer_list_outputs_called;
-static size_t cras_alsa_mixer_list_inputs_called;
-static size_t cras_alsa_mixer_get_control_for_section_called;
 static struct mixer_control*
     cras_alsa_mixer_get_control_for_section_return_value;
-static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
-static size_t alsa_mixer_set_mute_called;
-static int alsa_mixer_set_mute_value;
 static size_t cras_alsa_mixer_get_playback_dBFS_range_called;
 static long cras_alsa_mixer_get_playback_dBFS_range_max;
 static long cras_alsa_mixer_get_playback_dBFS_range_min;
 static size_t cras_alsa_mixer_get_playback_step_called;
 typedef std::map<const struct mixer_control*, int> PlaybackStepMap;
 static PlaybackStepMap cras_alsa_mixer_get_playback_step_values;
-static const struct mixer_control* alsa_mixer_set_mute_output;
-static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
 static struct cras_alsa_mixer* fake_mixer = (struct cras_alsa_mixer*)1;
 static struct cras_card_config* fake_config = (struct cras_card_config*)2;
@@ -69,53 +50,30 @@ static struct mixer_control** cras_alsa_mixer_list_outputs_outputs;
 static size_t cras_alsa_mixer_list_outputs_outputs_length;
 static struct mixer_control** cras_alsa_mixer_list_inputs_outputs;
 static size_t cras_alsa_mixer_list_inputs_outputs_length;
-static size_t cras_alsa_mixer_set_output_active_state_called;
 static std::vector<struct mixer_control*>
     cras_alsa_mixer_set_output_active_state_outputs;
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static cras_audio_format* fake_format;
-static size_t sys_set_volume_limits_called;
-static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
-static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
 static struct mixer_control* cras_alsa_jack_get_mixer_ret;
-static size_t cras_alsa_mixer_get_output_volume_curve_called;
 typedef std::map<const struct mixer_control*, std::string> ControlNameMap;
 static ControlNameMap cras_alsa_mixer_get_control_name_values;
-static size_t cras_alsa_mixer_get_control_name_called;
-static size_t cras_alsa_jack_list_create_called;
-static size_t cras_alsa_jack_list_find_jacks_by_name_matching_called;
-static size_t cras_alsa_jack_list_add_jack_for_section_called;
 static struct cras_alsa_jack*
     cras_alsa_jack_list_add_jack_for_section_result_jack;
-static size_t cras_alsa_jack_list_destroy_called;
 static int cras_alsa_jack_list_has_hctl_jacks_return_val;
-static jack_state_change_callback* cras_alsa_jack_list_create_cb;
-static void* cras_alsa_jack_list_create_cb_data;
 static char test_card_name[] = "TestCard";
 static char test_pcm_name[] = "TestPCM";
 static char test_dev_name[] = "TestDev";
 static char test_dev_id[] = "TestDevId";
 static std::map<std::string, std::string>
     ucm_get_playback_mixer_elem_for_dev_values;
-static size_t cras_iodev_add_node_called;
-static struct cras_ionode* cras_iodev_set_node_plugged_ionode;
 static size_t cras_iodev_set_node_plugged_called;
-static int cras_iodev_set_node_plugged_value;
-static unsigned cras_alsa_jack_enable_ucm_called;
-static unsigned ucm_set_enabled_called;
-static size_t cras_iodev_update_dsp_called;
-static const char* cras_iodev_update_dsp_name;
 typedef std::map<const char*, std::string> DspNameMap;
-static size_t ucm_get_dsp_name_for_dev_called;
 static DspNameMap ucm_get_dsp_name_for_dev_values;
 static size_t cras_iodev_free_resources_called;
-static size_t cras_alsa_jack_update_node_type_called;
 static int ucm_swap_mode_exists_ret_value;
 static int ucm_enable_swap_mode_ret_value;
-static size_t ucm_enable_swap_mode_called;
 static int is_utf8_string_ret_value;
 static const char* cras_alsa_jack_update_monitor_fake_name = 0;
-static int cras_alsa_jack_get_name_called;
 static const char* cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
 static int auto_unplug_input_node_ret = 0;
@@ -125,7 +83,6 @@ static long cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 static snd_pcm_state_t snd_pcm_state_ret;
 static int cras_alsa_attempt_resume_called;
 static snd_hctl_t* fake_hctl = (snd_hctl_t*)2;
-static size_t ucm_get_dma_period_for_dev_called;
 static unsigned int ucm_get_dma_period_for_dev_ret;
 static unsigned int cras_volume_curve_create_simple_step_called;
 static long cras_volume_curve_create_simple_step_max_volume;
@@ -133,30 +90,17 @@ static long cras_volume_curve_create_simple_step_range;
 static int cras_card_config_get_volume_curve_for_control_called;
 typedef std::map<std::string, struct cras_volume_curve*> VolCurveMap;
 static VolCurveMap cras_card_config_get_volume_curve_vals;
-static int cras_alsa_mmap_get_whole_buffer_called;
-static int cras_iodev_fill_odev_zeros_called;
-static unsigned int cras_iodev_fill_odev_zeros_frames;
 static int cras_iodev_frames_queued_ret;
 static int cras_iodev_buffer_avail_ret;
 static int cras_alsa_resume_appl_ptr_called;
 static int cras_alsa_resume_appl_ptr_ahead;
-static const struct cras_volume_curve* fake_get_dBFS_volume_curve_val;
-static int cras_iodev_dsp_set_swap_mode_for_node_called;
 static std::map<std::string, long> ucm_get_default_node_gain_values;
 static std::map<std::string, long> ucm_get_intrinsic_sensitivity_values;
-static thread_callback audio_thread_cb;
-static void* audio_thread_cb_data;
-static int hotword_send_triggered_msg_called;
 static struct timespec clock_gettime_retspec;
-static unsigned cras_iodev_reset_rate_estimator_called;
-static unsigned display_rotation;
-static bool sys_get_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
 static int ucm_node_use_software_volume_ret_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
-static int sys_get_max_internal_speaker_channels_called;
 static int sys_get_max_internal_speaker_channels_return_value;
-static int sys_get_max_headphone_channels_called = 0;
 static int sys_get_max_headphone_channels_return_value = 2;
 static int cras_iodev_update_underrun_duration_called = 0;
 static std::map<std::string, int32_t>
@@ -168,67 +112,35 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
-                                   int value) {
-  if (!strcmp(key, "display_rotation")) {
-    display_rotation = value;
-  }
-}
+                                   int value) {}
 
 void ResetStubData() {
-  cras_alsa_open_called = 0;
-  cras_iodev_append_stream_ret = 0;
   cras_alsa_get_avail_frames_ret = 0;
   cras_alsa_get_avail_frames_avail = 0;
   cras_alsa_start_called = 0;
   cras_alsa_fill_properties_called = 0;
   cras_alsa_support_8_channels = false;
-  sys_get_volume_called = 0;
-  alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_capture_dBFS_called = 0;
-  sys_get_mute_called = 0;
-  alsa_mixer_set_mute_called = 0;
   cras_alsa_mixer_get_playback_dBFS_range_called = 0;
   cras_alsa_mixer_get_playback_dBFS_range_max = 0;
   cras_alsa_mixer_get_playback_dBFS_range_min = -2000;
   cras_alsa_mixer_get_playback_step_called = 0;
   cras_alsa_mixer_get_playback_step_values.clear();
-  cras_alsa_mixer_get_control_for_section_called = 0;
   cras_alsa_mixer_get_control_for_section_return_value = NULL;
-  cras_alsa_mixer_list_outputs_called = 0;
   cras_alsa_mixer_list_outputs_outputs_length = 0;
-  cras_alsa_mixer_list_inputs_called = 0;
   cras_alsa_mixer_list_inputs_outputs_length = 0;
-  cras_alsa_mixer_set_output_active_state_called = 0;
   cras_alsa_mixer_set_output_active_state_outputs.clear();
   cras_alsa_mixer_set_output_active_state_values.clear();
-  sys_set_volume_limits_called = 0;
-  cras_alsa_mixer_get_minimum_capture_gain_called = 0;
-  cras_alsa_mixer_get_maximum_capture_gain_called = 0;
-  cras_alsa_mixer_get_output_volume_curve_called = 0;
   cras_alsa_jack_get_mixer_ret = NULL;
   cras_alsa_mixer_get_control_name_values.clear();
-  cras_alsa_mixer_get_control_name_called = 0;
-  cras_alsa_jack_list_create_called = 0;
-  cras_alsa_jack_list_find_jacks_by_name_matching_called = 0;
-  cras_alsa_jack_list_add_jack_for_section_called = 0;
   cras_alsa_jack_list_add_jack_for_section_result_jack = NULL;
-  cras_alsa_jack_list_destroy_called = 0;
   cras_alsa_jack_list_has_hctl_jacks_return_val = 1;
-  cras_iodev_add_node_called = 0;
   cras_iodev_set_node_plugged_called = 0;
-  cras_alsa_jack_enable_ucm_called = 0;
-  ucm_set_enabled_called = 0;
-  cras_iodev_update_dsp_called = 0;
-  cras_iodev_update_dsp_name = 0;
-  ucm_get_dsp_name_for_dev_called = 0;
   ucm_get_dsp_name_for_dev_values.clear();
   cras_iodev_free_resources_called = 0;
-  cras_alsa_jack_update_node_type_called = 0;
   ucm_swap_mode_exists_ret_value = 0;
   ucm_enable_swap_mode_ret_value = 0;
-  ucm_enable_swap_mode_called = 0;
   is_utf8_string_ret_value = 1;
-  cras_alsa_jack_get_name_called = 0;
   cras_alsa_jack_get_name_ret_value = default_jack_name;
   cras_alsa_jack_update_monitor_fake_name = 0;
   cras_card_config_get_volume_curve_for_control_called = 0;
@@ -238,28 +150,17 @@ void ResetStubData() {
   cras_alsa_mixer_get_maximum_capture_gain_ret_value = 0;
   snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
   cras_alsa_attempt_resume_called = 0;
-  ucm_get_dma_period_for_dev_called = 0;
   ucm_get_dma_period_for_dev_ret = 0;
-  cras_alsa_mmap_get_whole_buffer_called = 0;
-  cras_iodev_fill_odev_zeros_called = 0;
-  cras_iodev_fill_odev_zeros_frames = 0;
   cras_iodev_frames_queued_ret = 0;
   cras_iodev_buffer_avail_ret = 0;
   cras_alsa_resume_appl_ptr_called = 0;
   cras_alsa_resume_appl_ptr_ahead = 0;
-  fake_get_dBFS_volume_curve_val = NULL;
-  cras_iodev_dsp_set_swap_mode_for_node_called = 0;
   ucm_get_default_node_gain_values.clear();
   ucm_get_intrinsic_sensitivity_values.clear();
   ucm_get_playback_number_of_volume_steps_values.clear();
-  cras_iodev_reset_rate_estimator_called = 0;
-  display_rotation = 0;
-  sys_get_noise_cancellation_supported_return_value = 0;
   sys_aec_on_dsp_supported_return_value = 0;
   ucm_node_echo_cancellation_exists_ret_value = 0;
-  sys_get_max_internal_speaker_channels_called = 0;
   sys_get_max_internal_speaker_channels_return_value = 2;
-  sys_get_max_headphone_channels_called = 0;
   sys_get_max_headphone_channels_return_value = 2;
   cras_iodev_update_underrun_duration_called = 0;
   ucm_node_use_software_volume_ret_value = 0;
@@ -267,7 +168,6 @@ void ResetStubData() {
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
                           size_t volume) {
-  fake_get_dBFS_volume_curve_val = curve;
   return (volume - 100) * 100;
 }
 
@@ -1070,7 +970,6 @@ int cras_alsa_pcm_open(snd_pcm_t** handle,
                        const char* dev,
                        snd_pcm_stream_t stream) {
   *handle = (snd_pcm_t*)0x24;
-  cras_alsa_open_called++;
   return 0;
 }
 int cras_alsa_pcm_close(snd_pcm_t* handle) {
@@ -1179,14 +1078,12 @@ const char* snd_strerror(int errnum) {
 struct mixer_control* cras_alsa_mixer_get_control_for_section(
     struct cras_alsa_mixer* cras_mixer,
     const struct ucm_section* section) {
-  cras_alsa_mixer_get_control_for_section_called++;
   return cras_alsa_mixer_get_control_for_section_return_value;
 }
 
 const char* cras_alsa_mixer_get_control_name(
     const struct mixer_control* control) {
   ControlNameMap::iterator it;
-  cras_alsa_mixer_get_control_name_called++;
   it = cras_alsa_mixer_get_control_name_values.find(control);
   if (it == cras_alsa_mixer_get_control_name_values.end()) {
     return "";
@@ -1196,29 +1093,23 @@ const char* cras_alsa_mixer_get_control_name(
 
 //  From system_state.
 size_t cras_system_get_volume() {
-  sys_get_volume_called++;
   return sys_get_volume_return_value;
 }
 
 int cras_system_get_max_internal_speaker_channels() {
-  sys_get_max_internal_speaker_channels_called++;
   return sys_get_max_internal_speaker_channels_return_value;
 }
 
 //  From system_state.
 int cras_system_get_max_headphone_channels() {
-  sys_get_max_headphone_channels_called++;
   return sys_get_max_headphone_channels_return_value;
 }
 
 int cras_system_get_mute() {
-  sys_get_mute_called++;
   return sys_get_mute_return_value;
 }
 
-void cras_system_set_volume_limits(long min, long max) {
-  sys_set_volume_limits_called++;
-}
+void cras_system_set_volume_limits(long min, long max) {}
 
 bool cras_system_get_style_transfer_supported() {
   return false;
@@ -1235,19 +1126,11 @@ bool cras_system_get_spatial_audio_enabled() {
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer* m,
                               long dB_level,
-                              struct mixer_control* output) {
-  alsa_mixer_set_dBFS_called++;
-  alsa_mixer_set_dBFS_value = dB_level;
-  alsa_mixer_set_dBFS_output = output;
-}
+                              struct mixer_control* output) {}
 
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer* cras_mixer,
                               int muted,
-                              struct mixer_control* mixer_output) {
-  alsa_mixer_set_mute_called++;
-  alsa_mixer_set_mute_value = muted;
-  alsa_mixer_set_mute_output = mixer_output;
-}
+                              struct mixer_control* mixer_output) {}
 
 void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer* cras_mixer,
                                              struct mixer_control* mixer_output,
@@ -1272,14 +1155,11 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* m,
                                       long dB_level,
                                       struct mixer_control* mixer_input) {
   alsa_mixer_set_capture_dBFS_called++;
-  alsa_mixer_set_capture_dBFS_value = dB_level;
-  alsa_mixer_set_capture_dBFS_input = mixer_input;
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer* cras_mixer,
                                   cras_alsa_mixer_control_callback cb,
                                   void* callback_arg) {
-  cras_alsa_mixer_list_outputs_called++;
   for (size_t i = 0; i < cras_alsa_mixer_list_outputs_outputs_length; i++) {
     cb(cras_alsa_mixer_list_outputs_outputs[i], callback_arg);
   }
@@ -1288,7 +1168,6 @@ void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer* cras_mixer,
 void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer* cras_mixer,
                                  cras_alsa_mixer_control_callback cb,
                                  void* callback_arg) {
-  cras_alsa_mixer_list_inputs_called++;
   for (size_t i = 0; i < cras_alsa_mixer_list_inputs_outputs_length; i++) {
     cb(cras_alsa_mixer_list_inputs_outputs[i], callback_arg);
   }
@@ -1296,7 +1175,6 @@ void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer* cras_mixer,
 
 int cras_alsa_mixer_set_output_active_state(struct mixer_control* output,
                                             int active) {
-  cras_alsa_mixer_set_output_active_state_called++;
   cras_alsa_mixer_set_output_active_state_outputs.push_back(output);
   cras_alsa_mixer_set_output_active_state_values.push_back(active);
   return 0;
@@ -1307,16 +1185,12 @@ void cras_volume_curve_destroy(struct cras_volume_curve* curve) {}
 long cras_alsa_mixer_get_minimum_capture_gain(
     struct cras_alsa_mixer* cmix,
     struct mixer_control* mixer_input) {
-  cras_alsa_mixer_get_minimum_capture_gain_called++;
-  cras_alsa_mixer_get_minimum_capture_gain_mixer_input = mixer_input;
   return cras_alsa_mixer_get_minimum_capture_gain_ret_value;
 }
 
 long cras_alsa_mixer_get_maximum_capture_gain(
     struct cras_alsa_mixer* cmix,
     struct mixer_control* mixer_input) {
-  cras_alsa_mixer_get_maximum_capture_gain_called++;
-  cras_alsa_mixer_get_maximum_capture_gain_mixer_input = mixer_input;
   return cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 }
 
@@ -1340,9 +1214,6 @@ struct cras_alsa_jack_list* cras_alsa_jack_list_create(
     enum CRAS_STREAM_DIRECTION direction,
     jack_state_change_callback* cb,
     void* cb_data) {
-  cras_alsa_jack_list_create_called++;
-  cras_alsa_jack_list_create_cb = cb;
-  cras_alsa_jack_list_create_cb_data = cb_data;
   return (struct cras_alsa_jack_list*)0xfee;
 }
 
@@ -1350,7 +1221,6 @@ int cras_alsa_jack_list_find_jacks_by_name_matching(
     struct cras_alsa_jack_list* jack_list,
     jack_found_callback cb,
     void* cb_data) {
-  cras_alsa_jack_list_find_jacks_by_name_matching_called++;
   return 0;
 }
 
@@ -1358,16 +1228,13 @@ int cras_alsa_jack_list_add_jack_for_section(
     struct cras_alsa_jack_list* jack_list,
     struct ucm_section* ucm_section,
     struct cras_alsa_jack** result_jack) {
-  cras_alsa_jack_list_add_jack_for_section_called++;
   if (result_jack) {
     *result_jack = cras_alsa_jack_list_add_jack_for_section_result_jack;
   }
   return 0;
 }
 
-void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list* jack_list) {
-  cras_alsa_jack_list_destroy_called++;
-}
+void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list* jack_list) {}
 
 int cras_alsa_jack_list_has_hctl_jacks(struct cras_alsa_jack_list* jack_list) {
   return cras_alsa_jack_list_has_hctl_jacks_return_val;
@@ -1375,19 +1242,15 @@ int cras_alsa_jack_list_has_hctl_jacks(struct cras_alsa_jack_list* jack_list) {
 
 void cras_alsa_jack_list_report(const struct cras_alsa_jack_list* jack_list) {}
 
-void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack* jack, int enable) {
-  cras_alsa_jack_enable_ucm_called++;
-}
+void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack* jack, int enable) {}
 
 const char* cras_alsa_jack_get_name(const struct cras_alsa_jack* jack) {
-  cras_alsa_jack_get_name_called++;
   return cras_alsa_jack_get_name_ret_value;
 }
 
 const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
                                      const char* dev) {
   DspNameMap::iterator it;
-  ucm_get_dsp_name_for_dev_called++;
   if (!dev) {
     return NULL;
   }
@@ -1406,7 +1269,6 @@ struct mixer_control* cras_alsa_jack_get_mixer(
 int ucm_set_enabled(struct cras_use_case_mgr* mgr,
                     const char* dev,
                     int enabled) {
-  ucm_set_enabled_called++;
   return 0;
 }
 
@@ -1430,7 +1292,6 @@ int ucm_swap_mode_exists(struct cras_use_case_mgr* mgr) {
 int ucm_enable_swap_mode(struct cras_use_case_mgr* mgr,
                          const char* node_name,
                          int enable) {
-  ucm_enable_swap_mode_called++;
   return ucm_enable_swap_mode_ret_value;
 }
 
@@ -1469,7 +1330,6 @@ int ucm_set_hotword_model(struct cras_use_case_mgr* mgr, const char* model) {
 
 unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr* mgr,
                                         const char* dev) {
-  ucm_get_dma_period_for_dev_called++;
   return ucm_get_dma_period_for_dev_ret;
 }
 
@@ -1573,22 +1433,16 @@ struct audio_thread* audio_thread_create() {
 
 void audio_thread_destroy(audio_thread* thread) {}
 
-void cras_iodev_update_dsp(struct cras_iodev* iodev) {
-  cras_iodev_update_dsp_called++;
-  cras_iodev_update_dsp_name = iodev->dsp_name ?: "";
-}
+void cras_iodev_update_dsp(struct cras_iodev* iodev) {}
 
 void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
   cras_iodev_set_node_plugged_called++;
-  cras_iodev_set_node_plugged_ionode = ionode;
-  cras_iodev_set_node_plugged_value = plugged;
   if (ionode) {
     ionode->plugged = plugged;
   }
 }
 
 void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
-  cras_iodev_add_node_called++;
   DL_APPEND(iodev->nodes, node);
 }
 
@@ -1620,9 +1474,7 @@ uint32_t cras_alsa_jack_get_monitor_stable_id(const struct cras_alsa_jack* jack,
 }
 
 void cras_alsa_jack_update_node_type(const struct cras_alsa_jack* jack,
-                                     enum CRAS_NODE_TYPE* type) {
-  cras_alsa_jack_update_node_type_called++;
-}
+                                     enum CRAS_NODE_TYPE* type) {}
 
 const char* cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack* jack) {
   return NULL;
@@ -1676,7 +1528,6 @@ void cras_iodev_init_audio_area(struct cras_iodev* iodev) {}
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
 int cras_iodev_reset_rate_estimator(const struct cras_iodev* iodev) {
-  cras_iodev_reset_rate_estimator_called++;
   return 0;
 }
 
@@ -1693,8 +1544,6 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
 int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
                                unsigned int frames,
                                bool processing) {
-  cras_iodev_fill_odev_zeros_called++;
-  cras_iodev_fill_odev_zeros_frames = frames;
   return (int)frames;
 }
 
@@ -1705,10 +1554,7 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
 void audio_thread_add_events_callback(int fd,
                                       thread_callback cb,
                                       void* data,
-                                      int events) {
-  audio_thread_cb = cb;
-  audio_thread_cb_data = data;
-}
+                                      int events) {}
 
 void audio_thread_rm_callback(int fd) {}
 
@@ -1717,7 +1563,6 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
 }
 
 int cras_hotword_send_triggered_msg() {
-  hotword_send_triggered_msg_called++;
   return 0;
 }
 
@@ -1742,7 +1587,6 @@ int is_utf8_string(const char* string) {
 int cras_alsa_mmap_get_whole_buffer(snd_pcm_t* handle, uint8_t** dst) {
   snd_pcm_uframes_t offset, frames;
 
-  cras_alsa_mmap_get_whole_buffer_called++;
   return cras_alsa_mmap_begin(handle, 0, dst, &offset, &frames);
 }
 
@@ -1774,7 +1618,6 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev) {
 int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev* iodev,
                                           struct cras_ionode* node,
                                           int enable) {
-  cras_iodev_dsp_set_swap_mode_for_node_called++;
   return 0;
 }
 

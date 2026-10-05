@@ -13,14 +13,11 @@
 #include "cras/src/server/cras_a2dp_info.h"
 #include "cras/src/tests/sbc_codec_stub.h"
 
-static size_t a2dp_write_link_mtu_val;
 static struct a2dp_info a2dp;
 static a2dp_sbc_t sbc;
 
 void ResetStubData() {
   sbc_codec_stub_reset();
-
-  a2dp_write_link_mtu_val = 40;
 
   sbc.frequency = SBC_SAMPLING_FREQ_48000;
   sbc.channel_mode = SBC_CHANNEL_MODE_JOINT_STEREO;

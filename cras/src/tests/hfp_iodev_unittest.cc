@@ -29,9 +29,7 @@ static size_t cras_bt_device_sco_connect_called;
 static int cras_bt_transport_sco_connect_return_val;
 static size_t cras_sco_add_iodev_called;
 static size_t cras_sco_rm_iodev_called;
-static size_t cras_sco_running_called;
 static int cras_sco_running_return_val;
-static size_t cras_sco_has_iodev_called;
 static int cras_sco_has_iodev_return_val;
 static size_t cras_sco_start_called;
 static size_t cras_sco_stop_called;
@@ -62,9 +60,7 @@ void ResetStubData() {
   cras_bt_transport_sco_connect_return_val = 0;
   cras_sco_add_iodev_called = 0;
   cras_sco_rm_iodev_called = 0;
-  cras_sco_running_called = 0;
   cras_sco_running_return_val = 1;
-  cras_sco_has_iodev_called = 0;
   cras_sco_has_iodev_return_val = 0;
   cras_sco_start_called = 0;
   cras_sco_stop_called = 0;
@@ -446,12 +442,10 @@ int cras_sco_rm_iodev(struct cras_sco* sco,
 }
 
 int cras_sco_has_iodev(struct cras_sco* sco) {
-  cras_sco_has_iodev_called++;
   return cras_sco_has_iodev_return_val;
 }
 
 int cras_sco_running(struct cras_sco* sco) {
-  cras_sco_running_called++;
   return cras_sco_running_return_val;
 }
 

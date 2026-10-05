@@ -18,8 +18,8 @@ namespace {
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
 
 static struct cras_audio_area apm_area;
-static unsigned int cras_stream_apm_process_offset_val;
-static unsigned int cras_stream_apm_process_called;
+[[maybe_unused]] static unsigned int cras_stream_apm_process_offset_val;
+[[maybe_unused]] static unsigned int cras_stream_apm_process_called;
 static struct cras_apm* cras_stream_apm_get_active_ret = NULL;
 static bool cras_stream_apm_get_use_tuned_settings_val;
 static float cras_rstream_get_volume_scaler_val;

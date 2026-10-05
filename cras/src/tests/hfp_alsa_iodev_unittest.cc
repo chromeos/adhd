@@ -34,14 +34,12 @@ static size_t cras_iodev_rm_node_called;
 static size_t cras_iodev_set_active_node_called;
 static size_t cras_iodev_free_format_called;
 static size_t cras_iodev_free_resources_called;
-static size_t cras_iodev_set_format_called;
 static size_t hfp_set_call_status_called;
 static size_t hfp_event_speaker_gain_called;
 static int hfp_slc_get_selected_codec_return_val;
 static bool cras_floss_hfp_is_codec_format_supported_ret;
 static enum HFP_CODEC_FORMAT cras_floss_hfp_get_active_codec_format_ret;
 static int cras_iodev_sr_bt_adapter_create_called;
-static int cras_iodev_sr_bt_adapter_destroy_called;
 static int cras_iodev_sr_bt_adapter_frames_queued_called;
 static int cras_iodev_sr_bt_adapter_delay_frames_called;
 static int cras_iodev_sr_bt_adapter_get_buffer_called;
@@ -137,14 +135,12 @@ static void ResetStubData() {
   cras_iodev_set_active_node_called = 0;
   cras_iodev_free_format_called = 0;
   cras_iodev_free_resources_called = 0;
-  cras_iodev_set_format_called = 0;
   hfp_set_call_status_called = 0;
   hfp_event_speaker_gain_called = 0;
   hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
   cras_floss_hfp_is_codec_format_supported_ret = false;
   cras_floss_hfp_get_active_codec_format_ret = HFP_CODEC_FORMAT_NONE;
   cras_iodev_sr_bt_adapter_create_called = 0;
-  cras_iodev_sr_bt_adapter_destroy_called = 0;
   cras_iodev_sr_bt_adapter_frames_queued_called = 0;
   cras_iodev_sr_bt_adapter_delay_frames_called = 0;
   cras_iodev_sr_bt_adapter_get_buffer_called = 0;
@@ -671,7 +667,6 @@ extern "C" {
 
 int cras_iodev_set_format(struct cras_iodev* iodev,
                           const struct cras_audio_format* fmt) {
-  cras_iodev_set_format_called++;
   return 0;
 }
 
@@ -822,9 +817,7 @@ void* cras_iodev_sr_bt_adapter_create(void*, void*) {
   return (void*)0x123;
 }
 
-void cras_iodev_sr_bt_adapter_destroy(void*) {
-  ++cras_iodev_sr_bt_adapter_destroy_called;
-}
+void cras_iodev_sr_bt_adapter_destroy(void*) {}
 
 int cras_iodev_sr_bt_adapter_frames_queued(void*, void*) {
   ++cras_iodev_sr_bt_adapter_frames_queued_called;

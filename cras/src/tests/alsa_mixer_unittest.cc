@@ -36,7 +36,6 @@ static size_t snd_mixer_selem_register_called;
 static int snd_mixer_selem_register_return_value;
 static size_t snd_mixer_load_called;
 static int snd_mixer_load_return_value;
-static size_t snd_mixer_first_elem_called;
 static snd_mixer_elem_t* snd_mixer_first_elem_return_value;
 static int snd_mixer_elem_next_called;
 static snd_mixer_elem_t** snd_mixer_elem_next_return_values;
@@ -56,8 +55,6 @@ static int snd_mixer_selem_has_playback_switch_return_values_length;
 static int snd_mixer_selem_set_capture_dB_all_called;
 static long* snd_mixer_selem_set_capture_dB_all_values;
 static int snd_mixer_selem_set_capture_dB_all_values_length;
-static int snd_mixer_selem_set_capture_switch_all_called;
-static int snd_mixer_selem_set_capture_switch_all_value;
 static int snd_mixer_selem_has_capture_volume_called;
 static int* snd_mixer_selem_has_capture_volume_return_values;
 static int snd_mixer_selem_has_capture_volume_return_values_length;
@@ -73,7 +70,6 @@ static int snd_mixer_selem_get_playback_dB_return_values_length;
 static int snd_mixer_selem_get_capture_dB_called;
 static long* snd_mixer_selem_get_capture_dB_return_values;
 static int snd_mixer_selem_get_capture_dB_return_values_length;
-static size_t cras_volume_curve_destroy_called;
 static size_t snd_mixer_selem_get_playback_dB_range_called;
 static size_t snd_mixer_selem_get_playback_dB_range_values_length;
 static const long* snd_mixer_selem_get_playback_dB_range_min_values;
@@ -86,16 +82,11 @@ static size_t snd_mixer_selem_get_playback_volume_range_called;
 static size_t snd_mixer_selem_get_playback_volume_range_values_length;
 static const long* snd_mixer_selem_get_playback_volume_range_min_values;
 static const long* snd_mixer_selem_get_playback_volume_range_max_values;
-static size_t iniparser_getstring_return_index;
-static size_t iniparser_getstring_return_length;
-static char** iniparser_getstring_returns;
 static size_t snd_mixer_find_selem_called;
 static std::map<std::string, snd_mixer_elem_t*> snd_mixer_find_elem_map;
 static std::string snd_mixer_find_elem_id_name;
 
 static void ResetStubData() {
-  iniparser_getstring_return_index = 0;
-  iniparser_getstring_return_length = 0;
   snd_mixer_open_called = 0;
   snd_mixer_open_return_value = 0;
   snd_mixer_close_called = 0;
@@ -106,7 +97,6 @@ static void ResetStubData() {
   snd_mixer_selem_register_return_value = 0;
   snd_mixer_load_called = 0;
   snd_mixer_load_return_value = 0;
-  snd_mixer_first_elem_called = 0;
   snd_mixer_first_elem_return_value = static_cast<snd_mixer_elem_t*>(NULL);
   snd_mixer_elem_next_called = 0;
   snd_mixer_elem_next_return_values = static_cast<snd_mixer_elem_t**>(NULL);
@@ -125,7 +115,6 @@ static void ResetStubData() {
   snd_mixer_selem_set_capture_dB_all_called = 0;
   snd_mixer_selem_set_capture_dB_all_values = static_cast<long*>(NULL);
   snd_mixer_selem_set_capture_dB_all_values_length = 0;
-  snd_mixer_selem_set_capture_switch_all_called = 0;
   snd_mixer_selem_has_capture_volume_called = 0;
   snd_mixer_selem_has_capture_volume_return_values = static_cast<int*>(NULL);
   snd_mixer_selem_has_capture_volume_return_values_length = 0;
@@ -141,7 +130,6 @@ static void ResetStubData() {
   snd_mixer_selem_get_capture_dB_called = 0;
   snd_mixer_selem_get_capture_dB_return_values = static_cast<long*>(NULL);
   snd_mixer_selem_get_capture_dB_return_values_length = 0;
-  cras_volume_curve_destroy_called = 0;
   snd_mixer_selem_get_playback_dB_range_called = 0;
   snd_mixer_selem_get_playback_dB_range_values_length = 0;
   snd_mixer_selem_get_playback_dB_range_min_values = static_cast<long*>(NULL);
@@ -823,9 +811,6 @@ class AlsaMixerOutputs : public testing::Test {
     static const char* element_names[] = {
         "Master", "PCM",     "Headphone",       "Speaker", "HDMI",
         "IEC958", "Capture", "Digital Capture", "Headset"};
-    static char* iniparser_returns[] = {
-        NULL,
-    };
 
     ResetStubData();
     snd_mixer_first_elem_return_value =
@@ -856,8 +841,6 @@ class AlsaMixerOutputs : public testing::Test {
     snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
     snd_mixer_selem_get_playback_volume_range_values_length =
         ARRAY_SIZE(min_steps);
-    iniparser_getstring_returns = iniparser_returns;
-    iniparser_getstring_return_length = ARRAY_SIZE(iniparser_returns);
     cras_mixer_ = create_mixer_and_add_controls_by_name_matching(
         "hw:0", NULL, NULL, card_type);
     ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), cras_mixer_);
@@ -1635,7 +1618,6 @@ int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t* elem) {
   return snd_mixer_selem_has_capture_switch_return_values[index];
 }
 snd_mixer_elem_t* snd_mixer_first_elem(snd_mixer_t* mixer) {
-  snd_mixer_first_elem_called++;
   snd_mixer_elem_next_return_values_index = 0;
   return snd_mixer_first_elem_return_value;
 }
@@ -1703,8 +1685,6 @@ int snd_mixer_selem_get_capture_dB(snd_mixer_elem_t* elem,
   return 0;
 }
 int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t* elem, int value) {
-  snd_mixer_selem_set_capture_switch_all_called++;
-  snd_mixer_selem_set_capture_switch_all_value = value;
   return 0;
 }
 int snd_mixer_selem_get_capture_dB_range(snd_mixer_elem_t* elem,
@@ -1781,7 +1761,6 @@ struct cras_volume_curve* cras_volume_curve_create_default() {
 }
 
 void cras_volume_curve_destroy(struct cras_volume_curve* curve) {
-  cras_volume_curve_destroy_called++;
   free(curve);
 }
 

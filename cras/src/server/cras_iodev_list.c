@@ -115,10 +115,6 @@ struct device_enabled_cb* device_enable_cbs;
 static struct audio_thread* audio_thread;
 // List of all streams.
 static struct stream_list* stream_list;
-// Idle device timer.
-static struct cras_timer* idle_timer;
-// Floop clear timer.
-static struct cras_timer* floop_timer;
 // Flag to indicate that the stream list is disconnected from audio thread.
 static int stream_list_suspended = 0;
 // If init device failed, retry after 1 second.
@@ -623,7 +619,6 @@ static void idle_dev_check(struct cras_timer* timer, void* data) {
     }
   }
 
-  idle_timer = NULL;
   if (!num_idle_devs) {
     return;
   }
@@ -636,9 +631,8 @@ static void idle_dev_check(struct cras_timer* timer, void* data) {
   }
   /* Wake up when it is time to close the next idle device.  Sleep for a
    * minimum of 10 milliseconds. */
-  idle_timer =
-      cras_tm_create_timer(cras_system_state_get_tm(),
-                           MAX(min_idle_timeout_ms, 10), idle_dev_check, NULL);
+  cras_tm_create_timer(cras_system_state_get_tm(), MAX(min_idle_timeout_ms, 10),
+                       idle_dev_check, NULL);
 }
 
 static void idle_floop_check(struct cras_timer* timer, void* data) {
@@ -662,7 +656,6 @@ static void idle_floop_check(struct cras_timer* timer, void* data) {
     }
   }
 
-  floop_timer = NULL;
   if (timespec_is_zero(&next_expiry_check)) {
     return;
   }
@@ -678,9 +671,8 @@ static void idle_floop_check(struct cras_timer* timer, void* data) {
 
   /* Wake up when it is time to close the next floop device.  Sleep for a
    * minimum of 10 milliseconds. */
-  floop_timer = cras_tm_create_timer(cras_system_state_get_tm(),
-                                     MAX(min_idle_timeout_ms, 10),
-                                     idle_floop_check, NULL);
+  cras_tm_create_timer(cras_system_state_get_tm(), MAX(min_idle_timeout_ms, 10),
+                       idle_floop_check, NULL);
 }
 
 /*
@@ -1754,8 +1746,6 @@ void cras_iodev_list_init() {
   observer_ops.nodes_changed = nodes_changed;
   observer_ops.active_node_changed = active_node_changed;
   list_observer = cras_observer_add(&observer_ops, NULL);
-  idle_timer = NULL;
-  floop_timer = NULL;
 
   main_log = main_thread_event_log_init();
 

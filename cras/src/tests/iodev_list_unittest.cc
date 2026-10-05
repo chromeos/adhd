@@ -40,10 +40,6 @@ int system_get_mute_return;
 // Data for stubs.
 static struct cras_observer_ops* observer_ops;
 static unsigned int set_node_plugged_called;
-static cras_iodev* audio_thread_remove_streams_active_dev;
-static cras_iodev* audio_thread_set_active_dev_val;
-static int audio_thread_set_active_dev_called;
-static cras_iodev* audio_thread_add_open_dev_dev;
 // Note that the following two variables are exclusive
 static int audio_thread_add_open_dev_called;
 static int audio_thread_add_open_dev_fallback_called;
@@ -236,7 +232,6 @@ class IodevTests : public TestBase {
     set_node_plugged_called = 0;
     audio_thread_rm_open_dev_called = 0;
     audio_thread_add_open_dev_called = 0;
-    audio_thread_set_active_dev_called = 0;
     audio_thread_add_streams_called = 0;
     update_active_node_called = 0;
     cras_observer_add_called = 0;
@@ -3821,15 +3816,11 @@ void audio_thread_destroy(struct audio_thread* thread) {}
 
 int audio_thread_set_active_dev(struct audio_thread* thread,
                                 struct cras_iodev* dev) {
-  audio_thread_set_active_dev_called++;
-  audio_thread_set_active_dev_val = dev;
   return 0;
 }
 
 void audio_thread_remove_streams(struct audio_thread* thread,
-                                 enum CRAS_STREAM_DIRECTION dir) {
-  audio_thread_remove_streams_active_dev = audio_thread_set_active_dev_val;
-}
+                                 enum CRAS_STREAM_DIRECTION dir) {}
 
 int audio_thread_add_open_dev(struct audio_thread* thread,
                               struct cras_iodev* dev) {
@@ -3839,7 +3830,6 @@ int audio_thread_add_open_dev(struct audio_thread* thread,
   } else {
     audio_thread_add_open_dev_called++;
   }
-  audio_thread_add_open_dev_dev = dev;
   return 0;
 }
 
