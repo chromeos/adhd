@@ -120,7 +120,7 @@ static struct pipeline* prepare_pipeline(struct cras_dsp_context* ctx,
 
 bail:
   if (pipeline) {
-    destroy_pipeline(pipeline);
+    cras_dsp_pipeline_free(pipeline);
   }
   return NULL;
 }
@@ -386,6 +386,9 @@ void cras_dsp_load_mock_pipeline(struct cras_dsp_context* ctx,
     syslog(LOG_ERR, "Failed to create mock ini");
   } else {
     cmd_load_pipeline(ctx, mock_ini);
+    if (!ctx->pipeline) {
+      cras_dsp_ini_free(mock_ini);
+    }
   }
 }
 

@@ -708,13 +708,58 @@ output_3={dst_1:1}
   ASSERT_NE(reloaded_pipeline, pipeline);
   cras_dsp_put_pipeline(ctx);
 
+  cras_dsp_context_free(ctx);
+  cras_dsp_stop();
   free(pollfds);
+}
+
+static int stub_instantiate_ret = 0;
+
+TEST_F(DspTestSuite, ReloadIniWithPreparePipelineFailure) {
+  const char* content = R"([M1]
+library=builtin
+label=source
+purpose=capture
+output_0={audio}
+[M2]
+library=builtin
+label=sink
+purpose=capture
+input_0={audio}
+)";
+  fprintf(fp, "%s", content);
+  CloseFile();
+
+  cras_dsp_init(filename);
+  struct cras_dsp_context* ctx1 = cras_dsp_context_new(48000, "capture");
+  struct cras_dsp_context* ctx2 = cras_dsp_context_new(48000, "capture");
+
+  stub_instantiate_ret = -1;
+  cras_dsp_reload_ini();
+  EXPECT_EQ(nullptr, cras_dsp_get_pipeline(ctx1));
+  EXPECT_EQ(nullptr, cras_dsp_get_pipeline(ctx2));
+
+  // Subsequent reload and mock pipeline failure must not UAF, double-free, or
+  // leak ini.
+  cras_dsp_reload_ini();
+  cras_dsp_load_mock_pipeline(ctx1, 2);
+  EXPECT_EQ(nullptr, cras_dsp_get_pipeline(ctx1));
+
+  stub_instantiate_ret = 0;
+  cras_dsp_reload_ini();
+  struct pipeline* p1 = cras_dsp_get_pipeline(ctx1);
+  ASSERT_NE(nullptr, p1);
+  cras_dsp_put_pipeline(ctx1);
+
+  cras_dsp_context_free(ctx1);
+  cras_dsp_context_free(ctx2);
+  cras_dsp_stop();
 }
 
 static int empty_instantiate(struct dsp_module* module,
                              unsigned long sample_rate,
                              struct cras_expr_env* env) {
-  return 0;
+  return stub_instantiate_ret;
 }
 
 static void empty_connect_port(struct dsp_module* module,
