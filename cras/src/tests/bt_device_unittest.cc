@@ -15,6 +15,7 @@
 
 static unsigned int bt_io_manager_append_iodev_called;
 static unsigned int bt_io_manager_remove_iodev_called;
+static unsigned int bt_io_manager_update_hardware_volume_called;
 static int cras_a2dp_suspend_connected_device_called;
 static int cras_hfp_ag_remove_conflict_called;
 static struct cras_bt_device* cras_a2dp_connected_device_ret;
@@ -31,6 +32,9 @@ struct MockDBusMessage {
 };
 
 void ResetStubData() {
+  bt_io_manager_append_iodev_called = 0;
+  bt_io_manager_remove_iodev_called = 0;
+  bt_io_manager_update_hardware_volume_called = 0;
   cras_a2dp_suspend_connected_device_called = 0;
   cras_hfp_ag_remove_conflict_called = 0;
   cras_a2dp_connected_device_ret = NULL;
@@ -300,6 +304,25 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cras_bt_device_remove(device);
 }
 
+TEST_F(BtDeviceTestSuite, UpdateHardwareVolumeInvalidDevice) {
+  struct cras_bt_device* device;
+
+  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
+  EXPECT_NE((void*)NULL, device);
+
+  cras_bt_device_set_use_hardware_volume(device, 1);
+  EXPECT_EQ(1, cras_bt_device_get_use_hardware_volume(device));
+
+  cras_bt_device_update_hardware_volume(device, 50, CRAS_BT_FLAG_A2DP);
+  EXPECT_EQ(1, bt_io_manager_update_hardware_volume_called);
+
+  cras_bt_device_remove(device);
+
+  EXPECT_EQ(0, cras_bt_device_get_use_hardware_volume(device));
+  cras_bt_device_update_hardware_volume(device, 80, CRAS_BT_FLAG_A2DP);
+  EXPECT_EQ(1, bt_io_manager_update_hardware_volume_called);
+}
+
 }  // namespace
 
 // Stubs
@@ -314,6 +337,12 @@ struct bt_io_manager* bt_io_manager_create() {
 
 void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
                                            int use_hardware_volume) {}
+
+void bt_io_manager_update_hardware_volume(struct bt_io_manager* mgr,
+                                          int volume,
+                                          enum CRAS_BT_FLAGS btflag) {
+  bt_io_manager_update_hardware_volume_called++;
+}
 
 void bt_io_manager_destroy(struct bt_io_manager* mgr) {}
 

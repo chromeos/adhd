@@ -883,12 +883,20 @@ void cras_bt_device_set_use_hardware_volume(struct cras_bt_device* device,
 }
 
 int cras_bt_device_get_use_hardware_volume(struct cras_bt_device* device) {
+  if (!cras_bt_device_valid(device)) {
+    syslog(LOG_WARNING, "%s: ignore request to invalid device", __func__);
+    return 0;
+  }
   return device->use_hardware_volume;
 }
 
 void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
                                            int volume,
                                            enum CRAS_BT_FLAGS btflag) {
+  if (!cras_bt_device_valid(device)) {
+    syslog(LOG_WARNING, "%s: ignore request to invalid device", __func__);
+    return;
+  }
   /* Check if this BT device is okay to use hardware volume. If not
    * then ignore the reported volume change event.
    */
