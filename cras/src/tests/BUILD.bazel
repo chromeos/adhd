@@ -2011,6 +2011,7 @@ cc_test(
         "//cras/src/server:cras_rstream_config.c",
         "//cras/src/server:cras_tm.c",
         "//cras/src/server:server_stream.c",
+        "//cras/src/server:sidetone.c",
         "//cras/src/server:stream_list.c",
     ],
     deps = [

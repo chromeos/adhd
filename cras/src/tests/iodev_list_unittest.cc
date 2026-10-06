@@ -4076,6 +4076,10 @@ void configure_sidetone_streams(struct cras_rstream* input,
   return;
 }
 
+void unconfigure_sidetone_streams(struct cras_rstream* output) {
+  return;
+}
+
 bool cras_system_get_sidetone_enabled() {
   return false;
 }

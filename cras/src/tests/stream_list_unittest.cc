@@ -30,9 +30,10 @@ static int create_rstream_cb(struct cras_rstream_config* stream_config,
                              struct cras_rstream** stream) {
   create_called++;
   create_config = stream_config;
-  *stream = (struct cras_rstream*)malloc(sizeof(struct cras_rstream));
+  *stream = (struct cras_rstream*)calloc(1, sizeof(struct cras_rstream));
   (*stream)->stream_id = stream_config->stream_id;
   (*stream)->direction = stream_config->direction;
+  (*stream)->flags = stream_config->flags;
   if (stream_config->format) {
     (*stream)->format = *(stream_config->format);
   }
@@ -69,7 +70,7 @@ static void reset_test_data() {
 TEST(StreamList, AddRemove) {
   struct stream_list* l;
   struct cras_rstream* s1;
-  struct cras_rstream_config s1_config;
+  struct cras_rstream_config s1_config = {};
 
   s1_config.stream_id = 0x3003;
   s1_config.direction = CRAS_STREAM_OUTPUT;
@@ -105,7 +106,7 @@ TEST(StreamList, AddInDescendingOrderByChannels) {
   struct cras_rstream* s2;
   struct cras_rstream* s3;
   struct cras_audio_format s1_format, s2_format, s3_format;
-  struct cras_rstream_config s1_config, s2_config, s3_config;
+  struct cras_rstream_config s1_config = {}, s2_config = {}, s3_config = {};
 
   s1_config.stream_id = 0x4001;
   s1_config.direction = CRAS_STREAM_INPUT;
@@ -157,10 +158,10 @@ TEST(StreamList, GetStreamCount) {
   struct cras_rstream* s2;
   struct cras_rstream* s3;
   struct cras_rstream* s4;
-  struct cras_rstream_config s1_config;
-  struct cras_rstream_config s2_config;
-  struct cras_rstream_config s3_config;
-  struct cras_rstream_config s4_config;
+  struct cras_rstream_config s1_config = {};
+  struct cras_rstream_config s2_config = {};
+  struct cras_rstream_config s3_config = {};
+  struct cras_rstream_config s4_config = {};
 
   s1_config.stream_id = 0x5001;
   s1_config.direction = CRAS_STREAM_OUTPUT;
@@ -204,6 +205,8 @@ TEST(StreamList, GetStreamCount) {
 }
 
 extern "C" {
+
+void unconfigure_sidetone_streams(struct cras_rstream* output) {}
 
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,

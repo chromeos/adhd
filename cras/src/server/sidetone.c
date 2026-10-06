@@ -4,6 +4,7 @@
 
 #include "cras/src/server/sidetone.h"
 
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/src/server/cras_rstream.h"
@@ -73,13 +74,7 @@ bool enable_sidetone(struct stream_list* stream_list,
 void disable_sidetone(struct stream_list* stream_list) {
   struct cras_rstream* output = server_stream_find_by_type(
       stream_list_get(stream_list), SERVER_STREAM_SIDETONE_OUTPUT);
-  if (output) {
-    // Set the samples and samples_info of the output to be different from
-    // the input, to avoid accessing invalid samples after the input is
-    // destroyed
-    output->shm->samples = tmp_output_samples;
-    output->shm->samples_info = tmp_output_samples_info;
-  }
+  unconfigure_sidetone_streams(output);
 
   server_stream_destroy(stream_list, SERVER_STREAM_SIDETONE_INPUT, 0);
   server_stream_destroy(stream_list, SERVER_STREAM_SIDETONE_OUTPUT, 0);
@@ -87,6 +82,9 @@ void disable_sidetone(struct stream_list* stream_list) {
 
 void configure_sidetone_streams(struct cras_rstream* input,
                                 struct cras_rstream* output) {
+  if (!input || !output || output->pair) {
+    return;
+  }
   // Save the samples and samples_info so it can be destroyed later
   tmp_output_samples = output->shm->samples;
   tmp_output_samples_info = output->shm->samples_info;
@@ -95,6 +93,21 @@ void configure_sidetone_streams(struct cras_rstream* input,
   output->shm->samples_info = input->shm->samples_info;
   output->pair = input;
   input->pair = output;
+}
+
+void unconfigure_sidetone_streams(struct cras_rstream* output) {
+  if (!output || !output->pair) {
+    return;
+  }
+  // Set the samples and samples_info of the output to be different from
+  // the input, to avoid accessing invalid samples after the input is
+  // destroyed
+  output->pair->pair = NULL;
+  output->pair = NULL;
+  output->shm->samples = tmp_output_samples;
+  output->shm->samples_info = tmp_output_samples_info;
+  tmp_output_samples = NULL;
+  memset(&tmp_output_samples_info, 0, sizeof(tmp_output_samples_info));
 }
 
 // TODO(normanbt): Remove this function

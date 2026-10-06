@@ -10,6 +10,7 @@
 #include <sys/param.h>
 
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/sidetone.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
@@ -111,6 +112,10 @@ int stream_list_add(struct stream_list* list,
   rc = list->stream_added_cb(*stream);
   if (rc) {
     DL_DELETE(list->streams, *stream);
+    if (stream_is_sidetone(*stream) &&
+        (*stream)->direction == CRAS_STREAM_OUTPUT) {
+      unconfigure_sidetone_streams(*stream);
+    }
     list->stream_destroy_cb(*stream);
   }
 

@@ -97,6 +97,7 @@ int server_stream_create(struct stream_list* stream_list,
     int rc = stream_list_add(ss->list, &ss->config, &stream);
     if (rc) {
       g_server_streams[type] = NULL;
+      free(ss);
       return rc;
     }
   } else {

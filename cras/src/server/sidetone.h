@@ -30,6 +30,9 @@ void disable_sidetone(struct stream_list* stream_list);
 void configure_sidetone_streams(struct cras_rstream* input,
                                 struct cras_rstream* output);
 
+// Restore the output shm and clear the cras_rstream->pair field.
+void unconfigure_sidetone_streams(struct cras_rstream* output);
+
 // Get the maximum allowed callback level based on the frame rate.
 static inline unsigned int sidetone_get_max_cb_level(size_t frame_rate) {
   // Number of frames within 10 ms
