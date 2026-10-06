@@ -78,11 +78,18 @@ TEST(StreamList, AddRemove) {
   reset_test_data();
   l = stream_list_create(added_cb, removed_cb, create_rstream_cb,
                          destroy_rstream_cb, list_changed_cb, NULL);
-  stream_list_add(l, &s1_config, &s1);
+  EXPECT_EQ(0, stream_list_add(l, &s1_config, &s1));
   EXPECT_EQ(1, add_called);
   EXPECT_EQ(1, create_called);
   EXPECT_EQ(1, change_called);
   EXPECT_EQ(&s1_config, create_config);
+
+  // Adding a stream with a duplicate stream_id must be rejected.
+  struct cras_rstream* dup_stream = NULL;
+  EXPECT_EQ(-EINVAL, stream_list_add(l, &s1_config, &dup_stream));
+  EXPECT_EQ(1, add_called);
+  EXPECT_EQ(1, create_called);
+
   EXPECT_EQ(0, stream_list_rm(l, 0x3003));
   EXPECT_EQ(1, rm_called);
   EXPECT_EQ(s1, rmed_stream);

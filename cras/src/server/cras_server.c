@@ -244,6 +244,9 @@ static void handle_new_connection(struct server_socket* server_socket) {
                      server_instance.next_client_id);
     poll_client->id = server_instance.next_client_id;
     server_instance.next_client_id++;
+    if (server_instance.next_client_id > UINT16_MAX) {
+      server_instance.next_client_id = RESERVED_CLIENT_IDS;
+    }
     if (out == NULL) {
       break;
     }

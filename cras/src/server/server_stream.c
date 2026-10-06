@@ -153,7 +153,8 @@ struct cras_rstream* server_stream_find_by_type(
 
   struct cras_rstream* rstream;
   DL_FOREACH (all_streams, rstream) {
-    if (rstream->stream_id == ss->stream_id) {
+    if (rstream->stream_id == ss->stream_id &&
+        rstream->client_type == CRAS_CLIENT_TYPE_SERVER_STREAM) {
       return rstream;
     }
   }

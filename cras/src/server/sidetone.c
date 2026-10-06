@@ -73,10 +73,13 @@ bool enable_sidetone(struct stream_list* stream_list,
 void disable_sidetone(struct stream_list* stream_list) {
   struct cras_rstream* output = server_stream_find_by_type(
       stream_list_get(stream_list), SERVER_STREAM_SIDETONE_OUTPUT);
-  // Set the samples and samples_info of the output to be different from
-  // the input, to avoid accessing invalid samples after the input is destroyed
-  output->shm->samples = tmp_output_samples;
-  output->shm->samples_info = tmp_output_samples_info;
+  if (output) {
+    // Set the samples and samples_info of the output to be different from
+    // the input, to avoid accessing invalid samples after the input is
+    // destroyed
+    output->shm->samples = tmp_output_samples;
+    output->shm->samples_info = tmp_output_samples_info;
+  }
 
   server_stream_destroy(stream_list, SERVER_STREAM_SIDETONE_INPUT, 0);
   server_stream_destroy(stream_list, SERVER_STREAM_SIDETONE_OUTPUT, 0);

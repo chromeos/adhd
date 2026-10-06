@@ -280,6 +280,20 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageInvalidClientId) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(-EINVAL, out_msg.err);
   EXPECT_EQ(connect_msg_.stream_id, out_msg.stream_id);
+
+  // Client ID with upper bits set (0x10001) must not match stream_id for
+  // client 1 (0x10002) via 16-bit truncation.
+  rclient_->id = 0x10001;
+  connect_msg_.stream_id = 0x10002;
+  rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
+                                                 &fd_, 1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(0, stream_list_add_stream_called);
+
+  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
+  EXPECT_EQ(sizeof(out_msg), rc);
+  EXPECT_EQ(-EINVAL, out_msg.err);
+  EXPECT_EQ(connect_msg_.stream_id, out_msg.stream_id);
 }
 
 TEST_F(RClientMessagesSuite, SuccessReply) {

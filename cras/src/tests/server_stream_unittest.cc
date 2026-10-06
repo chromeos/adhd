@@ -5,8 +5,11 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server.h"
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/stream_list.h"
+#include "third_party/utlist/utlist.h"
 
 //
 // Stubs :(
@@ -58,6 +61,38 @@ TEST(ServerStream, CreateDestroyRace) {
   server_stream_destroy(sl, SERVER_STREAM_ECHO_REF, dev_idx);
   run_all_pending_tasks();
 
+  stream_list_destroy(sl);
+}
+
+TEST(ServerStream, FindByTypeChecksClientType) {
+  struct stream_list* sl = stream_list_create(
+      stream_callback_noop, stream_callback_noop, stream_create_noop,
+      stream_destroy_noop, stream_callback_noop, nullptr);
+
+  const unsigned int dev_idx = 0;
+  server_stream_create(sl, SERVER_STREAM_SIDETONE_OUTPUT, dev_idx, nullptr, 0,
+                       false, DEFAULT_SERVER_STREAM_BLOCK_SIZE);
+
+  struct cras_rstream fake_client_stream = {};
+  fake_client_stream.stream_id = cras_get_stream_id(
+      SERVER_STREAM_CLIENT_ID, SERVER_STREAM_SIDETONE_OUTPUT);
+  fake_client_stream.client_type = CRAS_CLIENT_TYPE_UNKNOWN;
+
+  struct cras_rstream real_server_stream = {};
+  real_server_stream.stream_id = cras_get_stream_id(
+      SERVER_STREAM_CLIENT_ID, SERVER_STREAM_SIDETONE_OUTPUT);
+  real_server_stream.client_type = CRAS_CLIENT_TYPE_SERVER_STREAM;
+
+  struct cras_rstream* all_streams = nullptr;
+  DL_APPEND(all_streams, &fake_client_stream);
+  DL_APPEND(all_streams, &real_server_stream);
+
+  EXPECT_EQ(
+      &real_server_stream,
+      server_stream_find_by_type(all_streams, SERVER_STREAM_SIDETONE_OUTPUT));
+
+  server_stream_destroy(sl, SERVER_STREAM_SIDETONE_OUTPUT, dev_idx);
+  run_all_pending_tasks();
   stream_list_destroy(sl);
 }
 

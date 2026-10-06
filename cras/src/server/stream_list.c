@@ -90,6 +90,12 @@ int stream_list_add(struct stream_list* list,
   int rc;
   struct cras_rstream* next_stream;
 
+  DL_SEARCH_SCALAR(list->streams, next_stream, stream_id,
+                   stream_config->stream_id);
+  if (next_stream) {
+    return -EINVAL;
+  }
+
   rc = list->stream_create_cb(stream_config, stream);
   if (rc) {
     return rc;

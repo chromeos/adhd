@@ -780,7 +780,7 @@ static inline cras_stream_id_t cras_get_stream_id(uint16_t client_id,
 }
 // Verify if the stream_id fits the given client_id
 static inline bool cras_valid_stream_id(cras_stream_id_t stream_id,
-                                        uint16_t client_id) {
+                                        size_t client_id) {
   return ((stream_id >> 16) ^ client_id) == 0;
 }
 
