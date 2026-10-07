@@ -44,6 +44,8 @@ static inline const char* get_tflite_error_string(const TfLiteStatus status) {
       return "kTfLiteDelegateDataReadError";
     case kTfLiteUnresolvedOps:
       return "kTfLiteUnresolvedOps";
+    case kTfLiteOutputShapeNotKnown:
+      return "kTfLiteOutputShapeNotKnown";
   }
   return "Unknown";
 }
