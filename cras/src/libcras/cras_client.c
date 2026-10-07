@@ -737,6 +737,7 @@ static inline int shutdown_and_close_socket(int sockfd) {
 
   rc = shutdown(sockfd, SHUT_WR);
   if (rc < 0) {
+    close(sockfd);
     return rc;
   }
   // Wait until the socket is closed by the peer.
@@ -891,10 +892,11 @@ static void server_disconnect(struct cras_client* client) {
   if (client->server_fd_state == CRAS_SOCKET_STATE_DISCONNECTED) {
     return;
   }
+  bool force = (client->server_fd_state != CRAS_SOCKET_STATE_CONNECTED);
   /* Set the disconnected state first so that the disconnect
    * transition doesn't move the server state to ERROR_DELAY. */
   server_fd_move_to_state(client, CRAS_SOCKET_STATE_DISCONNECTED);
-  disconnect_transition_action(client, false);
+  disconnect_transition_action(client, force);
 }
 
 /*
