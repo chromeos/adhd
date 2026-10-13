@@ -1,6 +1,6 @@
 module chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier
 
-go 1.20
+go 1.25.0
 
 require (
 	cloud.google.com/go/cloudbuild v1.8.0
@@ -33,9 +33,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230320184635-7606e756e683 // indirect
 	google.golang.org/grpc v1.53.0 // indirect
