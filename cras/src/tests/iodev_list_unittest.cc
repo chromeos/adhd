@@ -3899,6 +3899,108 @@ TEST_F(IoDevTestSuite, FlexibleLoopbackAddStreamsFailClosesNewlyOpenedDev) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, FlexibleLoopbackDoesNotBlockDspNoiseCancellation) {
+  struct cras_rstream rstream = {};
+  struct cras_floop_pair cfp = {};
+  struct cras_ionode floop_in_node = {};
+  struct cras_ionode floop_out_node = {};
+
+  rstream.direction = CRAS_STREAM_OUTPUT;
+  rstream.format = fmt_;
+
+  cras_iodev_list_init();
+
+  // Internal speaker (supports DSP AEC echo reference).
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.format = &fmt_;
+  node1.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  ASSERT_EQ(cras_iodev_list_add(&d1_), 0);
+
+  // Input device with DSP Noise Cancellation.
+  d2_.direction = CRAS_STREAM_INPUT;
+  node2.nc_providers = CRAS_NC_PROVIDER_DSP;
+  ASSERT_EQ(cras_iodev_list_add(&d2_), 0);
+
+  // Non-DSP-AEC output device (USB).
+  d3_.direction = CRAS_STREAM_OUTPUT;
+  d3_.format = &fmt_;
+  node3.type = CRAS_NODE_TYPE_USB;
+  ASSERT_EQ(cras_iodev_list_add(&d3_), 0);
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
+
+  // Register flexible loopback pair in iodev_list
+  // (idx >= MAX_SPECIAL_DEVICE_IDX).
+  cfp.input.direction = CRAS_STREAM_INPUT;
+  cfp.input.format = &fmt_;
+  cfp.input.nodes = &floop_in_node;
+  cfp.input.active_node = &floop_in_node;
+  cfp.input.update_active_node = update_active_node;
+  cfp.input.supported_rates = sample_rates_;
+  cfp.input.supported_channel_counts = channel_counts_;
+  cfp.input.is_utility_device = true;
+  floop_in_node.type = CRAS_NODE_TYPE_FLOOP;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.input), 0);
+
+  cfp.output.direction = CRAS_STREAM_OUTPUT;
+  cfp.output.format = &fmt_;
+  cfp.output.nodes = &floop_out_node;
+  cfp.output.active_node = &floop_out_node;
+  cfp.output.update_active_node = update_active_node;
+  cfp.output.supported_rates = sample_rates_;
+  cfp.output.supported_channel_counts = channel_counts_;
+  cfp.output.is_utility_device = true;
+  floop_out_node.type = CRAS_NODE_TYPE_FLOOP_INTERNAL;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.output), 0);
+  EXPECT_GE(cfp.output.info.idx, MAX_SPECIAL_DEVICE_IDX);
+
+  cras_floop_pair_create_return = &cfp;
+  EXPECT_EQ(cfp.input.info.idx, cras_iodev_list_request_floop(nullptr));
+
+  floop_pair_match_output_stream_cb = [](const struct cras_floop_pair* pair,
+                                         const struct cras_rstream* stream) {
+    return stream->direction == CRAS_STREAM_OUTPUT;
+  };
+
+  // Adding an output stream opens both d1_ and cfp.output; utility device
+  // cfp.output must not set non_dsp_aec_echo_ref_dev_alive or block DSP NC.
+  DL_APPEND(stream_list_get_ret, &rstream);
+  EXPECT_EQ(stream_add_cb(&rstream), 0);
+  EXPECT_EQ(cras_iodev_is_open(&d1_), 1);
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+  EXPECT_FALSE(cras_s2_get_non_dsp_aec_echo_ref_dev_alive());
+  ASSERT_EQ(server_state_stub.num_input_nodes, 2);
+  ASSERT_EQ(server_state_stub.input_nodes[1].iodev_idx, d2_.info.idx);
+  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
+
+  // Switch active output to d3_ (USB): blocks DSP NC.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d3_.info.idx, 0));
+  EXPECT_TRUE(cras_s2_get_non_dsp_aec_echo_ref_dev_alive());
+  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect, 0);
+
+  // Switch back to d1_ (Internal Speaker) while cfp.output remains open:
+  // possibly_clear_non_dsp_aec_echo_ref_dev_alive must skip cfp.output and
+  // unblock DSP NC.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+  EXPECT_FALSE(cras_s2_get_non_dsp_aec_echo_ref_dev_alive());
+  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
+
+  DL_DELETE(stream_list_get_ret, &rstream);
+  EXPECT_EQ(stream_rm_cb(&rstream), 0);
+
+  cras_iodev_list_reset();
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, StyleTransferSupported) {
   cras_s2_reset_for_testing();
   cras_s2_set_style_transfer_featured_allowed(true);

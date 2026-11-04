@@ -516,8 +516,8 @@ static void possibly_set_non_dsp_aec_echo_ref_dev_alive(
     return;
   }
 
-  // skip silent devices
-  if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
+  // skip silent devices and utility devices
+  if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX || dev->is_utility_device) {
     return;
   }
 
@@ -551,8 +551,8 @@ static void possibly_clear_non_dsp_aec_echo_ref_dev_alive() {
   }
 
   DL_FOREACH (devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
-    // neglect silent devices
-    if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
+    // neglect silent devices and utility devices
+    if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX || dev->is_utility_device) {
       continue;
     }
 
