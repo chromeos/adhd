@@ -122,6 +122,9 @@ static int cras_rstream_get_effects_return = 0;
 static std::vector<std::vector<struct cras_iodev*>> iodev_groups;
 static std::function<int(const struct cras_iodev*, const struct cras_rstream*)>
     should_attach_stream_cb;
+static std::function<bool(const struct cras_floop_pair*,
+                          const struct cras_rstream*)>
+    floop_pair_match_output_stream_cb;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -273,6 +276,7 @@ class IodevTests : public TestBase {
     cras_system_get_sr_bt_supported_return = false;
     cras_rstream_get_effects_return = 0;
     iodev_groups.clear();
+    floop_pair_match_output_stream_cb = nullptr;
   }
   void SetUp() override {
     cras_iodev_list_reset();
@@ -3587,6 +3591,314 @@ TEST_F(IoDevTestSuite, StreamAddedFailDisconnectsFromFallback) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, FlexibleLoopbackStreamAttachment) {
+  struct cras_rstream rstream1 = {};
+  struct cras_rstream rstream2 = {};
+  struct cras_rstream non_matching_stream = {};
+  struct cras_rstream pinned_stream = {};
+  struct cras_floop_pair cfp = {};
+  struct cras_ionode floop_in_node = {};
+  struct cras_ionode floop_out_node = {};
+
+  rstream1.direction = CRAS_STREAM_OUTPUT;
+  rstream1.client_type = CRAS_CLIENT_TYPE_CHROME;
+  rstream1.format = fmt_;
+  rstream2.direction = CRAS_STREAM_OUTPUT;
+  rstream2.client_type = CRAS_CLIENT_TYPE_CHROME;
+  rstream2.format = fmt_;
+  non_matching_stream.direction = CRAS_STREAM_OUTPUT;
+  non_matching_stream.client_type = CRAS_CLIENT_TYPE_ARC;
+  non_matching_stream.format = fmt_;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.format = &fmt_;
+  ASSERT_EQ(cras_iodev_list_add(&d1_), 0);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+
+  pinned_stream.direction = CRAS_STREAM_OUTPUT;
+  pinned_stream.client_type = CRAS_CLIENT_TYPE_CHROME;
+  pinned_stream.format = fmt_;
+  pinned_stream.is_pinned = 1;
+  pinned_stream.pinned_dev_idx = d1_.info.idx;
+
+  cfp.input.direction = CRAS_STREAM_INPUT;
+  cfp.input.format = &fmt_;
+  cfp.input.nodes = &floop_in_node;
+  cfp.input.active_node = &floop_in_node;
+  cfp.input.update_active_node = update_active_node;
+  cfp.input.supported_rates = sample_rates_;
+  cfp.input.supported_channel_counts = channel_counts_;
+  cfp.input.is_utility_device = true;
+  floop_in_node.type = CRAS_NODE_TYPE_FLOOP;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.input), 0);
+
+  cfp.output.direction = CRAS_STREAM_OUTPUT;
+  cfp.output.format = &fmt_;
+  cfp.output.nodes = &floop_out_node;
+  cfp.output.active_node = &floop_out_node;
+  cfp.output.update_active_node = update_active_node;
+  cfp.output.supported_rates = sample_rates_;
+  cfp.output.supported_channel_counts = channel_counts_;
+  cfp.output.is_utility_device = true;
+  floop_out_node.type = CRAS_NODE_TYPE_FLOOP_INTERNAL;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.output), 0);
+
+  cras_floop_pair_create_return = &cfp;
+  EXPECT_EQ(cfp.input.info.idx, cras_iodev_list_request_floop(nullptr));
+
+  // Add pinned_stream while floop is active: pinned streams are excluded by
+  // should_attach_to_floop_pair in both stream_add_cb and enable_floop_pair.
+  floop_pair_match_output_stream_cb = [](const struct cras_floop_pair* pair,
+                                         const struct cras_rstream* stream) {
+    return stream->direction == CRAS_STREAM_OUTPUT &&
+           stream->client_type == CRAS_CLIENT_TYPE_CHROME;
+  };
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_dev, &d1_);
+
+    DL_APPEND(stream_list_get_ret, &pinned_stream);
+    EXPECT_EQ(stream_add_cb(&pinned_stream), 0);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+
+    cras_iodev_list_enable_floop_pair(&cfp);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+  }
+
+  // Add rstream1 and non_matching_stream while floop is not active.
+  floop_pair_match_output_stream_cb = nullptr;
+  {
+    DL_APPEND(stream_list_get_ret, &rstream1);
+    EXPECT_EQ(stream_add_cb(&rstream1), 0);
+    DL_APPEND(stream_list_get_ret, &non_matching_stream);
+    EXPECT_EQ(stream_add_cb(&non_matching_stream), 0);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+  }
+
+  // Enable floop pair: only matching unpinned rstream1 attaches to cfp.output.
+  floop_pair_match_output_stream_cb = [](const struct cras_floop_pair* pair,
+                                         const struct cras_rstream* stream) {
+    return stream->direction == CRAS_STREAM_OUTPUT &&
+           stream->client_type == CRAS_CLIENT_TYPE_CHROME;
+  };
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_dev, &cfp.output);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_num_streams, 1);
+    EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_streams[0], &rstream1);
+
+    cras_iodev_list_enable_floop_pair(&cfp);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+  }
+
+  // Add rstream2 while floop is active: attaches to both d1_ and cfp.output.
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_called, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_dev, &cfp.output);
+
+    DL_APPEND(stream_list_get_ret, &rstream2);
+    EXPECT_EQ(stream_add_cb(&rstream2), 0);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+  }
+
+  // Remove rstream1 while rstream2 is still active: cfp.output stays open.
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
+
+    DL_DELETE(stream_list_get_ret, &rstream1);
+    EXPECT_EQ(stream_rm_cb(&rstream1), 0);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+  }
+
+  // Remove rstream2 (last matching stream) while non_matching_stream and
+  // pinned_stream are still active: cfp.output is closed immediately.
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_dev, &cfp.output);
+
+    DL_DELETE(stream_list_get_ret, &rstream2);
+    EXPECT_EQ(stream_rm_cb(&rstream2), 0);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+    EXPECT_EQ(cras_iodev_is_open(&d1_), 1);
+  }
+
+  DL_DELETE(stream_list_get_ret, &non_matching_stream);
+  EXPECT_EQ(stream_rm_cb(&non_matching_stream), 0);
+  DL_DELETE(stream_list_get_ret, &pinned_stream);
+  EXPECT_EQ(stream_rm_cb(&pinned_stream), 0);
+
+  cras_iodev_list_reset();
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, FlexibleLoopbackInitDevFailShouldEnableFallback) {
+  struct cras_rstream rstream = {};
+  struct cras_floop_pair cfp = {};
+  struct cras_ionode floop_in_node = {};
+  struct cras_ionode floop_out_node = {};
+
+  rstream.direction = CRAS_STREAM_OUTPUT;
+  rstream.format = fmt_;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.format = &fmt_;
+  ASSERT_EQ(cras_iodev_list_add(&d1_), 0);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+
+  cfp.input.direction = CRAS_STREAM_INPUT;
+  cfp.input.format = &fmt_;
+  cfp.input.nodes = &floop_in_node;
+  cfp.input.active_node = &floop_in_node;
+  cfp.input.update_active_node = update_active_node;
+  cfp.input.supported_rates = sample_rates_;
+  cfp.input.supported_channel_counts = channel_counts_;
+  cfp.input.is_utility_device = true;
+  floop_in_node.type = CRAS_NODE_TYPE_FLOOP;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.input), 0);
+
+  cfp.output.direction = CRAS_STREAM_OUTPUT;
+  cfp.output.format = &fmt_;
+  cfp.output.nodes = &floop_out_node;
+  cfp.output.active_node = &floop_out_node;
+  cfp.output.update_active_node = update_active_node;
+  cfp.output.supported_rates = sample_rates_;
+  cfp.output.supported_channel_counts = channel_counts_;
+  cfp.output.is_utility_device = true;
+  floop_out_node.type = CRAS_NODE_TYPE_FLOOP_INTERNAL;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.output), 0);
+
+  cras_floop_pair_create_return = &cfp;
+  EXPECT_EQ(cfp.input.info.idx, cras_iodev_list_request_floop(nullptr));
+
+  floop_pair_match_output_stream_cb = [](const struct cras_floop_pair* pair,
+                                         const struct cras_rstream* stream) {
+    return stream->direction == CRAS_STREAM_OUTPUT;
+  };
+
+  // First open (d1_) fails; fallback device must still be enabled even though
+  // cfp.output succeeds.
+  cras_iodev_open_ret[0] = -5;
+  cras_iodev_open_ret[1] = 0;
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_fallback_called,
+                         1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_streams_dev, &cfp.output);
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    EXPECT_EQ(stream_add_cb(&rstream), 0);
+    EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+  }
+
+  DL_DELETE(stream_list_get_ret, &rstream);
+  EXPECT_EQ(stream_rm_cb(&rstream), 0);
+
+  cras_iodev_list_reset();
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, FlexibleLoopbackAddStreamsFailClosesNewlyOpenedDev) {
+  struct cras_rstream rstream1 = {};
+  struct cras_rstream rstream2 = {};
+  struct cras_rstream rstream3 = {};
+  struct cras_floop_pair cfp = {};
+  struct cras_ionode floop_in_node = {};
+  struct cras_ionode floop_out_node = {};
+
+  rstream1.direction = CRAS_STREAM_OUTPUT;
+  rstream1.format = fmt_;
+  rstream2.direction = CRAS_STREAM_OUTPUT;
+  rstream2.format = fmt_;
+  rstream3.direction = CRAS_STREAM_OUTPUT;
+  rstream3.format = fmt_;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.format = &fmt_;
+  ASSERT_EQ(cras_iodev_list_add(&d1_), 0);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+
+  cfp.input.direction = CRAS_STREAM_INPUT;
+  cfp.input.format = &fmt_;
+  cfp.input.nodes = &floop_in_node;
+  cfp.input.active_node = &floop_in_node;
+  cfp.input.update_active_node = update_active_node;
+  cfp.input.supported_rates = sample_rates_;
+  cfp.input.supported_channel_counts = channel_counts_;
+  cfp.input.is_utility_device = true;
+  floop_in_node.type = CRAS_NODE_TYPE_FLOOP;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.input), 0);
+
+  cfp.output.direction = CRAS_STREAM_OUTPUT;
+  cfp.output.format = &fmt_;
+  cfp.output.nodes = &floop_out_node;
+  cfp.output.active_node = &floop_out_node;
+  cfp.output.update_active_node = update_active_node;
+  cfp.output.supported_rates = sample_rates_;
+  cfp.output.supported_channel_counts = channel_counts_;
+  cfp.output.is_utility_device = true;
+  floop_out_node.type = CRAS_NODE_TYPE_FLOOP_INTERNAL;
+  ASSERT_EQ(cras_iodev_list_add(&cfp.output), 0);
+
+  cras_floop_pair_create_return = &cfp;
+  EXPECT_EQ(cfp.input.info.idx, cras_iodev_list_request_floop(nullptr));
+
+  floop_pair_match_output_stream_cb = [](const struct cras_floop_pair* pair,
+                                         const struct cras_rstream* stream) {
+    return stream->direction == CRAS_STREAM_OUTPUT;
+  };
+
+  // 1. Failing to attach to a newly opened cfp.output should keep d1_ open
+  // and close the newly opened cfp.output.
+  audio_thread_add_streams_fail_dev = &cfp.output;
+  DL_APPEND(stream_list_get_ret, &rstream1);
+  EXPECT_EQ(stream_add_cb(&rstream1), 0);
+  EXPECT_EQ(cras_iodev_is_open(&d1_), 1);
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+
+  // 2. Enabling floop while rstream1 is in stream_list also closes cfp.output
+  // if add_streams_to_open_devs fails on the newly opened cfp.output.
+  cras_iodev_list_enable_floop_pair(&cfp);
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+
+  // 3. Once cfp.output is open with rstream2, a subsequent failure adding
+  // rstream3 must NOT close the already-open cfp.output.
+  audio_thread_add_streams_fail_dev = nullptr;
+  DL_APPEND(stream_list_get_ret, &rstream2);
+  EXPECT_EQ(stream_add_cb(&rstream2), 0);
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+
+  audio_thread_add_streams_fail_dev = &cfp.output;
+  DL_APPEND(stream_list_get_ret, &rstream3);
+  EXPECT_EQ(stream_add_cb(&rstream3), 0);
+  EXPECT_EQ(cras_iodev_is_open(&d1_), 1);
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 1);
+
+  audio_thread_add_streams_fail_dev = nullptr;
+  DL_DELETE(stream_list_get_ret, &rstream3);
+  EXPECT_EQ(stream_rm_cb(&rstream3), 0);
+  DL_DELETE(stream_list_get_ret, &rstream2);
+  EXPECT_EQ(stream_rm_cb(&rstream2), 0);
+  DL_DELETE(stream_list_get_ret, &rstream1);
+  EXPECT_EQ(stream_rm_cb(&rstream1), 0);
+  EXPECT_EQ(cras_iodev_is_open(&cfp.output), 0);
+
+  cras_iodev_list_reset();
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, StyleTransferSupported) {
   cras_s2_reset_for_testing();
   cras_s2_set_style_transfer_featured_allowed(true);
@@ -4307,6 +4619,9 @@ struct cras_floop_pair* cras_floop_pair_create(
 
 bool cras_floop_pair_match_output_stream(const struct cras_floop_pair* pair,
                                          const struct cras_rstream* stream) {
+  if (floop_pair_match_output_stream_cb) {
+    return floop_pair_match_output_stream_cb(pair, stream);
+  }
   return false;
 }
 bool cras_floop_pair_match_params(const struct cras_floop_pair* pair,

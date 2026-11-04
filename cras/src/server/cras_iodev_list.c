@@ -14,6 +14,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/common/check.h"
 #include "cras/common/rust_common.h"
 #include "cras/server/cras_trace.h"
 #include "cras/server/platform/features/features.h"
@@ -1226,6 +1227,71 @@ static void restart_device_group(unsigned int dev_idx) {
   }
 }
 
+static bool should_attach_to_floop_pair(const struct cras_floop_pair* fpair,
+                                        const struct cras_rstream* stream) {
+  if (stream->is_pinned) {
+    return false;
+  }
+  return cras_floop_pair_match_output_stream(fpair, stream);
+}
+
+static void attach_stream_to_floop_devs(struct cras_rstream* rstream) {
+  struct cras_floop_pair* fpair;
+  struct cras_iodev* floop_devs[NUM_FLOOP_PAIRS_MAX];
+  struct cras_floop_pair* newly_opened_pairs[NUM_FLOOP_PAIRS_MAX];
+  unsigned int num_floop_devs = 0;
+  unsigned int num_newly_opened = 0;
+
+  if (rstream->direction != CRAS_STREAM_OUTPUT) {
+    return;
+  }
+
+  DL_FOREACH (floop_pair_list, fpair) {
+    if (!should_attach_to_floop_pair(fpair, rstream)) {
+      continue;
+    }
+    CRAS_CHECK(num_floop_devs < ARRAY_SIZE(floop_devs));
+    bool was_open = cras_iodev_is_open(&fpair->output);
+    if (init_device(&fpair->output, rstream) == 0) {
+      if (!was_open) {
+        newly_opened_pairs[num_newly_opened++] = fpair;
+      }
+      floop_devs[num_floop_devs++] = &fpair->output;
+    }
+  }
+
+  if (num_floop_devs) {
+    int rc = add_streams_to_open_devs(&rstream, 1, floop_devs, num_floop_devs);
+    if (rc) {
+      syslog(LOG_ERR, "Adding stream to floop devs failed, rc %d", rc);
+      for (unsigned int i = 0; i < num_newly_opened; i++) {
+        cras_iodev_list_disable_floop_pair(newly_opened_pairs[i]);
+      }
+    }
+  }
+}
+
+static bool floop_pair_has_streams_to_attach(
+    const struct cras_floop_pair* fpair) {
+  const struct cras_rstream* s;
+  DL_FOREACH (stream_list_get(stream_list), s) {
+    if (should_attach_to_floop_pair(fpair, s)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void possibly_close_floop_devs() {
+  struct cras_floop_pair* fpair;
+  DL_FOREACH (floop_pair_list, fpair) {
+    if (cras_iodev_is_open(&fpair->output) &&
+        !floop_pair_has_streams_to_attach(fpair)) {
+      cras_iodev_list_disable_floop_pair(fpair);
+    }
+  }
+}
+
 static int stream_added_cb(struct cras_rstream* rstream) {
   struct enabled_dev* edev;
   struct cras_iodev* iodevs[NUM_OPEN_DEVS_MAX];
@@ -1253,7 +1319,12 @@ static int stream_added_cb(struct cras_rstream* rstream) {
           rstream->format.format, rstream->format.num_channels);
 
   if (rstream->is_pinned) {
-    return pinned_stream_added(rstream);
+    rc = pinned_stream_added(rstream);
+    if (rc) {
+      return rc;
+    }
+    attach_stream_to_floop_devs(rstream);
+    return 0;
   }
 
   // Catch the stream with fallback if it is already enabled
@@ -1329,24 +1400,6 @@ static int stream_added_cb(struct cras_rstream* rstream) {
     }
   }
 
-  // Add the stream to flexible loopback devices
-  if (rstream->direction == CRAS_STREAM_OUTPUT) {
-    struct cras_floop_pair* fpair;
-    DL_FOREACH (floop_pair_list, fpair) {
-      if (!cras_floop_pair_match_output_stream(fpair, rstream)) {
-        continue;
-      }
-      if (num_iodevs >= ARRAY_SIZE(iodevs)) {
-        syslog(LOG_ERR, "too many enabled devices");
-        break;
-      }
-      rc = init_device(&fpair->output, rstream);
-      if (!rc) {
-        iodevs[num_iodevs++] = &fpair->output;
-      }
-    }
-  }
-
   if (num_iodevs) {
     /* Add stream failure is considered critical because it'll
      * trigger client side error. Collect the error type and send
@@ -1386,6 +1439,8 @@ static int stream_added_cb(struct cras_rstream* rstream) {
   if (num_iodevs || iodev_reopened) {
     possibly_disable_fallback(rstream->direction);
   }
+
+  attach_stream_to_floop_devs(rstream);
 
   return 0;
 }
@@ -1430,17 +1485,6 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir) {
     clock_gettime(CLOCK_MONOTONIC_RAW, &edev->dev->idle_timeout);
     add_timespecs(&edev->dev->idle_timeout, &idle_timeout_interval);
     idle_dev_check(NULL, NULL);
-  }
-
-  // Flexible loopback (internal) devices are not enabled
-  // and should not have pinned streams.
-  if (dir == CRAS_STREAM_OUTPUT) {
-    struct cras_floop_pair* fpair;
-    DL_FOREACH (floop_pair_list, fpair) {
-      if (cras_iodev_is_open(&fpair->output)) {
-        cras_iodev_list_disable_floop_pair(fpair);
-      }
-    }
   }
 
   return 0;
@@ -1521,6 +1565,9 @@ static int stream_removed_cb(struct cras_rstream* rstream) {
   }
 
   possibly_close_enabled_devs(direction);
+  if (direction == CRAS_STREAM_OUTPUT) {
+    possibly_close_floop_devs();
+  }
 
   return 0;
 }
@@ -2791,18 +2838,31 @@ void cras_iodev_list_enable_floop_pair(struct cras_floop_pair* pair) {
   struct cras_rstream* stream;
   struct cras_rstream* streams[NUM_STREAMS_ATTACHED_MAX];
   unsigned int num_streams = 0;
+  bool was_open = cras_iodev_is_open(&pair->output);
+
   DL_FOREACH (stream_list_get(stream_list), stream) {
-    if (cras_floop_pair_match_output_stream(pair, stream)) {
-      int rc = init_device(&pair->output, stream);
-      if (rc != 0) {
-        continue;
-      }
-      streams[num_streams++] = stream;
+    if (!should_attach_to_floop_pair(pair, stream)) {
+      continue;
     }
+    if (num_streams >= ARRAY_SIZE(streams)) {
+      syslog(LOG_ERR, "Too many streams to attach to flexible loopback.");
+      break;
+    }
+    int rc = init_device(&pair->output, stream);
+    if (rc != 0) {
+      continue;
+    }
+    streams[num_streams++] = stream;
   }
   if (num_streams) {
     struct cras_iodev* devs[] = {&pair->output};
-    add_streams_to_open_devs(streams, num_streams, devs, 1);
+    int rc = add_streams_to_open_devs(streams, num_streams, devs, 1);
+    if (rc) {
+      syslog(LOG_ERR, "Adding streams to enabled floop dev failed, rc %d", rc);
+      if (!was_open) {
+        cras_iodev_list_disable_floop_pair(pair);
+      }
+    }
   }
 }
 
