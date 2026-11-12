@@ -74,6 +74,7 @@ static void* device_disabled_cb_data;
 static struct cras_rstream* audio_thread_add_streams_streams[10];
 static unsigned audio_thread_add_streams_num_streams;
 static struct cras_iodev* audio_thread_add_streams_dev;
+static struct cras_iodev* audio_thread_add_streams_fail_dev;
 static struct cras_iodev* audio_thread_disconnect_stream_dev;
 static int audio_thread_add_streams_called;
 static int audio_thread_add_streams_fallback_called;
@@ -233,6 +234,7 @@ class IodevTests : public TestBase {
     audio_thread_rm_open_dev_called = 0;
     audio_thread_add_open_dev_called = 0;
     audio_thread_add_streams_called = 0;
+    audio_thread_add_streams_fail_dev = nullptr;
     update_active_node_called = 0;
     cras_observer_add_called = 0;
     cras_observer_remove_called = 0;
@@ -3536,6 +3538,55 @@ TEST_F(IoDevTestSuite, RequestFloop) {
   cras_iodev_list_reset();
 }
 
+TEST_F(IoDevTestSuite, StreamAddedFailDisconnectsFromFallback) {
+  struct cras_rstream rstream1 = {};
+  struct cras_rstream rstream2 = {};
+
+  rstream1.direction = CRAS_STREAM_OUTPUT;
+  rstream1.format = fmt_;
+  rstream2.direction = CRAS_STREAM_OUTPUT;
+  rstream2.format = fmt_;
+
+  cras_iodev_list_init();
+
+  // Add rstream1 with no enabled output device so fallback is enabled.
+  DL_APPEND(stream_list_get_ret, &rstream1);
+  EXPECT_EQ(stream_add_cb(&rstream1), 0);
+  EXPECT_EQ(cras_iodev_list_dev_is_enabled(fallback_devs[CRAS_STREAM_OUTPUT]),
+            1);
+
+  // Add d1_ into enabled_devs directly while fallback is still enabled, then
+  // fail audio_thread_add_streams on d1_ when rstream2 is added. rstream2 was
+  // caught by fallback at the start of stream_added_cb, so the error path must
+  // disconnect rstream2 from all devices before returning an error.
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.format = &fmt_;
+  ASSERT_EQ(cras_iodev_list_add(&d1_), 0);
+  struct enabled_dev edev = {};
+  edev.dev = &d1_;
+  DL_APPEND(enabled_devs[CRAS_STREAM_OUTPUT], &edev);
+
+  audio_thread_add_streams_fail_dev = &d1_;
+  audio_thread_disconnect_stream_called = 0;
+  audio_thread_disconnect_stream_stream = nullptr;
+  audio_thread_disconnect_stream_dev = &d1_;
+
+  DL_APPEND(stream_list_get_ret, &rstream2);
+  EXPECT_EQ(stream_add_cb(&rstream2), -EINVAL);
+  EXPECT_EQ(audio_thread_disconnect_stream_called, 1);
+  EXPECT_EQ(audio_thread_disconnect_stream_stream, &rstream2);
+  EXPECT_EQ(audio_thread_disconnect_stream_dev, nullptr);
+
+  DL_DELETE(enabled_devs[CRAS_STREAM_OUTPUT], &edev);
+  DL_DELETE(stream_list_get_ret, &rstream2);
+  DL_DELETE(stream_list_get_ret, &rstream1);
+  audio_thread_add_streams_fail_dev = nullptr;
+  EXPECT_EQ(stream_rm_cb(&rstream1), 0);
+
+  cras_iodev_list_reset();
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, StyleTransferSupported) {
   cras_s2_reset_for_testing();
   cras_s2_set_style_transfer_featured_allowed(true);
@@ -3872,6 +3923,11 @@ int audio_thread_add_streams(struct audio_thread* thread,
   }
   audio_thread_add_streams_num_streams = num_streams;
   audio_thread_add_streams_dev = num_devs ? devs[0] : nullptr;
+  for (unsigned int i = 0; i < num_devs; ++i) {
+    if (devs[i] == audio_thread_add_streams_fail_dev) {
+      return -EINVAL;
+    }
+  }
   return 0;
 }
 

@@ -108,7 +108,12 @@ int cras_iodev_frames_queued(struct cras_iodev* iodev,
 
 struct dev_stream* cras_iodev_rm_stream(struct cras_iodev* iodev,
                                         const struct cras_rstream* stream) {
-  return NULL;
+  struct dev_stream* out;
+  DL_SEARCH_SCALAR(iodev->streams, out, stream, stream);
+  if (out) {
+    DL_DELETE(iodev->streams, out);
+  }
+  return out;
 }
 
 int cras_iodev_update_rate(struct cras_iodev* iodev,

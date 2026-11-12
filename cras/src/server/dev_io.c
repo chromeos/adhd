@@ -1625,10 +1625,19 @@ int dev_io_append_stream(struct open_dev** odevs,
   int level;
   int rc = 0;
 
+  if (num_iodevs == 0) {
+    return 0;
+  }
+
   if (stream->direction == CRAS_STREAM_OUTPUT) {
     dev_list = odevs;
   } else {
     dev_list = idevs;
+  }
+
+  bool* stream_added = calloc(num_iodevs, sizeof(*stream_added));
+  if (!stream_added) {
+    return -ENOMEM;
   }
 
   for (i = 0; i < num_iodevs; i++) {
@@ -1745,6 +1754,7 @@ int dev_io_append_stream(struct open_dev** odevs,
     }
 
     cras_iodev_add_stream(dev, out);
+    stream_added[i] = true;
 
     /*
      * For multiple inputs case, if the new stream is not the first
@@ -1771,18 +1781,14 @@ int dev_io_append_stream(struct open_dev** odevs,
   }
 
   if (rc) {
-    DL_FOREACH (*dev_list, open_dev) {
-      dev = open_dev->dev;
-      DL_SEARCH_SCALAR(dev->streams, out, stream, stream);
-      if (!out) {
-        continue;
+    for (unsigned int j = 0; j < num_iodevs; j++) {
+      if (stream_added[j]) {
+        delete_stream_from_dev(iodevs[j], stream);
       }
-
-      cras_iodev_rm_stream(dev, stream);
-      dev_stream_destroy(out);
     }
   }
 
+  free(stream_added);
   return rc;
 }
 

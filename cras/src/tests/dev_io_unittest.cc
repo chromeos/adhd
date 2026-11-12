@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "cras/src/server/cras_iodev.h"    // stubbed
 #include "cras/src/server/cras_rstream.h"  // stubbed
@@ -31,6 +32,9 @@ static unsigned int dev_stream_capture_avail_ret = 480;
 static bool cras_system_get_force_respect_ui_gains_enabled_ret = false;
 static uint64_t cras_stream_apm_get_effects_ret = 0;
 static int cras_audio_thread_event_severe_underrun_called;
+static unsigned int dev_stream_create_fail_dev_id;
+static int dev_stream_destroy_called;
+static std::unordered_set<struct dev_stream*> created_dev_streams;
 struct set_dev_rate_data {
   unsigned int dev_rate;
   double dev_rate_ratio;
@@ -56,6 +60,9 @@ class DevIoSuite : public testing::Test {
         create_stream(1, 1, CRAS_STREAM_OUTPUT, cb_threshold, &format);
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
     cras_audio_thread_event_severe_underrun_called = 0;
+    dev_stream_create_fail_dev_id = 0;
+    dev_stream_destroy_called = 0;
+    created_dev_streams.clear();
   }
 
   virtual void TearDown() { free(atlog); }
@@ -535,6 +542,59 @@ TEST_F(DevIoSuite, GetWriteLimitAllDrainingStreams) {
   EXPECT_EQ(0, get_write_limit(&dev_list, dev_list, 960));
 }
 
+TEST_F(DevIoSuite, AppendStreamFailurePreservesExistingDevices) {
+  struct open_dev* odev_list = nullptr;
+  struct open_dev* idev_list = nullptr;
+
+  DevicePtr dev0 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_HEADPHONE, 0);
+  DevicePtr dev2 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_USB, 0);
+  DevicePtr dev3 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_HDMI, 0);
+  dev0->dev->info.idx = 1;
+  dev1->dev->info.idx = 2;
+  dev2->dev->info.idx = 3;
+  dev3->dev->info.idx = 4;
+
+  DL_APPEND(odev_list, dev0->odev.get());
+  DL_APPEND(odev_list, dev1->odev.get());
+  DL_APPEND(odev_list, dev2->odev.get());
+  DL_APPEND(odev_list, dev3->odev.get());
+
+  ShmPtr shm = create_shm(cb_threshold);
+  RstreamPtr rstream =
+      create_rstream(10, CRAS_STREAM_OUTPUT, cb_threshold, &format, shm.get());
+
+  // Pre-attach rstream to dev0 (not in subsequent iodevs[]) and dev1 (in
+  // subsequent iodevs[]).
+  struct cras_iodev* initial_devs[] = {dev0->dev.get(), dev1->dev.get()};
+  ASSERT_EQ(0, dev_io_append_stream(&odev_list, &idev_list, rstream.get(),
+                                    initial_devs, 2));
+  ASSERT_NE(nullptr, dev0->dev->streams);
+  ASSERT_NE(nullptr, dev1->dev->streams);
+  ASSERT_EQ(2, rstream->num_attached_devs);
+
+  // Appending to [dev1, dev2, dev3] where dev3 fails should roll back newly
+  // added dev2 while preserving pre-existing attachments on dev0 and dev1.
+  dev_stream_create_fail_dev_id = dev3->dev->info.idx;
+  struct cras_iodev* append_devs[] = {dev1->dev.get(), dev2->dev.get(),
+                                      dev3->dev.get()};
+  EXPECT_EQ(-EINVAL, dev_io_append_stream(&odev_list, &idev_list, rstream.get(),
+                                          append_devs, 3));
+  EXPECT_NE(nullptr, dev0->dev->streams);
+  EXPECT_NE(nullptr, dev1->dev->streams);
+  EXPECT_EQ(nullptr, dev2->dev->streams);
+  EXPECT_EQ(nullptr, dev3->dev->streams);
+  EXPECT_EQ(2, rstream->num_attached_devs);
+  EXPECT_EQ(1, dev_stream_destroy_called);
+
+  dev_io_remove_stream(&odev_list, rstream.get(), nullptr);
+  EXPECT_EQ(0, rstream->num_attached_devs);
+}
+
 // Stubs
 extern "C" {
 
@@ -636,7 +696,13 @@ int dev_stream_request_playback_samples(struct dev_stream* dev_stream,
 int dev_stream_playback_update_rstream(struct dev_stream* dev_stream) {
   return 0;
 }
-void dev_stream_destroy(struct dev_stream* dev_stream) {}
+void dev_stream_destroy(struct dev_stream* dev_stream) {
+  dev_stream_destroy_called++;
+  if (created_dev_streams.erase(dev_stream)) {
+    dev_stream->stream->num_attached_devs--;
+    free(dev_stream);
+  }
+}
 unsigned int dev_stream_capture_avail(const struct dev_stream* dev_stream) {
   return dev_stream_capture_avail_ret;
 }
@@ -646,7 +712,21 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
                                      struct cras_iodev* iodev,
                                      struct timespec* cb_ts,
                                      const struct timespec* sleep_interval_ts) {
-  return 0;
+  if (dev_stream_create_fail_dev_id != 0 &&
+      dev_id == dev_stream_create_fail_dev_id) {
+    return nullptr;
+  }
+  struct dev_stream* out =
+      static_cast<struct dev_stream*>(calloc(1, sizeof(*out)));
+  out->dev_id = dev_id;
+  out->stream = stream;
+  out->iodev = iodev;
+  out->dev_rate = stream->format.frame_rate;
+  out->is_running = true;
+  stream->next_cb_ts = *cb_ts;
+  stream->num_attached_devs++;
+  created_dev_streams.insert(out);
+  return out;
 }
 int cras_device_monitor_error_close(unsigned int dev_idx) {
   return 0;

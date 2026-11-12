@@ -1362,6 +1362,7 @@ static int stream_added_cb(struct cras_rstream* rstream) {
 
     if (rc) {
       syslog(LOG_ERR, "adding stream to thread fail, rc %d", rc);
+      audio_thread_disconnect_stream(audio_thread, rstream, NULL);
       if (stream_is_sidetone(rstream) &&
           rstream->direction == CRAS_STREAM_OUTPUT) {
         unconfigure_sidetone_streams(rstream);
