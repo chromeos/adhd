@@ -511,6 +511,12 @@ static void dsp_util_interleave_s16le(float* const* input,
   }
 }
 
+static inline int32_t float_to_s32(float input) {
+  double f = (double)input * 2147483648.0;
+  f += (f >= 0) ? 0.5 : -0.5;
+  return max((double)INT_MIN, min((double)INT_MAX, f));
+}
+
 static void dsp_util_interleave_s24le(float* const* input,
                                       int32_t* output,
                                       int channels,
@@ -524,9 +530,7 @@ static void dsp_util_interleave_s24le(float* const* input,
 
   for (i = 0; i < frames; i++) {
     for (j = 0; j < channels; j++, output++) {
-      float f = *(input_ptr[j]++) * 2147483648.0f;
-      f += (f >= 0) ? 0.5f : -0.5f;
-      *output = max((float)INT_MIN, min((float)INT_MAX, f));
+      *output = float_to_s32(*(input_ptr[j]++));
       *output = (*output >> 8) & 0x00ffffff;
     }
   }
@@ -546,9 +550,7 @@ static void dsp_util_interleave_s243le(float* const* input,
 
   for (i = 0; i < frames; i++) {
     for (j = 0; j < channels; j++, output += 3) {
-      float f = *(input_ptr[j]++) * 2147483648.0f;
-      f += (f >= 0) ? 0.5f : -0.5f;
-      tmp = max((float)INT_MIN, min((float)INT_MAX, f));
+      tmp = float_to_s32(*(input_ptr[j]++));
       tmp >>= 8;
       memcpy(output, &tmp, 3);
     }
@@ -568,9 +570,7 @@ static void dsp_util_interleave_s32le(float* const* input,
 
   for (i = 0; i < frames; i++) {
     for (j = 0; j < channels; j++, output++) {
-      float f = *(input_ptr[j]++) * 2147483648.0f;
-      f += (f >= 0) ? 0.5f : -0.5f;
-      *output = max((float)INT_MIN, min((float)INT_MAX, f));
+      *output = float_to_s32(*(input_ptr[j]++));
     }
   }
 }

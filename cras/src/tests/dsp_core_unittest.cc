@@ -164,6 +164,107 @@ TEST(InterleaveTest, All) {
   }
 }
 
+TEST(InterleaveTest, S32LE) {
+  const int FRAMES = 4;
+  float ch0[FRAMES] = {-1.5f, -1.0f, 0.0f, 1.0f};
+  float ch1[FRAMES] = {-0.5f, 0.5f, 1.0f, 1.5f};
+  float* in_ptr[] = {ch0, ch1};
+
+  int32_t interleaved[FRAMES * 2] = {0};
+  EXPECT_EQ(0, dsp_util_interleave(in_ptr, (uint8_t*)interleaved, 2,
+                                   SND_PCM_FORMAT_S32_LE, FRAMES));
+
+  int32_t expected[FRAMES * 2] = {
+      INT32_MIN, -1073741824, INT32_MIN, 1073741824,
+      0,         INT32_MAX,   INT32_MAX, INT32_MAX,
+  };
+  for (int i = 0; i < FRAMES * 2; i++) {
+    EXPECT_EQ(expected[i], interleaved[i]) << "at index " << i;
+  }
+
+  float out_ch0[FRAMES] = {0};
+  float out_ch1[FRAMES] = {0};
+  float* out_ptr[] = {out_ch0, out_ch1};
+  EXPECT_EQ(0, dsp_util_deinterleave((uint8_t*)interleaved, out_ptr, 2,
+                                     SND_PCM_FORMAT_S32_LE, FRAMES));
+  EXPECT_FLOAT_EQ(-1.0f, out_ch0[0]);
+  EXPECT_FLOAT_EQ(-0.5f, out_ch1[0]);
+  EXPECT_FLOAT_EQ(-1.0f, out_ch0[1]);
+  EXPECT_FLOAT_EQ(0.5f, out_ch1[1]);
+  EXPECT_FLOAT_EQ(0.0f, out_ch0[2]);
+  EXPECT_NEAR(1.0f, out_ch1[2], 1e-7f);
+  EXPECT_NEAR(1.0f, out_ch0[3], 1e-7f);
+  EXPECT_NEAR(1.0f, out_ch1[3], 1e-7f);
+}
+
+TEST(InterleaveTest, S24LE) {
+  const int FRAMES = 4;
+  float ch0[FRAMES] = {-1.5f, -1.0f, 0.0f, 1.0f};
+  float ch1[FRAMES] = {-0.5f, 0.5f, 1.0f, 1.5f};
+  float* in_ptr[] = {ch0, ch1};
+
+  int32_t interleaved[FRAMES * 2] = {0};
+  EXPECT_EQ(0, dsp_util_interleave(in_ptr, (uint8_t*)interleaved, 2,
+                                   SND_PCM_FORMAT_S24_LE, FRAMES));
+
+  int32_t expected[FRAMES * 2] = {
+      0x00800000, 0x00c00000, 0x00800000, 0x00400000,
+      0x00000000, 0x007fffff, 0x007fffff, 0x007fffff,
+  };
+  for (int i = 0; i < FRAMES * 2; i++) {
+    EXPECT_EQ(expected[i], interleaved[i]) << "at index " << i;
+  }
+
+  float out_ch0[FRAMES] = {0};
+  float out_ch1[FRAMES] = {0};
+  float* out_ptr[] = {out_ch0, out_ch1};
+  EXPECT_EQ(0, dsp_util_deinterleave((uint8_t*)interleaved, out_ptr, 2,
+                                     SND_PCM_FORMAT_S24_LE, FRAMES));
+  EXPECT_FLOAT_EQ(-1.0f, out_ch0[0]);
+  EXPECT_FLOAT_EQ(-0.5f, out_ch1[0]);
+  EXPECT_FLOAT_EQ(-1.0f, out_ch0[1]);
+  EXPECT_FLOAT_EQ(0.5f, out_ch1[1]);
+  EXPECT_FLOAT_EQ(0.0f, out_ch0[2]);
+  EXPECT_NEAR(1.0f, out_ch1[2], 1e-6f);
+  EXPECT_NEAR(1.0f, out_ch0[3], 1e-6f);
+  EXPECT_NEAR(1.0f, out_ch1[3], 1e-6f);
+}
+
+TEST(InterleaveTest, S243LE) {
+  const int FRAMES = 4;
+  float ch0[FRAMES] = {-1.5f, -1.0f, 0.0f, 1.0f};
+  float ch1[FRAMES] = {-0.5f, 0.5f, 1.0f, 1.5f};
+  float* in_ptr[] = {ch0, ch1};
+
+  uint8_t interleaved[FRAMES * 2 * 3] = {0};
+  EXPECT_EQ(0, dsp_util_interleave(in_ptr, interleaved, 2,
+                                   SND_PCM_FORMAT_S24_3LE, FRAMES));
+
+  int32_t expected_samples[FRAMES * 2] = {
+      -8388608, -4194304, -8388608, 4194304, 0, 8388607, 8388607, 8388607,
+  };
+  for (int i = 0; i < FRAMES * 2; i++) {
+    int32_t sample = 0;
+    memcpy((uint8_t*)&sample + 1, interleaved + i * 3, 3);
+    sample >>= 8;
+    EXPECT_EQ(expected_samples[i], sample) << "at index " << i;
+  }
+
+  float out_ch0[FRAMES] = {0};
+  float out_ch1[FRAMES] = {0};
+  float* out_ptr[] = {out_ch0, out_ch1};
+  EXPECT_EQ(0, dsp_util_deinterleave(interleaved, out_ptr, 2,
+                                     SND_PCM_FORMAT_S24_3LE, FRAMES));
+  EXPECT_FLOAT_EQ(-1.0f, out_ch0[0]);
+  EXPECT_FLOAT_EQ(-0.5f, out_ch1[0]);
+  EXPECT_FLOAT_EQ(-1.0f, out_ch0[1]);
+  EXPECT_FLOAT_EQ(0.5f, out_ch1[1]);
+  EXPECT_FLOAT_EQ(0.0f, out_ch0[2]);
+  EXPECT_NEAR(1.0f, out_ch1[2], 1e-6f);
+  EXPECT_NEAR(1.0f, out_ch0[3], 1e-6f);
+  EXPECT_NEAR(1.0f, out_ch1[3], 1e-6f);
+}
+
 TEST(EqTest, All) {
   struct eq* eq;
   size_t len = 44100;
